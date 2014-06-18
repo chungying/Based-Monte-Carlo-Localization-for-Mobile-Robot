@@ -1,12 +1,36 @@
 package robot;
 
-public class RobotState {
-	public int x;
-	public int y;
-	public double head;
-	//public Degree th;
-	public int Vt;
-	public double Wt;
+import java.io.IOException;
+
+import samcl.Grid;
+import util.gui.RobotListener;
+import util.metrics.Transformer;
+
+public class RobotState implements Runnable{
+	private double x;
+	private double y;
+	private double head;
+	private double Vt;
+	private double Wt;
+	private float[] measurements;
+	
+	private boolean onCloud;
+	private Grid grid = null;
+	
+
+	public RobotState(int x, int y, double head) {
+		super();
+		System.out.println("initial robot");
+		this.x = x;
+		this.y = y;
+		this.head = Transformer.checkHeadRange(head);
+		Vt = 0;
+		Wt = 0;
+		
+		//TODO
+		//setup Grid and onCloud
+		this.grid = null;
+	}
 	
 	/**
 	 * @param x
@@ -15,28 +39,70 @@ public class RobotState {
 	 * @param vt
 	 * @param wt
 	 */
-	public RobotState(int x, int y, double head) {
+	public RobotState(int x, int y, double head, Grid grid) {
 		super();
 		System.out.println("initial robot");
 		this.x = x;
 		this.y = y;
-		this.head = head;
+		this.head = Transformer.checkHeadRange(head);
 		Vt = 0;
 		Wt = 0;
+		
+		//TODO
+		//setup Grid and onCloud
+		this.grid = grid;
 	}
 	
-	public void Update(){
-		this.x = this.x + (int) (Vt*Math.cos(Math.toRadians(head))) /*+ (int)(Math.round(Wt))*/;
-		this.y = this.y + (int) (Vt*Math.sin(Math.toRadians(head))) /*+ (int)(Math.round(Wt))*/;
-		this.head = (this.head + this.Wt+720)%360;	
+	public void update(double t) throws IOException{
+		this.x = this.x +  ( Vt * t * Math.cos( Math.toRadians(head) ) ) /*+ (int)(Math.round(Wt))*/;
+		this.y = this.y +  ( Vt * t * Math.sin( Math.toRadians(head) ) ) /*+ (int)(Math.round(Wt))*/;
+		this.head = Transformer.checkHeadRange((this.Wt * t) + this.head);
 		System.out.println(this.toString());
 	}
 
-	public int getVt() {
+	private float[] updateSensor() throws IOException {
+		this.grid.getMeasurements(onCloud, getX(), getY(), getHead());
+		return null;
+	}
+
+	@Override
+	public void run(){
+		long time = 0;
+		long duration = 0;
+		while(true){
+			time = System.currentTimeMillis();
+			//delay
+			try {
+				Thread.sleep(10);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			System.out.print(time+ "\t");
+			try {
+				//update kinematic model
+				this.update(duration/1000.0);
+				
+				//update sensor data 
+				if(this.grid!=null){
+					this.updateSensor();
+				}	
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			//next iteration
+			duration = System.currentTimeMillis() - time;
+		}
+	}
+
+	public double getVt() {
 		return Vt;
 	}
 
-	public void setVt(int vt) {
+	public void setVt(double vt) {
 		Vt = vt;
 	}
 
@@ -55,27 +121,44 @@ public class RobotState {
 	}
 
 	public int getX() {
-		return x;
+		return (int)Math.round(x);
 	}
 
 	public int getY() {
-		return y;
-	}
-
-	public int getZ() {
-		return 1;
+		return (int)Math.round(y);
 	}
 	
 	public double getHead() {
 		return head;
 	}
 
+	public float[] getMeasurements() {
+		return measurements;
+	}
+
+	public void setMeasurements(float[] measurements) {
+		this.measurements = measurements;
+	}
+
 	@Override
 	public String toString() {
-		return "RobotState (" + x + ", " + y + ", " + head + "), ["
-				+ Vt + ", " + Wt + "]";
+		return "RobotState (" + x + "\t," + y + "\t," + head + "\t),\n["
+				+ Vt + "\t," + Wt + "\t]";
 	}
+
 	
 	
+	@SuppressWarnings("unused")
+	public static void main(String[] args) throws IOException{
+		//test
+		RobotState robot = new RobotState(25,25,90);
+		//robot.setWt(1);
+		robot.setVt(1);
+		Thread t = new Thread(robot);
+		t.start();
+		RobotListener lstn = new RobotListener("test", robot);
+		
+		
+	}
 	
 }

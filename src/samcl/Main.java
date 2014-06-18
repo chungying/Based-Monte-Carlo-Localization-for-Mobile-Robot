@@ -4,12 +4,20 @@ package samcl;
 import java.io.IOException;
 import java.util.Arrays;
 
+import robot.RobotState;
+import util.gui.RobotListener;
+import util.gui.SamclListener;
+
 import com.beust.jcommander.JCommander;
 
 public class Main {
 	
 	public static void main(String[] args) throws IOException {
-		
+		/**
+		 * First step:
+		 * to create the localization algorithm
+		 * and setup the listener for SAMCL
+		 */
 		SAMCL samcl = new SAMCL(
 				18, //orientation
 				//"file:///home/w514/map.jpg",//map image file
@@ -22,6 +30,7 @@ public class Main {
 				10);//competitive strength
 		
 		new JCommander(samcl, args);
+		SamclListener samclListener = new SamclListener("samcl tuner", samcl);
 		
 		if(!samcl.onCloud){
 			if (!Arrays.asList(args).contains("-i") && !Arrays.asList(args).contains("--image")) {
@@ -30,12 +39,26 @@ public class Main {
 				samcl.map_filename = filepath;
 				
 			}
-			System.out.println("start to pre-caching");
+			
 			samcl.setup();
-			samcl.Pre_caching();
+			System.out.println("start to pre-caching");
+			//samcl.Pre_caching();
 		}else
 			samcl.setup();
-		samcl.run();
+		
+		/**
+		 * Second step:
+		 * to create a robot
+		 * setup the listener of Robot
+		 * */
+		RobotState robot = new RobotState(0, 0, 0, samcl.precomputed_grid);
+		RobotListener robotListener = new RobotListener("robot controller", robot);
+		
+		/**
+		 * Third step:
+		 * start to run samcl
+		 */
+		samcl.run(robot);
 //		int counter = 0;
 //		while(true){
 //			counter++;
@@ -44,20 +67,4 @@ public class Main {
 //		}
 		
 	}
-	
-/*	public static void preCachingTime(SAMCL samcl, int times){
-		for (int i = 0; i < times; i++) {
-			System.out.println("start SAMCL");
-			Date start_time = new Date();
-			long start_tick = System.currentTimeMillis();
-			System.out.println("end : " + start_time.toString());
-			samcl.Pre_caching();
-			Date end_time = new Date();
-			long end_tick = System.currentTimeMillis();
-			long diff = end_tick - start_tick;
-			System.out.println("end : " + end_time.toString());
-			System.out.println("waste time : " + String.valueOf(diff) + " ms");
-		}
-	}*/
-
 }

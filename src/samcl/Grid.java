@@ -44,6 +44,7 @@ import org.apache.hadoop.mapreduce.Reducer.Context;
 
 import util.gui.MouseListener;
 import util.metrics.Particle;
+import util.metrics.Transformer;
 
 
 
@@ -201,6 +202,7 @@ public class Grid extends MouseAdapter {
 	 */
 	public static boolean GRID_OCCUPIED = false;
 	public static boolean GRID_EMPTY = true;
+	private int safe_edge = 10;
 	public int width;
 	public int height;
 	public int orientation;
@@ -240,7 +242,7 @@ public class Grid extends MouseAdapter {
 	 */
 	private boolean[][] map_array;
 	/**
-	 * pre_compute()
+	 * 
 	 */
 	public position[][] G;
 
@@ -325,7 +327,7 @@ public class Grid extends MouseAdapter {
 							Integer.parseInt(pose[0])-10000,
 							Integer.parseInt(Bytes.toString(CellUtil.cloneValue(cell)))
 							);
-					if(ifSafeEmpty(p))
+					if(p.underSafeEdge(width, height, safe_edge))
 						ser_set.add(p);
 					//System.out.println(p.toString());
 					//System.out.println("----------------------------------------------------");
@@ -334,26 +336,15 @@ public class Grid extends MouseAdapter {
 		}
 	}
 	
-	public boolean ifSafeEmpty(Particle p){
-		int X = p.getX();
-		int Y = p.getY();
-		return this.ifSafeEmpty(X, Y);
-	}
-	private int safe_edge = 10;
-	public boolean ifSafeEmpty(int X, int Y){
-		if(		X > this.safe_edge && 
-				Y > this.safe_edge &&
-				X < (this.width-this.safe_edge) && 
-				Y < (this.height-this.safe_edge))
-		{
-			return true;
-		}
-		else 
-		{
-			return false;
-		}
-	}
 	
+	
+	
+	
+	public void getBatchFromCloud(Vector<Particle> particles) {
+		// TODO Auto-generated method stub
+		
+	}
+
 	private float[] getFromCloud(int X, int Y, int Z) throws IOException{
 		//TODOdone count RPC times
 		this.RPCcount++;
@@ -396,6 +387,11 @@ public class Grid extends MouseAdapter {
 		}
 	}
 	
+	public float[] getMeasurements(boolean onCloud, int x, int y, double head) throws IOException {
+		return this.getMeasurements(onCloud, x, y, Transformer.th2Z(head, this.orientation_delta_degree));
+		
+	}
+
 	public float[] getMeasurements( boolean oncloud, int X, int Y, int Z) throws IOException{
 		if(oncloud){
 			//System.out.println("get from CLOUD!!!!!");

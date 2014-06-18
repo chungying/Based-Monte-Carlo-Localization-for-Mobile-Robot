@@ -15,8 +15,11 @@ public class Particle implements Cloneable{
 	 * be initialized outside
 	*/
 	private float weight;
-	
-	
+	/**
+	 * assgned from outside
+	 */
+	private boolean ifmeasurements;
+	private float[] measurements;
 
 	/**
 	 * 
@@ -40,11 +43,9 @@ public class Particle implements Cloneable{
 		this.z = z;
 		this.orientation = orientation2;
 		this.delta_degree = 360/this.orientation;
-		//this.th = this.z * this.delta_degree;
 	}
 
 	public Particle(Particle particle) {
-		// TODO Auto-generated constructor stub
 		this(particle.getX(), particle.getY(), particle.getZ(), particle.orientation);
 	}
 
@@ -130,7 +131,7 @@ public class Particle implements Cloneable{
 	}
 
 	@Override
-	public Particle/*Object*/ clone() {
+	public Particle clone() {
 		// TODO Auto-generated method stub
 		try {
 			Particle p = (Particle)super.clone();
@@ -142,6 +143,43 @@ public class Particle implements Cloneable{
 		}
 	}
 
+	public boolean underSafeEdge(int width, int height, int safeEdge){
+		return Particle.underSafeEdge(x, y, width, height, safeEdge);
+	}
+	
+	static public boolean underSafeEdge(int x, int y, int width, int height, int safeEdge){
+		//check out all of the input are positive
+		if(x<0 || y<0 || width<0 || height<0 || safeEdge<0)
+			return false;
+		
+		if(		x > safeEdge && 
+				y > safeEdge &&
+				x < (width-safeEdge) && 
+				y < (height-safeEdge))
+		{
+			return true;
+		}
+		else 
+		{
+			return false;
+		}
+	}
+
+	public float[] getMeasurements() {
+		return measurements;
+	}
+
+	public void setMeasurements(float[] measurements2) {
+		this.ifmeasurements = true;
+		this.measurements = measurements2;
+		
+	}
+
+	public boolean isIfmeasurements() {
+		return ifmeasurements;
+	}
+	
+	
 
 	
 }

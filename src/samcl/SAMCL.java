@@ -18,11 +18,11 @@ import org.apache.hadoop.hbase.HBaseConfiguration;
 
 import robot.VelocityModel;
 import robot.RobotState;
-import util.gui.JFrameListener;
 import util.gui.Panel;
 import util.gui.WindowListen;
 import util.metrics.Distribution;
 import util.metrics.Particle;
+import util.metrics.Transformer;
 
 import com.beust.jcommander.Parameter;
 
@@ -35,68 +35,51 @@ import com.beust.jcommander.Parameter;
  *part5:Combining two particle sets
  */
 public class SAMCL {
-	
 	public boolean isClosing;
 	/**
 	 * run SAMCL
 	 * @throws IOException 
 	 */
-	public synchronized void run() throws IOException{
+	public synchronized void run(RobotState robot) throws IOException{
 		this.isClosing = false;
-		RobotState robot = new RobotState(32,41,0);
-		
+		//robot = new RobotState(32,41,0);
 	
-		@SuppressWarnings("unused")
-		JFrameListener control_window = new JFrameListener("control window", robot, this);
+		System.out.println("press enter to continue.");
+		System.in.read();
+	
 		
-		
-		System.out.println("press any key to continue.");
-		try {
-			System.in.read();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		
-		//Cloud , Grid class----separately computing first 
-		//this.Pre_caching();
-
-		//Drawing
+		//Drawing the image
 		BufferedImage samcl_image = new BufferedImage(this.precomputed_grid.width,this.precomputed_grid.height, BufferedImage.TYPE_INT_ARGB);
-		JFrame samcl_window = new JFrame("samcl image");
-		//samcl_window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		samcl_window.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-		WindowListen wl = new WindowListen(samcl_window, this.isClosing);
-		samcl_window.addWindowListener(wl);
 		Graphics2D grap = samcl_image.createGraphics();
 		//Cloud , Grid class------done
 		grap.drawImage(this.precomputed_grid.map_image, null, 0, 0);
 		grap.setColor(Color.RED);
-		
-		//Initial Particles
-		
+				
+		//Initial Particles and Painting
 		this.last_set.clear();
 		Particle p = null;
 		for (int i = 0; i < this.Nt; i++) {
 			p=this.global_sampling();
 			this.last_set.addElement(p);
 			grap.drawOval(p.getX()-2, p.getY()-2, 4, 4);
-			
 		}
 		
-		//Assign the robot Position
-		//Particle Pz = new Particle(200, 200, 0);
-		//int robotz = this.th2Z( robot.getHead() );
-		
-		//TODO From Robot
-		//Cloud , Grid class-----done
-		float[] Zt = this.precomputed_grid.getMeasurements( onCloud, robot.getX(), robot.getY(), this.th2Z(robot.getHead()) );
-		
+		//Painting on the Frame.		
+		JFrame samcl_window = new JFrame("samcl image");
+		//samcl_window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		samcl_window.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+		WindowListen wl = new WindowListen(samcl_window, this.isClosing);
+		samcl_window.addWindowListener(wl);
 		//Show window
 		samcl_window.setSize(width, height);
 		//samcl_window.add(new JLabel(new ImageIcon(samcl_image)));
 		Panel image_panel = new Panel(samcl_image);
 		samcl_window.add(image_panel);
 		samcl_window.setVisible(true);
+				
+		//get the robot's rangefinder
+		//float[] Zt = this.precomputed_grid.getMeasurements( onCloud, robot.getX(), robot.getY(), Transformer.th2Z(robot.getHead(), orientation_delta_degree) );
+		float[] Zt = robot.getMeasurements();
 		
 		int counter = 0;
 		while(wl.isClosing!=true){
@@ -111,7 +94,7 @@ public class SAMCL {
 			long sampleTime = System.currentTimeMillis();
 			//System.out.println("last_set size:" + last_set.size());
 			//System.out.println("ZT size:" + Zt.length);
-			this.Sample_total_particles(last_set, null, Zt);
+			this.Prediction_total_particles(last_set, null, Zt);
 
 			//use Threshold determine if or not going into this.---done
 			System.out.println("(2)\tDetermining size\t");
@@ -176,17 +159,21 @@ public class SAMCL {
 			
 			//Draw Robot and show image
 			grap.setColor(Color.RED);
-			grap.drawOval(robot.getX()-5, robot.getY()-5, 10, 10);
-			grap.drawLine(robot.getX(), robot.getY(), 
-					robot.getX()+(int)Math.round(20*Math.cos(Math.toRadians(robot.getHead()))), 
-					robot.getY()+(int)Math.round(20*Math.sin(Math.toRadians(robot.getHead()))));
+			
+			int rx = robot.getX();
+			int ry = robot.getY();
+			double rh = robot.getHead();
+			grap.drawOval(rx-5, ry-5, 10, 10);
+			grap.drawLine(rx, ry, 
+					rx+(int)Math.round(20*Math.cos(Math.toRadians(rh))), 
+					ry+(int)Math.round(20*Math.sin(Math.toRadians(rh))));
 			
 			//update image
 			image_panel.repaint();
 			//TODO Robot
-			//update robot's position
-			robot.Update();
-			Zt = this.precomputed_grid.getMeasurements( onCloud, robot.getX(), robot.getY(), this.th2Z( robot.getHead() ) );
+			
+			//Zt = this.precomputed_grid.getMeasurements( onCloud, robot.getX(), robot.getY(), Transformer.th2Z(robot.getHead(), this.orientation_delta_degree) );
+			Zt = robot.getMeasurements();
 			this.last_set = this.next_set;
 			
 			long endTime = System.currentTimeMillis();
@@ -353,7 +340,8 @@ public class SAMCL {
 	 * @param tournament_presure competetive strength
 	 * @throws IOException 
 	 */
-	public SAMCL(boolean cloud, int orientation,
+	public SAMCL(boolean cloud, 
+			int orientation,
 			String map_filename, 
 			float delta_energy,
 			int nt,
@@ -449,18 +437,18 @@ public class SAMCL {
 		System.out.println("estimated_time:"+estimated_time+"ms");
 	}
 	
-	/**
-	 * for cloud 
-	 * what's the type of map_filename ?
-	 * @param conf
-	 */
-	public void Pre_caching(Configuration conf) {
-		System.out.println("computing...");
-		long start_time = System.currentTimeMillis();
-		precomputed_grid.pre_compute();
-		long estimated_time = System.currentTimeMillis() - start_time;
-		System.out.println("estimated_time:"+estimated_time+"ms");
-	}
+//	/**
+//	 * for cloud 
+//	 * what's the type of map_filename ?
+//	 * @param conf
+//	 */
+//	public void Pre_caching(Configuration conf) {
+//		System.out.println("computing...");
+//		long start_time = System.currentTimeMillis();
+//		precomputed_grid.pre_compute();
+//		long estimated_time = System.currentTimeMillis() - start_time;
+//		System.out.println("estimated_time:"+estimated_time+"ms");
+//	}
 		
 	/**
 	 * input:measurement(Zt),energy grid(GE)
@@ -493,28 +481,17 @@ public class SAMCL {
 	 * input:last particles set(Xt-1),motion control(ut),measurement(Zt),3-Dimentional grid(G3D)
 	 * output:particles(xt),weight(wt)
 	 */
-	public void Sample_total_particles(Vector<Particle> elder, VelocityModel u, float[] robotMeasurements){
+	public void Prediction_total_particles(Vector<Particle> elder, VelocityModel u, float[] robotMeasurements){
 		//System.out.println("*********into Sample_total_particles");
 		try {
-			//System.out.println("*********into try");
 			if(!elder.isEmpty()){
-				//System.out.println("*********into if");
 				for(int i = 0; i < elder.size(); i++){
-					
 					//this.Motion_sampling(last_set.elementAt(i),u);
 					//System.out.println("sampling.... i :	" + i);
 					this.pixel_sampling(elder.elementAt(i), 11, 7);
-					
-					
 				}
-				//TODO the weighting of A BATCH 
 				
-				//System.out.println("*********into weighting");
-				for(int i = 0 ; i < elder.size() ; i ++){
-					//Cloud , Grid class--------done
-					//System.out.println("weighting... i :	" + i);
-					this.weighting(elder.elementAt(i), robotMeasurements);
-				}
+				this.batchWeight(elder, robotMeasurements);
 				
 			}
 			else{
@@ -635,6 +612,7 @@ public class SAMCL {
 	}
 	
 	private int safe_edge = 10;
+	
 	private Particle global_sampling(){
 		Random rand = new Random();
 		Particle p = new Particle(
@@ -642,7 +620,7 @@ public class SAMCL {
 				safe_edge+rand.nextInt(this.height-(2*safe_edge)), 
 				rand.nextInt(this.orientation));
 		while (
-				!this.ifSafeEmpty(p) ||
+				!p.underSafeEdge(this.width, this.height, this.safe_edge) ||
 				this.precomputed_grid.map_array(p.getX(), p.getY()) == Grid.GRID_OCCUPIED) {
 			p = new Particle(
 					safe_edge+rand.nextInt(this.width-(2*safe_edge)), 
@@ -652,25 +630,8 @@ public class SAMCL {
 		return p;
 	}
 	
-	public boolean ifSafeEmpty(Particle p){
-		int X = p.getX();
-		int Y = p.getY();
-		return this.ifSafeEmpty(X, Y);
-	}
 	
-	public boolean ifSafeEmpty(int X, int Y){
-		if(		X > this.safe_edge && 
-				Y > this.safe_edge &&
-				X < (this.width-this.safe_edge) && 
-				Y < (this.height-this.safe_edge))
-		{
-			return true;
-		}
-		else 
-		{
-			return false;
-		}
-	}
+
 	
 	private void pixel_sampling(Particle p, int radius, int angular){
 		
@@ -687,7 +648,7 @@ public class SAMCL {
 		int py = p.getY() + r;
 		//TODO
 		while(this.precomputed_grid.map_array(px, py) == Grid.GRID_OCCUPIED ){
-			if(this.ifSafeEmpty(px, py) ==false){
+			if(Particle.underSafeEdge(px, py, this.width, this.height, this.safe_edge) ==false){
 				p = this.global_sampling();
 			}
 //			System.out.print("random x\t");
@@ -706,7 +667,7 @@ public class SAMCL {
 		p.setY(py);
 		p.setZ(pz);
 	}
-	
+	//TODO unfinished
 	@SuppressWarnings("unused")
 	private void Motion_sampling(Particle p, VelocityModel u){
 		double Vcup = u.velocity + 
@@ -729,47 +690,69 @@ public class SAMCL {
 		p.setTh(temp);
 	}
 	
-//	private void batchWeighting(pVector<Particle> particles, float[] robotMeasurements) {
-//		this.precomputed_grid.getBatchFromCloud(particles);
-//		for(Particle p : particles){
-//			
-//		}
-//	}
-	
-	private void weighting(Particle p, float[] robotMeasurements) throws IOException{
-		if( this.precomputed_grid.map_array(p.getX(), p.getY())==Grid.GRID_EMPTY ) {
-			float weight = 0;
-			//Cloud , Grid class------done
-			float[] measurements = this.precomputed_grid.getMeasurements(onCloud, p.getX(), p.getY(), p.getZ());
-			for( int i = 0 ; i < measurements.length ; i++ ){
-				weight = weight + Math.abs(robotMeasurements[i]-measurements[i]);
-			}
-			//weight = 1 - weight / robot_measurements.length;
-			weight = weight / robotMeasurements.length;
-			p.setWeight(weight);
+	private void batchWeight(Vector<Particle> particles, float[] robotMeasurements) throws IOException {
+		//get sensor data of all particles.
+		if(this.onCloud){
+			//get measurements from cloud
+			this.precomputed_grid.getBatchFromCloud(particles);
 		}else{
-			//TODO is this correct?
+			//get measurements from local database
+			for(Particle p : particles){
+				p.setMeasurements(this.precomputed_grid.getMeasurements(this.onCloud, p.getX(), p.getY(), p.getZ()));
+			}
+		}
+	
+		//calculate the weight of all particles.
+		for(Particle p : particles){
+			this.WeightParticle(p, robotMeasurements);
+		}
+	}
+	
+	private void WeightParticle(Particle p, float[] robotMeasurements) throws IOException{
+		//if the position is occupied.
+		if( this.precomputed_grid.map_array(p.getX(), p.getY())==Grid.GRID_EMPTY ) {
+			//if the particle has got the measurements or would get measurements from Grid
+			if(p.isIfmeasurements()){
+				p.setWeight(this.WeightFloat(p.getMeasurements(), robotMeasurements));
+			}else{
+				//Cloud , Grid class------done
+				float[] measurements = this.precomputed_grid.getMeasurements(onCloud, p.getX(), p.getY(), p.getZ());
+				p.setWeight(this.WeightFloat(measurements, robotMeasurements));
+			}
+		}else{
+			//if the position is occupied, then assign the worst weight.
 			p.setWeight(1);
 		}
 	}
 	
-//	private float justWeight(float[] a, float[] b){
-//		try {
-//			//check if length is eqaul
-//			if(a.length!=b.length)
-//				throws Exception();//TODO 2014/05/05 
-//			float weight = 0;
-//			for( int i = 0 ; i < a.length ; i++ ){
-//				weight = weight + Math.abs(b[i]-a[i]);
-//			}
-//			weight = weight / a.length;
-//			return weight;
-//		} catch (Exception e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		}
-//	}
-	
+	private float WeightFloat(float[] a, float[] b){
+		try {
+			//check if length is equal
+			if(a.length!=b.length)
+				throw new Exception("The lengh of a is different from b.");//TODO 2014/05/05 
+			//start to calculate the weight, importance factor
+			float weight = 0;
+			for( int i = 0 ; i < a.length ; i++ ){
+				//TODO check if the value is normalized.
+				
+				//calculating
+				weight = weight + Math.abs(b[i]-a[i]);
+			}
+			weight = weight / a.length;
+			return weight;
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		// return the worst weight
+		return 1;
+	}
+	/**
+	 * 
+	 * @param tournament_presure2	greater presure, less diversity
+	 * @param particles		the group ready to be picked up
+	 * @return		a picked particle at this time.
+	 */
 	private Particle tournament(int tournament_presure2, Vector<Particle> particles) {
 		this.temp_set.clear();
 		int random ;
@@ -786,23 +769,23 @@ public class SAMCL {
 		return tempp;
 	}
 	
+
 	@SuppressWarnings("unused")
 	private Particle Max_particle( Vector<Particle> particles ){
-		float max_weight = particles.elementAt(0).getWeight();
 		Particle max_particle = particles.elementAt(0);
+		float max_weight = max_particle.getWeight();
 		for (int i = 1; i < particles.size(); i++) {
 			if (max_weight <= particles.elementAt(i).getWeight()) {
 				max_particle = particles.elementAt(i);
 				max_weight = max_particle.getWeight();
 			}
 		}
-		
 		return max_particle;
 	}
 	
 	private Particle Min_particle( Vector<Particle> particles ){
-		float min_weight = particles.elementAt(0).getWeight();
 		Particle min_particle = particles.elementAt(0);
+		float min_weight = min_particle.getWeight();
 		for (int i = 1; i < particles.size(); i++) {
 			if (min_weight > particles.elementAt(i).getWeight()) {
 				min_particle = particles.elementAt(i);
@@ -822,8 +805,5 @@ public class SAMCL {
 		energy = energy / ((float)Zt.length);
 		return energy;
 	}
-	
-	public int th2Z(double head){
-		return (int) Math.round( head/this.orientation_delta_degree );
-	}
+
 }

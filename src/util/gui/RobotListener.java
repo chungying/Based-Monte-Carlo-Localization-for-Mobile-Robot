@@ -4,26 +4,21 @@ import java.awt.BorderLayout;
 import java.awt.Button;
 import java.awt.GridLayout;
 import java.awt.HeadlessException;
-import java.awt.Scrollbar;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.AdjustmentEvent;
-import java.awt.event.AdjustmentListener;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
 import robot.RobotState;
 import samcl.SAMCL;
-@Deprecated
+
 @SuppressWarnings("serial")
-public class JFrameListener extends JFrame implements ActionListener, AdjustmentListener{
-	SAMCL samcl;
+public class RobotListener extends JFrame implements ActionListener{
+	
 	RobotState robot;
 	JPanel control_panel = new JPanel(new GridLayout(3,3));
 	Button[] B = new Button[9];
-	Scrollbar scrollbar = new Scrollbar();
-	float delta_energy;
 	
 	public String S[] = {
 			/*0*/"",			/*1*/"Forward",	/*2*/"",
@@ -31,11 +26,14 @@ public class JFrameListener extends JFrame implements ActionListener, Adjustment
 			/*6*/"",			/*7*/"Backward",	/*8*/""
 	};
 	
+	
+	
+	
 	/**
 	 * @param title
 	 * @throws HeadlessException
 	 */
-	public JFrameListener(String title) throws HeadlessException {
+	public RobotListener(String title) throws HeadlessException {
 		super(title);
 		BorderLayout boarder = new BorderLayout(3,3);
 		this.setLayout(boarder);
@@ -49,22 +47,15 @@ public class JFrameListener extends JFrame implements ActionListener, Adjustment
 		}
 		this.add(control_panel, boarder.NORTH);
 		
-		//set up scroll bar
-		this.scrollbar.addAdjustmentListener(this);
-		this.scrollbar.setValues(500, 100, 0, 1100);
-		this.scrollbar.setOrientation(Scrollbar.HORIZONTAL);
-		this.add(scrollbar, boarder.SOUTH);
-		
+				
 		this.pack();
 		this.setVisible(true);
 		
 	}
 	
-	public JFrameListener(String title, RobotState robot, SAMCL samcl) {
+	public RobotListener(String title, RobotState robot) {
 		this(title);
 		this.robot = robot;
-		this.samcl = samcl;
-		this.delta_energy = samcl.delta_energy;
 	}
 	
 
@@ -101,19 +92,4 @@ public class JFrameListener extends JFrame implements ActionListener, Adjustment
 			this.robot.setWt(0);
 		}
 	}
-
-	@Override
-	public void adjustmentValueChanged(AdjustmentEvent e) {
-		int value = scrollbar.getValue();
-		System.out.println(value);
-		float tune = converter(value);
-		this.samcl.delta_energy = this.delta_energy + (tune-0.5f)*0.01f;
-		//System.out.println("max:"+this.scrollbar.getMaximum()+",min:"+this.scrollbar.getMinimum());
-		//System.out.println(converter(value)*0.01);
-	}
-
-	private float converter(int value) {
-		return (float)value/(this.scrollbar.getMaximum()-this.scrollbar.getMinimum()-this.scrollbar.getVisibleAmount());
-	}
-
 }
