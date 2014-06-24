@@ -31,7 +31,7 @@ public class Main {
 		/**
 		 * First step:
 		 * to create the localization algorithm
-		 * and setup the listener for SAMCL
+		 * and setup the listener for S	AMCL
 		 */
 		final SAMCL samcl = new SAMCL(
 				18, //orientation
@@ -99,7 +99,6 @@ public class Main {
 						if(samcl.onCloud)
 							samcl.precomputed_grid.closeTable();
 					} catch (IOException e1) {
-						// TODO Auto-generated catch block
 						e1.printStackTrace();
 					}
 					System.exit(0);

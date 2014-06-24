@@ -170,7 +170,7 @@ public class SAMCL {
 			
 			//update image
 			image_panel.repaint();
-			//TODO Robot
+			
 			
 			//Zt = this.precomputed_grid.getMeasurements( onCloud, robot.getX(), robot.getY(), Transformer.th2Z(robot.getHead(), this.orientation_delta_degree) );
 			Zt = robot.getMeasurements();
@@ -325,9 +325,6 @@ public class SAMCL {
 		this.ALPHA = aLPHA;
 		this.tournament_presure = tournament_presure;
 		//remains
-		
-		//TODO comment out next line 2014/05/04
-		//this.setup();
 	}
 	
 	/**
@@ -360,8 +357,6 @@ public class SAMCL {
 		
 		this.onCloud = true;
 		
-		//TODO comment out next line 2014/05/04
-		//this.setup();
 	}
 	
 	public SAMCL() throws IOException{
@@ -456,7 +451,6 @@ public class SAMCL {
 	 * @throws IOException 
 	 */
 	public void Caculating_SER(float[] Zt) throws IOException{
-		//TODO Cloud , Grid class
 		/*Get the reference energy*/
 		float energy = this.Caculate_energy(Zt);
 		
@@ -594,7 +588,7 @@ public class SAMCL {
 			for (int y = this.safe_edge; y < this.height-this.safe_edge; y++) {
 				if (this.precomputed_grid.map_array(x, y) == Grid.GRID_EMPTY) {
 					for(int z = 0; z < this.orientation; z++){
-						//TODO 2014/05/05
+						
 						temp1 = this.precomputed_grid.G[x][y].getEnergy(z);
 						/**
 						 * Define a position of the SER
@@ -646,7 +640,7 @@ public class SAMCL {
 		r = random.nextInt(radius)-( radius - 1 )/2;
 //		System.out.print(r+"\n");
 		int py = p.getY() + r;
-		//TODO
+	
 		while(this.precomputed_grid.map_array(px, py) == Grid.GRID_OCCUPIED ){
 			if(Particle.underSafeEdge(px, py, this.width, this.height, this.safe_edge) ==false){
 				p = this.global_sampling();
@@ -667,6 +661,7 @@ public class SAMCL {
 		p.setY(py);
 		p.setZ(pz);
 	}
+	
 	//TODO unfinished
 	@SuppressWarnings("unused")
 	private void Motion_sampling(Particle p, VelocityModel u){
@@ -693,7 +688,7 @@ public class SAMCL {
 	private void batchWeight(Vector<Particle> particles, float[] robotMeasurements) throws IOException {
 		//get sensor data of all particles.
 		if(this.onCloud){
-			//get measurements from cloud TODO
+			//get measurements from cloud 
 			this.precomputed_grid.getBatchFromCloud(particles, Bytes.toBytes("distance"));
 		}else{
 			//get measurements from local database
@@ -729,19 +724,20 @@ public class SAMCL {
 		try {
 			//check if length is equal
 			if(a.length!=b.length)
-				throw new Exception("The lengh of a is different from b.");//TODO 2014/05/05 
+				throw new Exception("The lengh of a is different from b."); 
 			//start to calculate the weight, importance factor
 			float weight = 0;
 			for( int i = 0 ; i < a.length ; i++ ){
-				//TODO check if the value is normalized.
-				
+
+				if(a[i]>1.0f || b[i]>1.0f)
+					throw new Exception("the value is not normalized.");
 				//calculating
 				weight = weight + Math.abs(b[i]-a[i]);
 			}
 			weight = weight / a.length;
 			return weight;
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
+			
 			e.printStackTrace();
 		}
 		// return the worst weight
