@@ -7,8 +7,8 @@ public class Transformer {
 		return str;
 	}
 	
-	static public int th2Z(double head, double orientation_delta_degree){
-		return (int) Math.round( head/orientation_delta_degree );
+	static public int th2Z(double head, int orientation, double orientation_delta_degree){
+		return ((int) Math.round( head/orientation_delta_degree ) )% orientation;
 	}
 	
 	static public double checkHeadRange(double h){

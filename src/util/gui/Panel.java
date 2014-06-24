@@ -6,7 +6,7 @@ import javax.swing.JPanel;
 	// ...
 @SuppressWarnings("serial")
 public class Panel extends JPanel{
-	BufferedImage img;
+	public BufferedImage img;
 	
 	/**
 	 * 

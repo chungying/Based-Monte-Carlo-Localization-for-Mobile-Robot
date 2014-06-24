@@ -1,24 +1,39 @@
 package samcl;
 
 
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Vector;
+
+import javax.swing.JFrame;
+import javax.swing.JOptionPane;
+
+import org.apache.hadoop.hbase.util.Bytes;
 
 import robot.RobotState;
+import util.gui.Panel;
 import util.gui.RobotListener;
 import util.gui.SamclListener;
+import util.gui.Tools;
+import util.metrics.Particle;
+import util.metrics.Transformer;
 
 import com.beust.jcommander.JCommander;
 
 public class Main {
 	
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) throws IOException, InterruptedException {
 		/**
 		 * First step:
 		 * to create the localization algorithm
 		 * and setup the listener for SAMCL
 		 */
-		SAMCL samcl = new SAMCL(
+		final SAMCL samcl = new SAMCL(
 				18, //orientation
 				//"file:///home/w514/map.jpg",//map image file
 				//TODO file name
@@ -28,13 +43,20 @@ public class Main {
 				(float) 0.001, //threshold xi
 				(float) 0.6, //rate of population
 				10);//competitive strength
+		if(args.length==0){
+			String[] targs = {"-cl",
+					"-i","file:///home/w514/map.jpg"
+					,"-o","4"
+					};
+			args = targs;
+		}
 		
 		new JCommander(samcl, args);
 		SamclListener samclListener = new SamclListener("samcl tuner", samcl);
 		
 		if(!samcl.onCloud){
 			if (!Arrays.asList(args).contains("-i") && !Arrays.asList(args).contains("--image")) {
-				String filepath = "file://" + System.getProperty("user.home") + "/sim_map.jpg";
+				String filepath = "file://" + System.getProperty("user.home") + "/test6.jpg";
 				System.out.println(filepath);
 				samcl.map_filename = filepath;
 				
@@ -51,14 +73,67 @@ public class Main {
 		 * to create a robot
 		 * setup the listener of Robot
 		 * */
-		RobotState robot = new RobotState(0, 0, 0, samcl.precomputed_grid);
+		RobotState robot = new RobotState(70, 70, 180, samcl.precomputed_grid);
 		RobotListener robotListener = new RobotListener("robot controller", robot);
-		
+		Thread t = new Thread(robot);
+		t.start();
 		/**
 		 * Third step:
 		 * start to run samcl
 		 */
-		samcl.run(robot);
+		final JFrame samcl_window = new JFrame("samcl image");
+		Panel panel = new Panel(new BufferedImage(samcl.precomputed_grid.width,samcl.precomputed_grid.height, BufferedImage.TYPE_INT_ARGB));
+		samcl_window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		samcl_window.add(panel);
+		samcl_window.setSize(panel.img.getWidth(), panel.img.getHeight());
+		samcl_window.addWindowListener(new WindowAdapter(){
+			@Override
+			public void windowClosing(WindowEvent e) {
+				System.out.println("close table!!!!!!!!!!!!!!!!!!!!!!!");
+				if (JOptionPane.showConfirmDialog(samcl_window,
+						"Are you sure to close this window?", "Really Closing?", 
+			            JOptionPane.YES_NO_OPTION,
+			            JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION){
+					try {
+						if(samcl.onCloud)
+							samcl.precomputed_grid.closeTable();
+					} catch (IOException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
+					System.exit(0);
+				}
+			}
+		
+		});
+		
+		samcl_window.setVisible(true);
+		Graphics2D grap = panel.img.createGraphics();
+		Vector<Particle> robots = new Vector<Particle>();
+		robots.add(new Particle(robot.getX(),robot.getY(),Transformer.th2Z(robot.getHead(),samcl.orientation, samcl.precomputed_grid.orientation_delta_degree)));
+		while(true){
+			Thread.sleep(33);
+			grap.drawImage(samcl.precomputed_grid.map_image, null, 0, 0);
+			Tools.drawRobot(grap, robot.getX(), robot.getY(), robot.getHead(), 10, Color.RED);
+			panel.repaint();
+			
+			samcl.precomputed_grid.getBatchFromCloud(robots, Bytes.toBytes("distance"));
+			System.out.println(robots.get(0).toString());
+			robots.get(0).setX(robot.getX());
+			robots.get(0).setY(robot.getY());
+			robots.get(0).setZ(Transformer.th2Z(robot.getHead(),samcl.orientation, samcl.precomputed_grid.orientation_delta_degree));
+			
+		}
+		
+		
+		
+		
+		
+		//TODO test 2014/06/19
+//		samcl.run(robot, samcl_window);
+		
+		
+		
 //		int counter = 0;
 //		while(true){
 //			counter++;
@@ -67,4 +142,22 @@ public class Main {
 //		}
 		
 	}
+	
+	
+	/*public class WindowAdpter extends WindowAdapter{
+		@Override
+		public void windowClosing(WindowEvent e) {
+			System.out.println("close table!!!!!!!!!!!!!!!!!!!!!!!");
+			if (JOptionPane.showConfirmDialog(samcl_window,
+					"Are you sure to close this window?", "Really Closing?", 
+		            JOptionPane.YES_NO_OPTION,
+		            JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION){
+				//samcl.precomputed_grid.closeTable();
+				System.exit(0);
+			}
+		}
+	
+	}*/
+	
+	
 }

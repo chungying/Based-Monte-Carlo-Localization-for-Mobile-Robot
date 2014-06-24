@@ -15,7 +15,11 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.Vector;
 
 import javax.imageio.ImageIO;
@@ -274,10 +278,14 @@ public class Grid extends MouseAdapter {
 	private HTable table = null;
 	private byte[] family = null;
 	
+	public void closeTable() throws IOException{
+		this.table.close();
+	}
+	
 	public void setupTable(Configuration conf) throws IOException{
 		//TODO table name
 		System.out.println("set up table");
-		this.table = new HTable(conf,"map.1024.18.split.test");
+		this.table = new HTable(conf,"map.512.4.split");
 		this.family = Bytes.toBytes("distance");
 	}
 	
@@ -340,8 +348,42 @@ public class Grid extends MouseAdapter {
 	
 	
 	
-	public void getBatchFromCloud(Vector<Particle> particles) {
-		// TODO Auto-generated method stub
+	public void getBatchFromCloud(Vector<Particle> particles, byte[] fam) throws IOException {
+		// TODO first step: setup List<Get>
+		// HTable, Particles
+		List<Get> gets = new ArrayList<Get>();
+		for(Particle p : particles){
+			String str = Transformer.XY2String(p.getX(), p.getY());
+			Get get = new Get(Bytes.toBytes(str));
+			get.addFamily(fam);
+			gets.add(get);
+		}
+		
+		// TODO second: fetch from the Results to the Vector<Particles>
+		// Particles(X, Y, Z), Results
+		Result[] results = this.table.get(gets);
+		if (results.length==particles.size()) {
+			for (int i = 0; i < results.length; i ++) {
+				//TODO require sensor's number
+				convertResultToParticle(particles.get(i), results[i], fam);
+			}
+		}
+
+		
+	}
+
+	private void convertResultToParticle(Particle particle, Result result, byte[] fam) {
+		if (!result.isEmpty()) {
+			float[] measurements = new float[this.sensor_number];
+			int bias = (this.sensor_number - 1) / 2;
+			int index;
+			for (int i = 0; i < this.sensor_number; i++) {
+				index = ((particle.getZ() - bias + i + this.orientation) % this.orientation);
+				measurements[i] = Float.valueOf(Bytes.toString(result.getValue(fam,
+						Bytes.toBytes(String.valueOf(index)))));
+			}
+			particle.setMeasurements(measurements);
+		}
 		
 	}
 
@@ -349,7 +391,7 @@ public class Grid extends MouseAdapter {
 		//TODOdone count RPC times
 		this.RPCcount++;
 		
-		String rowkey = "(" + (Y+10000) + "," + (X+10000) + ")";
+		String rowkey = Transformer.XY2String(X, Y);
 		//System.out.print("family:"+Bytes.toString(family)+"\t");
 		//System.out.println("rowkey: " + rowkey);
 		Get get = new Get(Bytes.toBytes(rowkey));
@@ -388,7 +430,7 @@ public class Grid extends MouseAdapter {
 	}
 	
 	public float[] getMeasurements(boolean onCloud, int x, int y, double head) throws IOException {
-		return this.getMeasurements(onCloud, x, y, Transformer.th2Z(head, this.orientation_delta_degree));
+		return this.getMeasurements(onCloud, x, y, Transformer.th2Z(head, this.orientation, this.orientation_delta_degree));
 		
 	}
 

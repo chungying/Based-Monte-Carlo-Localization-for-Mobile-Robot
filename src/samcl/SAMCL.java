@@ -15,6 +15,7 @@ import javax.swing.JFrame;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.util.Bytes;
 
 import robot.VelocityModel;
 import robot.RobotState;
@@ -40,7 +41,7 @@ public class SAMCL {
 	 * run SAMCL
 	 * @throws IOException 
 	 */
-	public synchronized void run(RobotState robot) throws IOException{
+	public synchronized void run(RobotState robot, JFrame samcl_window) throws IOException{
 		this.isClosing = false;
 		//robot = new RobotState(32,41,0);
 	
@@ -63,9 +64,9 @@ public class SAMCL {
 			this.last_set.addElement(p);
 			grap.drawOval(p.getX()-2, p.getY()-2, 4, 4);
 		}
-		
+		Panel image_panel = new Panel(samcl_image);
 		//Painting on the Frame.		
-		JFrame samcl_window = new JFrame("samcl image");
+		//JFrame samcl_window = new JFrame("samcl image");
 		//samcl_window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		samcl_window.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 		WindowListen wl = new WindowListen(samcl_window, this.isClosing);
@@ -73,7 +74,6 @@ public class SAMCL {
 		//Show window
 		samcl_window.setSize(width, height);
 		//samcl_window.add(new JLabel(new ImageIcon(samcl_image)));
-		Panel image_panel = new Panel(samcl_image);
 		samcl_window.add(image_panel);
 		samcl_window.setVisible(true);
 				
@@ -693,8 +693,8 @@ public class SAMCL {
 	private void batchWeight(Vector<Particle> particles, float[] robotMeasurements) throws IOException {
 		//get sensor data of all particles.
 		if(this.onCloud){
-			//get measurements from cloud
-			this.precomputed_grid.getBatchFromCloud(particles);
+			//get measurements from cloud TODO
+			this.precomputed_grid.getBatchFromCloud(particles, Bytes.toBytes("distance"));
 		}else{
 			//get measurements from local database
 			for(Particle p : particles){

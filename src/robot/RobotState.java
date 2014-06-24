@@ -57,7 +57,7 @@ public class RobotState implements Runnable{
 		this.x = this.x +  ( Vt * t * Math.cos( Math.toRadians(head) ) ) /*+ (int)(Math.round(Wt))*/;
 		this.y = this.y +  ( Vt * t * Math.sin( Math.toRadians(head) ) ) /*+ (int)(Math.round(Wt))*/;
 		this.head = Transformer.checkHeadRange((this.Wt * t) + this.head);
-		System.out.println(this.toString());
+		//System.out.println(this.toString());
 	}
 
 	private float[] updateSensor() throws IOException {
@@ -79,15 +79,15 @@ public class RobotState implements Runnable{
 				e.printStackTrace();
 			}
 			
-			System.out.print(time+ "\t");
+			//System.out.print(time+ "\t");
 			try {
 				//update kinematic model
 				this.update(duration/1000.0);
 				
 				//update sensor data 
-				if(this.grid!=null){
-					this.updateSensor();
-				}	
+//				if(this.grid!=null){
+//					this.updateSensor();
+//				}	
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();

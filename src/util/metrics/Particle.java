@@ -1,5 +1,7 @@
 package util.metrics;
 
+import java.util.Arrays;
+
 public class Particle implements Cloneable{
 	/**
 	 * constructor
@@ -127,7 +129,7 @@ public class Particle implements Cloneable{
 
 	@Override
 	public String toString() {
-		return "Particle [x=" + x + ", y=" + y + ", z=" + z + "], weight: "+this.weight;
+		return "Particle [x=" + x + ", y=" + y + ", z=" + z + "]\nweight: "+this.weight+"\n"+Arrays.toString(measurements);
 	}
 
 	@Override
@@ -171,8 +173,7 @@ public class Particle implements Cloneable{
 
 	public void setMeasurements(float[] measurements2) {
 		this.ifmeasurements = true;
-		this.measurements = measurements2;
-		
+		this.measurements = measurements2;		
 	}
 
 	public boolean isIfmeasurements() {
