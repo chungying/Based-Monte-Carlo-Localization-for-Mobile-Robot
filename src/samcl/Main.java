@@ -74,6 +74,7 @@ public class Main {
 		 * setup the listener of Robot
 		 * */
 		RobotState robot = new RobotState(70, 70, 180, samcl.precomputed_grid);
+		robot.setOnCloud(samcl.onCloud);
 		RobotListener robotListener = new RobotListener("robot controller", robot);
 		Thread t = new Thread(robot);
 		t.start();
@@ -111,26 +112,33 @@ public class Main {
 		Graphics2D grap = panel.img.createGraphics();
 		Vector<Particle> robots = new Vector<Particle>();
 		robots.add(new Particle(robot.getX(),robot.getY(),Transformer.th2Z(robot.getHead(),samcl.orientation, samcl.precomputed_grid.orientation_delta_degree)));
+		
+		
+		
+		
+		//TODO test 2014/06/19
+		samcl.run(robot, samcl_window);
+		
 		while(true){
 			Thread.sleep(33);
 			grap.drawImage(samcl.precomputed_grid.map_image, null, 0, 0);
 			Tools.drawRobot(grap, robot.getX(), robot.getY(), robot.getHead(), 10, Color.RED);
 			panel.repaint();
+			System.out.println(robot.toString());
 			
-			samcl.precomputed_grid.getBatchFromCloud(robots, Bytes.toBytes("distance"));
-			System.out.println(robots.get(0).toString());
-			robots.get(0).setX(robot.getX());
-			robots.get(0).setY(robot.getY());
-			robots.get(0).setZ(Transformer.th2Z(robot.getHead(),samcl.orientation, samcl.precomputed_grid.orientation_delta_degree));
+			
+//			samcl.precomputed_grid.getBatchFromCloud(robots, Bytes.toBytes("distance"));
+//			System.out.println(robots.get(0).toString());
+//			robots.get(0).setX(robot.getX());
+//			robots.get(0).setY(robot.getY());
+//			robots.get(0).setZ(Transformer.th2Z(robot.getHead(),samcl.orientation, samcl.precomputed_grid.orientation_delta_degree));
 			
 		}
 		
 		
 		
 		
-		
-		//TODO test 2014/06/19
-//		samcl.run(robot, samcl_window);
+
 		
 		
 		

@@ -1,6 +1,7 @@
 package robot;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 import samcl.Grid;
 import util.gui.RobotListener;
@@ -61,8 +62,7 @@ public class RobotState implements Runnable{
 	}
 
 	private float[] updateSensor() throws IOException {
-		this.grid.getMeasurements(onCloud, getX(), getY(), getHead());
-		return null;
+		return this.grid.getMeasurements(onCloud, getX(), getY(), getHead());
 	}
 
 	@Override
@@ -85,9 +85,9 @@ public class RobotState implements Runnable{
 				this.update(duration/1000.0);
 				
 				//update sensor data 
-//				if(this.grid!=null){
-//					this.updateSensor();
-//				}	
+				if(this.grid!=null){
+					this.setMeasurements(this.updateSensor());
+				}	
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -140,10 +140,18 @@ public class RobotState implements Runnable{
 		this.measurements = measurements;
 	}
 
+	public boolean isOnCloud() {
+		return onCloud;
+	}
+
+	public void setOnCloud(boolean onCloud) {
+		this.onCloud = onCloud;
+	}
+
 	@Override
 	public String toString() {
 		return "RobotState (" + x + "\t," + y + "\t," + head + "\t),\n["
-				+ Vt + "\t," + Wt + "\t]";
+				+ Vt + "\t," + Wt + "\t]\n"+Arrays.toString(measurements);
 	}
 
 	
