@@ -200,51 +200,6 @@ public class SAMCL {
 				e.printStackTrace();
 			}
 		}
-
-		
-		
-		/*
-		
-		JFrame samcl_window = new JFrame("samcl image");
-		samcl_window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		samcl_window.setSize(600,600);
-		samcl_window.setResizable(false);
-		
-		BufferedImage source = ImageIO.read(new URL("file:///home/w514/map.jpg"));
-		BufferedImage samcl_image = new BufferedImage(source.getWidth(), source.getHeight(),BufferedImage.TYPE_INT_ARGB );
-		Graphics samcl_grap =  samcl_image.getGraphics();
-		Panel pa = new Panel(samcl_image);
-		samcl_window.add(pa);
-		samcl_window.setVisible(true);
-		samcl_grap.drawImage(source, 0, 0, null);
-		samcl_grap.setColor(Color.BLUE);
-		samcl_grap.drawLine(0, 0, 512, 512);
-		samcl_grap.drawLine(512, 0, 0, 512);
-	
-		int x,y;
-		while(true){
-			try {
-				Thread.sleep(300);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-			//new map image
-			samcl_grap.drawImage(source, 0, 0, null);
-			
-			//Draw Robot and show image
-			samcl_grap.setColor(Color.RED);
-			samcl_grap.drawOval(robot.getX()-5, robot.getY()-5, 10, 10);
-			x = robot.getX()+(int)Math.round(20*Math.cos(Math.toRadians(robot.getHead())));
-			y = robot.getY()+(int)Math.round(20*Math.sin(Math.toRadians(robot.getHead())));
-			samcl_grap.drawLine(robot.getX(), robot.getY(), 
-					x, 
-					y);
-			
-			robot.Update();
-			System.out.println("("+x+","+y);
-			pa.repaint();
-			
-		}*/
 		
 	}
 	
