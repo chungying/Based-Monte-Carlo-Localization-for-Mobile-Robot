@@ -1,4 +1,4 @@
-package coprocessor.Oewc;
+package coprocessor.services;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -25,11 +25,11 @@ import com.google.protobuf.RpcCallback;
 import com.google.protobuf.RpcController;
 import com.google.protobuf.Service;
 
-import coprocessor.Oewc.generated.*;
-import coprocessor.Oewc.generated.OewcProtos.OewcRequest;
-import coprocessor.Oewc.generated.OewcProtos.OewcResponse;
-import coprocessor.Oewc.generated.OewcProtos.OewcResponse.Builder;
-import coprocessor.Oewc.generated.OewcProtos.Particle;
+import coprocessor.services.generated.*;
+import coprocessor.services.generated.OewcProtos.OewcRequest;
+import coprocessor.services.generated.OewcProtos.OewcResponse;
+import coprocessor.services.generated.OewcProtos.Particle;
+import coprocessor.services.generated.OewcProtos.OewcResponse.Builder;
 
 public class OewcEndpoint extends OewcProtos.OewcService
 implements Coprocessor, CoprocessorService{

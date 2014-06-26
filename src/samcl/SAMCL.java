@@ -708,11 +708,11 @@ public class SAMCL {
 		if( this.precomputed_grid.map_array(p.getX(), p.getY())==Grid.GRID_EMPTY ) {
 			//if the particle has got the measurements or would get measurements from Grid
 			if(p.isIfmeasurements()){
-				p.setWeight(this.WeightFloat(p.getMeasurements(), robotMeasurements));
+				p.setWeight(Transformer.WeightFloat(p.getMeasurements(), robotMeasurements));
 			}else{
 				//Cloud , Grid class------done
 				float[] measurements = this.precomputed_grid.getMeasurements(onCloud, p.getX(), p.getY(), p.getZ());
-				p.setWeight(this.WeightFloat(measurements, robotMeasurements));
+				p.setWeight(Transformer.WeightFloat(measurements, robotMeasurements));
 			}
 		}else{
 			//if the position is occupied, then assign the worst weight.
@@ -720,29 +720,6 @@ public class SAMCL {
 		}
 	}
 	
-	private float WeightFloat(float[] a, float[] b){
-		try {
-			//check if length is equal
-			if(a.length!=b.length)
-				throw new Exception("The lengh of a is different from b."); 
-			//start to calculate the weight, importance factor
-			float weight = 0;
-			for( int i = 0 ; i < a.length ; i++ ){
-
-				if(a[i]>1.0f || b[i]>1.0f)
-					throw new Exception("the value is not normalized.");
-				//calculating
-				weight = weight + Math.abs(b[i]-a[i]);
-			}
-			weight = weight / a.length;
-			return weight;
-		} catch (Exception e) {
-			
-			e.printStackTrace();
-		}
-		// return the worst weight
-		return 1;
-	}
 	/**
 	 * 
 	 * @param tournament_presure2	greater presure, less diversity
