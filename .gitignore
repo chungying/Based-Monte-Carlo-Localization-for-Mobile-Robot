@@ -4,3 +4,5 @@ bin
 .project
 .gitignore.swp
 .settings
+.metadata
+
