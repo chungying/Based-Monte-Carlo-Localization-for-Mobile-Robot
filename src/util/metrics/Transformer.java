@@ -1,5 +1,9 @@
 package util.metrics;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+
 public class Transformer {
 	
 	static public String XY2String(int X, int Y){
@@ -15,7 +19,7 @@ public class Transformer {
 		return (h+720)%360;
 	}
 
-	public static float[] getMeasurements(float[] circles, int z) {
+	public static float[] drawMeasurements(float[] circles, int z) {
 		int sensor_number = (circles.length/2) +1;
 		float[] measurements = new float[sensor_number];
 		int bias = (sensor_number - 1) / 2;
@@ -49,6 +53,50 @@ public class Transformer {
 		}
 		// return the worst weight
 		return 1;
+	}
+	
+	/**
+	 * 
+	 * @param tournament_presure2	greater presure, less diversity
+	 * @param last_set2		the group ready to be picked up
+	 * @return		a picked particle at this time.
+	 */
+	public static Particle tournament(int tournament_presure2, List<Particle> last_set2) {
+		List<Particle> temp_set = new ArrayList<Particle>();
+		temp_set.clear();
+		int random ;
+		Random r = new Random();
+		for(int j = 0;j<tournament_presure2;j++){
+			random = r.nextInt(last_set2.size());
+			temp_set.add(last_set2.get(random));
+		}
+		Particle tempp = minParticle(temp_set);		
+		return tempp;
+	}
+	
+	public static Particle maxParticle( List<Particle> particles ){
+		Particle max_particle = particles.get(0);
+		float max_weight = max_particle.getWeight();
+		for (int i = 1; i < particles.size(); i++) {
+			if (max_weight <= particles.get(i).getWeight()) {
+				max_particle = particles.get(i);
+				max_weight = max_particle.getWeight();
+			}
+		}
+		return max_particle;
+	}
+	
+	public static Particle minParticle( List<Particle> last_set2 ){
+		Particle min_particle = last_set2.get(0);
+		float min_weight = min_particle.getWeight();
+		for (int i = 1; i < last_set2.size(); i++) {
+			if (min_weight > last_set2.get(i).getWeight()) {
+				min_particle = last_set2.get(i);
+				min_weight = min_particle.getWeight();
+			}
+		}
+		
+		return min_particle;
 	}
 	
 }

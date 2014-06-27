@@ -18,9 +18,6 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.Vector;
 
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
@@ -289,9 +286,9 @@ public class Grid extends MouseAdapter {
 		this.family = Bytes.toBytes("distance");
 	}
 
-	public void scan(Vector<Particle> ser_set, float lowerBoundary,
+	public void scan(List<Particle> sER_set, float lowerBoundary,
 			float upperBoundary) throws IOException {
-		ser_set.clear();
+		sER_set.clear();
 
 		String lower = String.valueOf(lowerBoundary);
 		String upper = String.valueOf(upperBoundary);
@@ -337,7 +334,7 @@ public class Grid extends MouseAdapter {
 							Integer.parseInt(Bytes.toString(CellUtil
 									.cloneValue(cell))));
 					if (p.underSafeEdge(width, height, safe_edge))
-						ser_set.add(p);
+						sER_set.add(p);
 					// System.out.println(p.toString());
 					// System.out.println("----------------------------------------------------");
 				}
@@ -345,32 +342,33 @@ public class Grid extends MouseAdapter {
 		}
 	}
 
-	public void getBatchFromCloud(Vector<Particle> particles, byte[] fam)
+	public void getBatchFromCloud(List<Particle> last_set2, byte[] fam)
 			throws IOException {
 		// TODO first step: setup List<Get>
 		// HTable, Particles
 		List<Get> gets = new ArrayList<Get>();
-		for (Particle p : particles) {
+		for (Particle p : last_set2) {
 			String str = Transformer.XY2String(p.getX(), p.getY());
 			Get get = new Get(Bytes.toBytes(str));
 			get.addFamily(fam);
 			gets.add(get);
 		}
 
-		// TODO second: fetch from the Results to the Vector<Particles>
+		// TODO second: fetch from the Results to the List<Particles>
 		// Particles(X, Y, Z), Results
 		Result[] results = this.table.get(gets);
-		if (results.length == particles.size()) {
+		if (results.length == last_set2.size()) {
 			for (int i = 0; i < results.length; i++) {
 				// TODO require sensor's number
-				convertResultToParticle(particles.get(i), results[i], fam);
+				convertResultToParticle(last_set2.get(i), results[i], fam);
 			}
-		}
+		}else
+			throw new IOException("the length is different.");
 
 	}
 
 	private void convertResultToParticle(Particle particle, Result result,
-			byte[] fam) {
+			byte[] fam) throws IOException {
 		if (!result.isEmpty()) {
 			float[] measurements = new float[this.sensor_number];
 			int bias = (this.sensor_number - 1) / 2;
@@ -381,7 +379,8 @@ public class Grid extends MouseAdapter {
 						fam, Bytes.toBytes(String.valueOf(index)))));
 			}
 			particle.setMeasurements(measurements);
-		}
+		}else
+			throw new IOException("There is no result!!");
 
 	}
 

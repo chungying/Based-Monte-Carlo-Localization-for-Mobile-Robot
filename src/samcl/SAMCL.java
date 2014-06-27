@@ -8,8 +8,10 @@ import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
-import java.util.Vector;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.swing.JFrame;
 
@@ -36,34 +38,89 @@ import com.beust.jcommander.Parameter;
  *part5:Combining two particle sets
  */
 public class SAMCL {
+	
+	public void Drawing(BufferedImage image, JFrame window
+			, RobotState robot, Particle bestParticle, List<Particle> particles, List<Particle> SER){
+		//TODO
+		//initial Graphics2D
+		BufferedImage samcl_image = new BufferedImage(this.precomputed_grid.width,this.precomputed_grid.height, BufferedImage.TYPE_INT_ARGB);
+		Graphics2D grap = samcl_image.createGraphics();
+		grap.drawImage(this.precomputed_grid.map_image, null, 0, 0);
+		//Robot
+		grap.setColor(Color.RED);
+		int rx = robot.getX();
+		int ry = robot.getY();
+		double rh = robot.getHead();
+		grap.drawOval(rx-5, ry-5, 10, 10);
+		grap.drawLine(rx, ry, 
+				rx+(int)Math.round(20*Math.cos(Math.toRadians(rh))), 
+				ry+(int)Math.round(20*Math.sin(Math.toRadians(rh))));
+		
+		//SER
+		if (SER.size() >= 1) {
+			
+			//TODO IMAGE
+			//System.out.println("there are " + this.SER_set.size() + " positions");
+			//integrated to the Drawing
+			grap.setColor(Color.PINK);
+			//TODO modify to for-each loop
+			for (int i = 0; i < SER.size(); i++) {
+				int x = SER.get(i).getX();
+				int y = SER.get(i).getY();
+				grap.drawOval(x, y, 1, 1);
+			}
+		}
+		
+		//Best Particle
+		grap.setColor(Color.GREEN);
+		grap.drawOval(bestParticle.getX()-4, bestParticle.getY()-4, 8, 8);
+		grap.drawLine(bestParticle.getX(), bestParticle.getY(), 
+				bestParticle.getX()+(int) Math.round(20*Math.cos(Math.toRadians(bestParticle.getZ()*this.orientation_delta_degree))), 
+				bestParticle.getY()+(int) Math.round(20*Math.sin(Math.toRadians(bestParticle.getZ()*this.orientation_delta_degree))));
+		
+		
+	}
+	
+	
 	public boolean isClosing;
 	/**
 	 * run SAMCL
 	 * @throws IOException 
 	 */
-	public synchronized void run(RobotState robot, JFrame samcl_window) throws IOException{
+	public void run(RobotState robot, JFrame samcl_window) throws IOException{
+
+		List<Particle> local_set = new ArrayList<Particle>();
+		List<Particle> global_set = new ArrayList<Particle>();
+		List<Particle> last_set = new ArrayList<Particle>();
+		//in order to be thread-safe, use CopyOnWriteArrayList.
+		List<Particle> next_set = new CopyOnWriteArrayList<Particle>();
+		List<Particle> SER_set = new CopyOnWriteArrayList<Particle>();
+		
+		
 		this.isClosing = false;
 		//robot = new RobotState(32,41,0);
 	
 		System.out.println("press enter to continue.");
 		System.in.read();
 	
-		
+		//TODO IMAGE
 		//Drawing the image
 		BufferedImage samcl_image = new BufferedImage(this.precomputed_grid.width,this.precomputed_grid.height, BufferedImage.TYPE_INT_ARGB);
 		Graphics2D grap = samcl_image.createGraphics();
-		//Cloud , Grid class------done
 		grap.drawImage(this.precomputed_grid.map_image, null, 0, 0);
-		grap.setColor(Color.RED);
 				
 		//Initial Particles and Painting
-		this.last_set.clear();
+		last_set.clear();
 		Particle p = null;
 		for (int i = 0; i < this.Nt; i++) {
 			p=this.global_sampling();
-			this.last_set.addElement(p);
-			grap.drawOval(p.getX()-2, p.getY()-2, 4, 4);
+			last_set.add(p);
+			//TODOend IMAGE
+			//abolish paint the initial particles 2014/6/27
+			//grap.drawOval(p.getX()-2, p.getY()-2, 4, 4);
 		}
+		
+		//TODO IMAGE
 		Panel image_panel = new Panel(samcl_image);
 		//Painting on the Frame.		
 		//JFrame samcl_window = new JFrame("samcl image");
@@ -77,15 +134,19 @@ public class SAMCL {
 		samcl_window.add(image_panel);
 		samcl_window.setVisible(true);
 				
-		//get the robot's rangefinder
+		//get the robot's range finder
 		//float[] Zt = this.precomputed_grid.getMeasurements( onCloud, robot.getX(), robot.getY(), Transformer.th2Z(robot.getHead(), orientation_delta_degree) );
 		float[] Zt = robot.getMeasurements();
 		
 		int counter = 0;
+		
+		//TODO IMAGE
 		while(wl.isClosing!=true){
 			counter++;
 			System.out.println("Generation\t"+counter+"\t-------------------");
-			//new map image
+			
+			//TODO IMAGE
+			//refresh map image, could be integrated together
 			grap.drawImage(this.precomputed_grid.map_image, null, 0, 0);
 			
 			//Cloud , Grid class-------done
@@ -105,24 +166,30 @@ public class SAMCL {
 				//Cloud , Grid class
 				System.out.println("\tCaculating SER\t");
 				serTime = System.currentTimeMillis();
-				this.Caculating_SER(Zt);
-				System.out.println("\tSER set size = \t"+this.SER_set.size());
+				this.Caculating_SER(Zt, SER_set);
+				System.out.println("\tSER set size = \t"+SER_set.size());
 				//System.out.println("\tSER size: "+ this.SER_set.size());
 				//Draw SER
-				if (this.SER_set.size() >= 1) {
+				if (SER_set.size() >= 1) {
+					
+					//TODO IMAGE
 					//System.out.println("there are " + this.SER_set.size() + " positions");
+					//integrated to the Drawing
 					grap.setColor(Color.PINK);
 					for (int i = 0; i < SER_set.size(); i++) {
-						int x = SER_set.elementAt(i).getX();
-						int y = SER_set.elementAt(i).getY();
+						int x = SER_set.get(i).getX();
+						int y = SER_set.get(i).getY();
 						grap.drawOval(x, y, 1, 1);
 					}
 				} else {
-					System.out.println("there are " + this.SER_set.size() + " positions");
+					System.out.println("there are " + SER_set.size() + " positions");
 				}
 				//----------------------------------------------------------
 			}
+			
+			//TODO IMAGE
 			//Best particle
+			//integrated
 			grap.setColor(Color.GREEN);
 			grap.drawOval(max_p.getX()-4, max_p.getY()-4, 8, 8);
 			grap.drawLine(max_p.getX(), max_p.getY(), 
@@ -131,19 +198,19 @@ public class SAMCL {
 			
 			System.out.println("(3)\tLocal resampling\t");
 			long localResamplingTime = System.currentTimeMillis();
+			this.Local_resampling(last_set, local_set);
+			System.out.println("\tlocal set size : \t" + local_set.size());
 			
-			this.Local_resampling(this.last_set, this.local_set);
 			System.out.println("(4)\tGlobal resampling\t");
 			long globalResampleTime = System.currentTimeMillis();
+			this.Global_drawing(SER_set, global_set);
+			System.out.println("\tglobal set size: \t" + global_set.size());
 			
-			this.Global_drawing(this.SER_set, this.global_set);
-			System.out.println("\tlocal set size : \t" + this.local_set.size());
-			System.out.println("\tglobal set size: \t" + this.global_set.size());
 			System.out.println("(5)\tCombimining\t");
 			long combiminingTime = System.currentTimeMillis();
-			
-			this.next_set = this.Combining_sets(this.local_set, this.global_set);
-			System.out.println("\tnext set size: \t" + this.last_set.size());
+			next_set.clear();
+			next_set.addAll(this.Combining_sets(local_set, global_set));
+			System.out.println("\tnext set size: \t" + last_set.size());
 			
 			//Draw particles
 //			grap.setColor(Color.GRAY);
@@ -157,9 +224,10 @@ public class SAMCL {
 //						y+(int) Math.round( 10*Math.sin( Math.toRadians( z*this.orientation_delta_degree ) ) ));
 //			}
 			
+			//TODO IMAGE
 			//Draw Robot and show image
+			//integrated
 			grap.setColor(Color.RED);
-			
 			int rx = robot.getX();
 			int ry = robot.getY();
 			double rh = robot.getHead();
@@ -167,14 +235,17 @@ public class SAMCL {
 			grap.drawLine(rx, ry, 
 					rx+(int)Math.round(20*Math.cos(Math.toRadians(rh))), 
 					ry+(int)Math.round(20*Math.sin(Math.toRadians(rh))));
-			
 			//update image
 			image_panel.repaint();
 			
 			
 			//Zt = this.precomputed_grid.getMeasurements( onCloud, robot.getX(), robot.getY(), Transformer.th2Z(robot.getHead(), this.orientation_delta_degree) );
 			Zt = robot.getMeasurements();
-			this.last_set = this.next_set;
+			
+			//this.last_set = this.next_set;
+			last_set.clear();
+			last_set.addAll(next_set);
+			
 			
 			long endTime = System.currentTimeMillis();
 			System.out.println("Best position:"+max_p.toString());
@@ -190,17 +261,13 @@ public class SAMCL {
 			System.out.println("Global Resampling Time	: \t" + (combiminingTime - globalResampleTime) + "\tms");
 			System.out.println("Combining Time		: \t" + (endTime - combiminingTime) + "\tms");
 			//robotz = (int) Math.round( robot.getHead()/this.orientation_delta_degree );
-			this.SER_set.clear();
-			//TODO from Robot
-			//Cloud , Grid class----------done
-			
+			SER_set.clear();			
 			try {
 				Thread.sleep(33);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
 		}
-		
 	}
 	
 	public void setup() throws IOException{
@@ -214,12 +281,7 @@ public class SAMCL {
 		this.orientation_delta_degree = 360/this.orientation;
 		this.sensor_number = this.orientation/2 + 1;
 		this.sensor_delta_degree = this.orientation_delta_degree;
-		this.last_set = new Vector<Particle>();
-		this.temp_set = new Vector<Particle>();
-		this.next_set = new Vector<Particle>();
-		this.local_set = new Vector<Particle>();
-		this.global_set = new Vector<Particle>();
-		this.SER_set = new Vector<Particle>();
+		
 		this.precomputed_grid = new Grid(this.orientation, this.sensor_number, this.map_filename);
 		
 		if(this.onCloud){
@@ -356,12 +418,7 @@ public class SAMCL {
 	//for Pre_caching()
 	public Grid precomputed_grid;
 	//for Sample_total_particles()
-	public Vector<Particle> last_set;
-	public Vector<Particle> temp_set;
-	public Vector<Particle> next_set;
-	public Vector<Particle> local_set;
-	public Vector<Particle> global_set;
-	public Vector<Particle> SER_set;
+	
 	//for Determining_size()
 	private int Nl;
 	private int Ng;
@@ -405,7 +462,7 @@ public class SAMCL {
 	 * output:similar energy region(SER)
 	 * @throws IOException 
 	 */
-	public void Caculating_SER(float[] Zt) throws IOException{
+	public void Caculating_SER(float[] Zt, List<Particle> SER_set) throws IOException{
 		/*Get the reference energy*/
 		float energy = this.Caculate_energy(Zt);
 		
@@ -420,9 +477,9 @@ public class SAMCL {
 		//System.out.println("upper boundary: "+ UpperBoundary);
 		//System.out.println("lower boundary: "+ LowerBoundary);
 		if (onCloud) {
-			this.cloudCaculatingSER(LowerBoundary, UpperBoundary);
+			this.cloudCaculatingSER(SER_set, LowerBoundary, UpperBoundary);
 		}else{
-			this.localCaculatingSER( LowerBoundary,  UpperBoundary);
+			this.localCaculatingSER(SER_set, LowerBoundary,  UpperBoundary);
 		}
 	}
 	
@@ -430,17 +487,17 @@ public class SAMCL {
 	 * input:last particles set(Xt-1),motion control(ut),measurement(Zt),3-Dimentional grid(G3D)
 	 * output:particles(xt),weight(wt)
 	 */
-	public void Prediction_total_particles(Vector<Particle> elder, VelocityModel u, float[] robotMeasurements){
+	public void Prediction_total_particles(List<Particle> src, VelocityModel u, float[] robotMeasurements){
 		//System.out.println("*********into Sample_total_particles");
 		try {
-			if(!elder.isEmpty()){
-				for(int i = 0; i < elder.size(); i++){
-					//this.Motion_sampling(last_set.elementAt(i),u);
+			if(!src.isEmpty()){
+				for(int i = 0; i < src.size(); i++){
+					//this.Motion_sampling(src.elementAt(i),u);
 					//System.out.println("sampling.... i :	" + i);
-					this.pixel_sampling(elder.elementAt(i), 11, 7);
+					this.pixel_sampling(src.get(i), 11, 7);
 				}
 				
-				this.batchWeight(elder, robotMeasurements);
+				this.batchWeight(src, robotMeasurements);
 				
 			}
 			else{
@@ -458,8 +515,8 @@ public class SAMCL {
 	 * input:the maximum of weight(wmax),total number of particles(NT)
 	 * output:the number of global samples(NG),the number of local samples(NL)
 	 */
-	public Particle Determining_size(Vector<Particle> set){
-		Particle max_p = this.Min_particle(set);
+	public Particle Determining_size(List<Particle> src){
+		Particle max_p = Transformer.minParticle(src);
 		if (max_p.getWeight() < this.XI) {
 			this.Nl = this.Nt;
 		}	
@@ -475,17 +532,14 @@ public class SAMCL {
 	 * input:the number of local samples(NL),particles(xt),weight(wt)
 	 * output:XLt
 	 */
-	public void Local_resampling(Vector<Particle> sor_set, Vector<Particle> des_set){
-		des_set.clear();
+	public void Local_resampling(List<Particle> src, List<Particle> dst){
+		dst.clear();
 		for (int i = 0; i < this.Nl; i++) {
-			//this.next_set.add(e);
 			//Roulette way
-			Particle particle = tournament(tournament_presure, sor_set);
-			des_set.addElement(particle.clone());
-			//System.out.println();
-		
 			//Tournament way
-			
+			Particle particle = Transformer.tournament(tournament_presure, src);
+			dst.add(particle.clone());
+			//System.out.println();
 		}
 	}
 	
@@ -495,20 +549,20 @@ public class SAMCL {
 	 * input:the number of global samples(NG),similar energy region(SER)
 	 * output:XGt
 	 */
-	public void Global_drawing(Vector<Particle> src_set, Vector<Particle> des_set){
-		if (src_set.size()>0) {
+	public void Global_drawing(List<Particle> src, List<Particle> dst){
+		if (src.size()>0) {
 			//
-			des_set.clear();
+			dst.clear();
 			Particle particle;
 			int rand;
 			Random random = new Random();
 			for (int i = 0; i < this.Ng; i++) {
-				rand = random.nextInt(src_set.size());
-				particle = new Particle(src_set.elementAt(rand).getX(), src_set
-						.elementAt(rand).getY(),
-						src_set.elementAt(rand).getZ(), this.orientation);
-				des_set.addElement(particle);
-				src_set.remove(rand);
+				rand = random.nextInt(src.size());
+				particle = new Particle(src.get(rand).getX(), src
+						.get(rand).getY(),
+						src.get(rand).getZ(), this.orientation);
+				dst.add(particle);
+				src.remove(rand);
 				//System.out.println("SER particle "+i +":"+particle.toString() );
 			}
 		}else{
@@ -521,22 +575,20 @@ public class SAMCL {
 	 * input:XLt,XGt
 	 * output:Xt
 	 */
-	public Vector<Particle> Combining_sets(Vector<Particle> a, Vector<Particle> b){
-		
-		@SuppressWarnings("unchecked")
-		Vector<Particle> result = (Vector<Particle>) a.clone() ;
-		result.addAll(b);
-		return result;
+	public List<Particle> Combining_sets(List<Particle> set1, List<Particle> set2){
+		List<Particle> results = new ArrayList<Particle>(set1);
+		results.addAll(set2);
+		return results;
 	}
 	
-	private void cloudCaculatingSER(float LowerBoundary, float UpperBoundary) throws IOException{
-		this.SER_set.clear();
+	private void cloudCaculatingSER(List<Particle> SER_set, float LowerBoundary, float UpperBoundary) throws IOException{
+		SER_set.clear();
 		//System.out.println("start to scan in caculating SER on the cloud");
-		this.precomputed_grid.scan(this.SER_set, LowerBoundary, UpperBoundary);
+		this.precomputed_grid.scan(SER_set, LowerBoundary, UpperBoundary);
 	}
 	
-	private void localCaculatingSER(float LowerBoundary, float UpperBoundary){
-		this.SER_set.clear();
+	private void localCaculatingSER(List<Particle> SER_set, float LowerBoundary, float UpperBoundary){
+		SER_set.clear();
 		float temp1;
 		Random r = new Random();
 		for(int x = this.safe_edge ; x < this.width-this.safe_edge ; x++){
@@ -552,7 +604,7 @@ public class SAMCL {
 						if( temp1 >= LowerBoundary &&
 								temp1 <= UpperBoundary){
 							Particle parti = new Particle(x,y,r.nextInt(this.orientation));
-							this.SER_set.addElement(parti);
+							SER_set.add(parti);
 						}
 					}
 				}
@@ -640,20 +692,20 @@ public class SAMCL {
 		p.setTh(temp);
 	}
 	
-	private void batchWeight(Vector<Particle> particles, float[] robotMeasurements) throws IOException {
+	private void batchWeight(List<Particle> src, float[] robotMeasurements) throws IOException {
 		//get sensor data of all particles.
 		if(this.onCloud){
 			//get measurements from cloud 
-			this.precomputed_grid.getBatchFromCloud(particles, Bytes.toBytes("distance"));
+			this.precomputed_grid.getBatchFromCloud(src, Bytes.toBytes("distance"));
 		}else{
 			//get measurements from local database
-			for(Particle p : particles){
+			for(Particle p : src){
 				p.setMeasurements(this.precomputed_grid.getMeasurements(this.onCloud, p.getX(), p.getY(), p.getZ()));
 			}
 		}
 	
 		//calculate the weight of all particles.
-		for(Particle p : particles){
+		for(Particle p : src){
 			this.WeightParticle(p, robotMeasurements);
 		}
 	}
@@ -673,55 +725,6 @@ public class SAMCL {
 			//if the position is occupied, then assign the worst weight.
 			p.setWeight(1);
 		}
-	}
-	
-	/**
-	 * 
-	 * @param tournament_presure2	greater presure, less diversity
-	 * @param particles		the group ready to be picked up
-	 * @return		a picked particle at this time.
-	 */
-	private Particle tournament(int tournament_presure2, Vector<Particle> particles) {
-		this.temp_set.clear();
-		int random ;
-		Random r = new Random();
-		for(int j = 0;j<tournament_presure2;j++){
-			random = r.nextInt(particles.size());
-			//random = (int) (Math.round( Math.random() * ( this.Ng - 1 ) ) % this.Ng);
-			this.temp_set.addElement(particles.get(random));
-		}
-		
-		Particle tempp = this.Min_particle(temp_set); 
-		//Particle tempp = this.Max_particle(temp_set); 
-		
-		return tempp;
-	}
-	
-
-	@SuppressWarnings("unused")
-	private Particle Max_particle( Vector<Particle> particles ){
-		Particle max_particle = particles.elementAt(0);
-		float max_weight = max_particle.getWeight();
-		for (int i = 1; i < particles.size(); i++) {
-			if (max_weight <= particles.elementAt(i).getWeight()) {
-				max_particle = particles.elementAt(i);
-				max_weight = max_particle.getWeight();
-			}
-		}
-		return max_particle;
-	}
-	
-	private Particle Min_particle( Vector<Particle> particles ){
-		Particle min_particle = particles.elementAt(0);
-		float min_weight = min_particle.getWeight();
-		for (int i = 1; i < particles.size(); i++) {
-			if (min_weight > particles.elementAt(i).getWeight()) {
-				min_particle = particles.elementAt(i);
-				min_weight = min_particle.getWeight();
-			}
-		}
-		
-		return min_particle;
 	}
 	
 	public float Caculate_energy(float[] Zt){

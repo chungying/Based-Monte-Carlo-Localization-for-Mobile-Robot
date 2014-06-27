@@ -11,7 +11,7 @@ public class Oewc {
 		particle.setWeight(1.0f);
 		for(int z = 0; z < particle.orientation; z++){
 			//calculate the weight between Zt and the Sensor data with the orientation.
-			weight = Transformer.WeightFloat(Zt, Transformer.getMeasurements(circles, z));
+			weight = Transformer.WeightFloat(Zt, Transformer.drawMeasurements(circles, z));
 			//if the weight is better, keep it.
 			if(particle.getWeight()>weight){
 				particle.setWeight(weight);
