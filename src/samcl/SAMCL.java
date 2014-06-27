@@ -200,51 +200,6 @@ public class SAMCL {
 				e.printStackTrace();
 			}
 		}
-
-		
-		
-		/*
-		
-		JFrame samcl_window = new JFrame("samcl image");
-		samcl_window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		samcl_window.setSize(600,600);
-		samcl_window.setResizable(false);
-		
-		BufferedImage source = ImageIO.read(new URL("file:///home/w514/map.jpg"));
-		BufferedImage samcl_image = new BufferedImage(source.getWidth(), source.getHeight(),BufferedImage.TYPE_INT_ARGB );
-		Graphics samcl_grap =  samcl_image.getGraphics();
-		Panel pa = new Panel(samcl_image);
-		samcl_window.add(pa);
-		samcl_window.setVisible(true);
-		samcl_grap.drawImage(source, 0, 0, null);
-		samcl_grap.setColor(Color.BLUE);
-		samcl_grap.drawLine(0, 0, 512, 512);
-		samcl_grap.drawLine(512, 0, 0, 512);
-	
-		int x,y;
-		while(true){
-			try {
-				Thread.sleep(300);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-			//new map image
-			samcl_grap.drawImage(source, 0, 0, null);
-			
-			//Draw Robot and show image
-			samcl_grap.setColor(Color.RED);
-			samcl_grap.drawOval(robot.getX()-5, robot.getY()-5, 10, 10);
-			x = robot.getX()+(int)Math.round(20*Math.cos(Math.toRadians(robot.getHead())));
-			y = robot.getY()+(int)Math.round(20*Math.sin(Math.toRadians(robot.getHead())));
-			samcl_grap.drawLine(robot.getX(), robot.getY(), 
-					x, 
-					y);
-			
-			robot.Update();
-			System.out.println("("+x+","+y);
-			pa.repaint();
-			
-		}*/
 		
 	}
 	
@@ -708,11 +663,11 @@ public class SAMCL {
 		if( this.precomputed_grid.map_array(p.getX(), p.getY())==Grid.GRID_EMPTY ) {
 			//if the particle has got the measurements or would get measurements from Grid
 			if(p.isIfmeasurements()){
-				p.setWeight(this.WeightFloat(p.getMeasurements(), robotMeasurements));
+				p.setWeight(Transformer.WeightFloat(p.getMeasurements(), robotMeasurements));
 			}else{
 				//Cloud , Grid class------done
 				float[] measurements = this.precomputed_grid.getMeasurements(onCloud, p.getX(), p.getY(), p.getZ());
-				p.setWeight(this.WeightFloat(measurements, robotMeasurements));
+				p.setWeight(Transformer.WeightFloat(measurements, robotMeasurements));
 			}
 		}else{
 			//if the position is occupied, then assign the worst weight.
@@ -720,29 +675,6 @@ public class SAMCL {
 		}
 	}
 	
-	private float WeightFloat(float[] a, float[] b){
-		try {
-			//check if length is equal
-			if(a.length!=b.length)
-				throw new Exception("The lengh of a is different from b."); 
-			//start to calculate the weight, importance factor
-			float weight = 0;
-			for( int i = 0 ; i < a.length ; i++ ){
-
-				if(a[i]>1.0f || b[i]>1.0f)
-					throw new Exception("the value is not normalized.");
-				//calculating
-				weight = weight + Math.abs(b[i]-a[i]);
-			}
-			weight = weight / a.length;
-			return weight;
-		} catch (Exception e) {
-			
-			e.printStackTrace();
-		}
-		// return the worst weight
-		return 1;
-	}
 	/**
 	 * 
 	 * @param tournament_presure2	greater presure, less diversity
