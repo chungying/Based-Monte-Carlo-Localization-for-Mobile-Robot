@@ -50,14 +50,13 @@ import util.gui.MouseListener;
 import util.metrics.Particle;
 import util.metrics.Transformer;
 
-
-
 /**
  * @author w514
  * 
  */
 public class Grid extends MouseAdapter {
 	public int RPCcount = 0;
+
 	public enum Counters {
 		READMAP, READ_SUCCEED, READ_FAILED
 	}
@@ -97,6 +96,7 @@ public class Grid extends MouseAdapter {
 
 		/**
 		 * Deprecated
+		 * 
 		 * @param z
 		 * @return <pre>
 		 * return the energy of the orientation
@@ -129,8 +129,8 @@ public class Grid extends MouseAdapter {
 				return measurements;
 			}
 		}
-		
-		private void setup(){
+
+		private void setup() {
 			this.sensor_number = (this.circle_measurements.length / 2) + 1;
 			this.energy = new float[this.circle_measurements.length];
 			float[] zt = null;
@@ -140,7 +140,7 @@ public class Grid extends MouseAdapter {
 				for (int j = 0; j < zt.length; j++) {
 					this.energy[i] = this.energy[i] + zt[j];
 				}
-				this.energy[i] = this.energy[i] / ((float)zt.length);
+				this.energy[i] = this.energy[i] / ((float) zt.length);
 			}
 		}
 
@@ -266,40 +266,41 @@ public class Grid extends MouseAdapter {
 		this.sensor_number = Sensor_number;
 		this.sensor_delta_degree = 180 / (Sensor_number - 1);
 		this.map_filename = filename;
-		
+
 	}
 
 	public Grid() {
 		// super();
 		System.out.println("new Grid()");
 	}
-	
-	//private Configuration conf = null;
+
+	// private Configuration conf = null;
 	private HTable table = null;
 	private byte[] family = null;
-	
-	public void closeTable() throws IOException{
+
+	public void closeTable() throws IOException {
 		this.table.close();
 	}
-	
-	public void setupTable(Configuration conf) throws IOException{
-		//TODO table name
+
+	public void setupTable(Configuration conf) throws IOException {
+		// TODO table name
 		System.out.println("set up table");
-		this.table = new HTable(conf,"map.512.4.split");
+		this.table = new HTable(conf, "map.512.4.split");
 		this.family = Bytes.toBytes("distance");
 	}
-	
-	public void scan(Vector<Particle> ser_set, float lowerBoundary, float upperBoundary) throws IOException {
+
+	public void scan(Vector<Particle> ser_set, float lowerBoundary,
+			float upperBoundary) throws IOException {
 		ser_set.clear();
 
 		String lower = String.valueOf(lowerBoundary);
 		String upper = String.valueOf(upperBoundary);
-		Scan scan = new Scan(Bytes.toBytes(lower),Bytes.toBytes(upper));
+		Scan scan = new Scan(Bytes.toBytes(lower), Bytes.toBytes(upper));
 		scan.addFamily(Bytes.toBytes("energy"));
-		
+
 		int caching = 1024;
 		scan.setCaching(caching);
-		
+
 		Filter lowerFilter = new RowFilter(CompareFilter.CompareOp.GREATER,
 				new BinaryComparator(Bytes.toBytes(String.valueOf(lower))));
 		Filter upperFilter = new RowFilter(CompareFilter.CompareOp.LESS,
@@ -308,140 +309,136 @@ public class Grid extends MouseAdapter {
 		fls.addFilter(lowerFilter);
 		fls.addFilter(upperFilter);
 		scan.setFilter(fls);
-		
-		
-		
+
 		ResultScanner scanner = this.table.getScanner(scan);
 		String str = "";
 		String[] pose = null;
-		for(Result[] results = scanner.next(caching); results.length!=0 ;results = scanner.next(caching)){
-			//TODOdone count RPC 
+		for (Result[] results = scanner.next(caching); results.length != 0; results = scanner
+				.next(caching)) {
+			// TODOdone count RPC
 			this.RPCcount++;
-			for(Result result: results){
-				//List<Cell> Cells = result.listCells();
-				
-				for(Cell cell : result.rawCells()){
+			for (Result result : results) {
+				// List<Cell> Cells = result.listCells();
+
+				for (Cell cell : result.rawCells()) {
 					str = Bytes.toString(CellUtil.cloneQualifier(cell));
 					str = str.replace("(", "");
 					str = str.replace(")", "");
 					pose = str.split(",");
-					
-					//System.out.println("(X, Y, Z) = "
-					//		+ "(" + (Integer.parseInt(pose[1])-10000) + "," 
-					//		+ (Integer.parseInt(pose[0])-10000) + "," 
-					//		+ (Bytes.toString(CellUtil.cloneQualifier(cell))) + ")" );
+
+					// System.out.println("(X, Y, Z) = "
+					// + "(" + (Integer.parseInt(pose[1])-10000) + ","
+					// + (Integer.parseInt(pose[0])-10000) + ","
+					// + (Bytes.toString(CellUtil.cloneQualifier(cell))) + ")"
+					// );
 					Particle p = new Particle(
-							Integer.parseInt(pose[1])-10000,
-							Integer.parseInt(pose[0])-10000,
-							Integer.parseInt(Bytes.toString(CellUtil.cloneValue(cell)))
-							);
-					if(p.underSafeEdge(width, height, safe_edge))
+							Integer.parseInt(pose[1]) - 10000,
+							Integer.parseInt(pose[0]) - 10000,
+							Integer.parseInt(Bytes.toString(CellUtil
+									.cloneValue(cell))));
+					if (p.underSafeEdge(width, height, safe_edge))
 						ser_set.add(p);
-					//System.out.println(p.toString());
-					//System.out.println("----------------------------------------------------");
+					// System.out.println(p.toString());
+					// System.out.println("----------------------------------------------------");
 				}
 			}
 		}
 	}
-	
-	
-	
-	
-	
-	public void getBatchFromCloud(Vector<Particle> particles, byte[] fam) throws IOException {
+
+	public void getBatchFromCloud(Vector<Particle> particles, byte[] fam)
+			throws IOException {
 		// TODO first step: setup List<Get>
 		// HTable, Particles
 		List<Get> gets = new ArrayList<Get>();
-		for(Particle p : particles){
+		for (Particle p : particles) {
 			String str = Transformer.XY2String(p.getX(), p.getY());
 			Get get = new Get(Bytes.toBytes(str));
 			get.addFamily(fam);
 			gets.add(get);
 		}
-		
+
 		// TODO second: fetch from the Results to the Vector<Particles>
 		// Particles(X, Y, Z), Results
 		Result[] results = this.table.get(gets);
-		if (results.length==particles.size()) {
-			for (int i = 0; i < results.length; i ++) {
-				//TODO require sensor's number
+		if (results.length == particles.size()) {
+			for (int i = 0; i < results.length; i++) {
+				// TODO require sensor's number
 				convertResultToParticle(particles.get(i), results[i], fam);
 			}
 		}
 
-		
 	}
 
-	private void convertResultToParticle(Particle particle, Result result, byte[] fam) {
+	private void convertResultToParticle(Particle particle, Result result,
+			byte[] fam) {
 		if (!result.isEmpty()) {
 			float[] measurements = new float[this.sensor_number];
 			int bias = (this.sensor_number - 1) / 2;
 			int index;
 			for (int i = 0; i < this.sensor_number; i++) {
 				index = ((particle.getZ() - bias + i + this.orientation) % this.orientation);
-				measurements[i] = Float.valueOf(Bytes.toString(result.getValue(fam,
-						Bytes.toBytes(String.valueOf(index)))));
+				measurements[i] = Float.valueOf(Bytes.toString(result.getValue(
+						fam, Bytes.toBytes(String.valueOf(index)))));
 			}
 			particle.setMeasurements(measurements);
 		}
-		
+
 	}
 
-	private float[] getFromCloud(int X, int Y, int Z) throws IOException{
-		//TODOdone count RPC times
+	private float[] getFromCloud(int X, int Y, int Z) throws IOException {
+		// TODOdone count RPC times
 		this.RPCcount++;
-		
+
 		String rowkey = Transformer.XY2String(X, Y);
-		//System.out.print("family:"+Bytes.toString(family)+"\t");
-		//System.out.println("rowkey: " + rowkey);
+		// System.out.print("family:"+Bytes.toString(family)+"\t");
+		// System.out.println("rowkey: " + rowkey);
 		Get get = new Get(Bytes.toBytes(rowkey));
 		get.addFamily(this.family);
 		Result result = this.table.get(get);
-		//List<Cell> cells = result.listCells();
+		// List<Cell> cells = result.listCells();
 		if (Z >= 0) {
 			float[] measurements = new float[this.sensor_number];
 			float temp = 0f;
 			int bias = (this.sensor_number - 1) / 2;
 			int index;
 			for (int i = 0; i < this.sensor_number; i++) {
-				
+
 				index = ((Z - bias + i + this.orientation) % this.orientation);
-				//System.out.println("index: " + index);
-				temp = Float.parseFloat(
-						Bytes.toString(
-							result.getValue(
-									this.family, 
-									Bytes.toBytes(String.valueOf(index))
-									)
-							)
-						);
-				//System.out.println("temparary float = " + temp);
+				// System.out.println("index: " + index);
+				temp = Float.parseFloat(Bytes.toString(result.getValue(
+						this.family, Bytes.toBytes(String.valueOf(index)))));
+				// System.out.println("temparary float = " + temp);
 				measurements[i] = temp;
-				
+
 			}
 			return measurements;
 		} else {
 			float[] measurements = new float[this.orientation];
-			for(int i = 0; i< this.orientation; i++){
-				measurements[i] = Bytes.toFloat(result.getValue(this.family/*Bytes.toBytes("distance")*/, Bytes.toBytes(String.valueOf(i))));
+			for (int i = 0; i < this.orientation; i++) {
+				measurements[i] = Bytes.toFloat(result.getValue(
+						this.family/* Bytes.toBytes("distance") */,
+						Bytes.toBytes(String.valueOf(i))));
 			}
 			return measurements;
 		}
 	}
-	
-	public float[] getMeasurements(boolean onCloud, int x, int y, double head) throws IOException {
-		return this.getMeasurements(onCloud, x, y, Transformer.th2Z(head, this.orientation, this.orientation_delta_degree));
-		
+
+	public float[] getMeasurements(boolean onCloud, int x, int y, double head)
+			throws IOException {
+		return this.getMeasurements(onCloud, x, y, Transformer.th2Z(head,
+				this.orientation, this.orientation_delta_degree));
+
 	}
 
-	public float[] getMeasurements( boolean oncloud, int X, int Y, int Z) throws IOException{
-		if(oncloud){
-			//System.out.println("get from CLOUD!!!!!");
-			//System.out.println("(X,Y,Z) = ("+X+","+Y+","+Z+")");
+	public float[] getMeasurements(boolean oncloud, int X, int Y, int Z)
+			throws IOException {
+		if (oncloud) {
+			// System.out.println("get from CLOUD!!!!!");
+			// System.out.println("(X,Y,Z) = ("+X+","+Y+","+Z+")");
 			return this.getFromCloud(X, Y, Z);
-		}else{
-			//System.out.println("get from local!!!!!");
-			//System.out.println("(X,Y,Z) = ("+X+","+Y+","+Z+")");
+		} else {
+			// System.out.println("get from local!!!!!");
+			// System.out.println("(X,Y,Z) = ("+X+","+Y+","+Z+")");
 			return this.G[X][Y].getMeasurements(Z);
 		}
 	}
@@ -457,39 +454,39 @@ public class Grid extends MouseAdapter {
 	}
 
 	// private Context context;
-	//TODO for debug mode, there could use counter to debug
-	public void readmap(String filename, @SuppressWarnings("rawtypes") Context context) {
+	// TODO for debug mode, there could use counter to debug
+	public void readmap(String filename,
+			@SuppressWarnings("rawtypes") Context context) {
 		try {
-			//context.getCounter(Counters.READMAP).increment(1);
+			// context.getCounter(Counters.READMAP).increment(1);
 			FileSystem fs = FileSystem.get(URI.create(filename),
 					context.getConfiguration());
 			FSDataInputStream inputstream = fs.open(new Path(filename));
 			map_image = ImageIO.read(inputstream);
-			//context.getCounter(Counters.READ_SUCCEED).increment(1);
+			// context.getCounter(Counters.READ_SUCCEED).increment(1);
 			this.convert();
-			//TODO must be added ---2014/05/02
+			// TODO must be added ---2014/05/02
 			fs.close();
 		} catch (IOException e) {
 			context.getCounter(Counters.READ_FAILED).increment(1);
 			e.printStackTrace();
-		} 
+		}
 
 	}
-	
+
 	public void readmap(String filename, Configuration conf) {
 		try {
-			//context.getCounter(Counters.READMAP).increment(1);
-			FileSystem fs = FileSystem.get(URI.create(filename),
-					conf);
+			// context.getCounter(Counters.READMAP).increment(1);
+			FileSystem fs = FileSystem.get(URI.create(filename), conf);
 			FSDataInputStream inputstream = fs.open(new Path(filename));
 			map_image = ImageIO.read(inputstream);
-			//context.getCounter(Counters.READ_SUCCEED).increment(1);
+			// context.getCounter(Counters.READ_SUCCEED).increment(1);
 			this.convert();
-			//TODO must be added
+			// TODO must be added
 			fs.close();
 		} catch (IOException e) {
 			e.printStackTrace();
-		} 
+		}
 
 	}
 
@@ -501,13 +498,14 @@ public class Grid extends MouseAdapter {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		
+
 	}
 
 	private void convert() {
 		this.width = map_image.getWidth();
 		this.height = map_image.getHeight();
-		this.max_distance = (float)Point2D.Float.distance(0.0, 0.0, (double)this.width, (double)this.height);
+		this.max_distance = (float) Point2D.Float.distance(0.0, 0.0,
+				(double) this.width, (double) this.height);
 		map_array = new boolean[this.width][this.height];
 		Color black = new Color(0, 0, 0);
 		Color pixel;
@@ -538,14 +536,14 @@ public class Grid extends MouseAdapter {
 		for (int x = 1; x < this.width - 1; x++) {
 			// System.out.println( Math.round( ( x / (double) this.width )*100 )
 			// );
-			
+
 			for (int y = 1; y < this.height - 1; y++) {
-				if(x==0){
+				if (x == 0) {
 					this.G[x][y] = new position();
-				}else{
+				} else {
 					float[] temp = new float[this.orientation];
 					Point[] measurement_points = new Point[this.orientation];
-	
+
 					this.getlaserdist(x, y, temp, measurement_points);
 					this.G[x][y] = new position(temp, measurement_points);
 				}
