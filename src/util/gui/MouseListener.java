@@ -22,18 +22,15 @@ public class MouseListener extends ImageIcon {
 	@SuppressWarnings("unused")
 	public MouseListener(Image image) {
 		super(image);
-		// TODO Auto-generated constructor stub
 		MouseMotionListener mouse = new MouseMotionListener(){
 
 			@Override
 			public void mouseDragged(MouseEvent e) {
-				// TODO Auto-generated method stub
 				
 			}
 
 			@Override
 			public void mouseMoved(MouseEvent e) {
-				// TODO Auto-generated method stub
 				
 			}
 			

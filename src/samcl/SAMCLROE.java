@@ -11,7 +11,7 @@ public class SAMCLROE extends SAMCL{
 	@Override
 	public synchronized void run(RobotState robot, JFrame samcl_window)
 			throws IOException {
-		// TODO Auto-generated method stub
+		// TODO SAMCLROE
 		super.run(robot, samcl_window);
 	}
 

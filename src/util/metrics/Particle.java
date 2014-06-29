@@ -134,12 +134,10 @@ public class Particle implements Cloneable{
 
 	@Override
 	public Particle clone() {
-		// TODO Auto-generated method stub
 		try {
 			Particle p = (Particle)super.clone();
 			return p;
 		} catch (CloneNotSupportedException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			throw new InternalError();
 		}

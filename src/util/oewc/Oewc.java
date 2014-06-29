@@ -6,7 +6,6 @@ import util.metrics.Transformer;
 public class Oewc {
 		
 	static public void singleParticle(float[] Zt, Particle particle, float[] circles){
-		//TODO
 		float weight = 1;
 		particle.setWeight(1.0f);
 		for(int z = 0; z < particle.orientation; z++){

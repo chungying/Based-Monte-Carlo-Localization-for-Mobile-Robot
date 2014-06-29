@@ -1,7 +1,6 @@
 package util.gui;
 
 import java.awt.BorderLayout;
-import java.awt.Button;
 import java.awt.Scrollbar;
 import java.awt.event.AdjustmentEvent;
 import java.awt.event.AdjustmentListener;
@@ -35,7 +34,7 @@ public class SamclListener extends JFrame implements  AdjustmentListener{
 		this.scrollbar.addAdjustmentListener(this);
 		this.scrollbar.setValues(500, 100, 0, 1100);
 		this.scrollbar.setOrientation(Scrollbar.HORIZONTAL);
-		this.add(scrollbar, boarder.SOUTH);
+		this.add(scrollbar, BorderLayout.SOUTH);
 		
 		this.setSize(300, 50);
 		

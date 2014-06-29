@@ -28,8 +28,8 @@ public class RobotState implements Runnable{
 		Vt = 0;
 		Wt = 0;
 		
-		//TODO
-		//setup Grid and onCloud
+		
+		//TODO setup Grid and onCloud?
 		this.grid = null;
 	}
 	
@@ -49,8 +49,7 @@ public class RobotState implements Runnable{
 		Vt = 0;
 		Wt = 0;
 		
-		//TODO
-		//setup Grid and onCloud
+		//TODO setup Grid and onCloud?
 		this.grid = grid;
 	}
 	
@@ -75,7 +74,6 @@ public class RobotState implements Runnable{
 			try {
 				Thread.sleep(10);
 			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 			
@@ -89,7 +87,6 @@ public class RobotState implements Runnable{
 					this.setMeasurements(this.updateSensor());
 				}	
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 			

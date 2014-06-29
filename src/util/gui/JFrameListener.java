@@ -47,13 +47,13 @@ public class JFrameListener extends JFrame implements ActionListener, Adjustment
 			control_panel.add(B[i]);
 			B[i].addActionListener(this);
 		}
-		this.add(control_panel, boarder.NORTH);
+		this.add(control_panel, BorderLayout.NORTH);
 		
 		//set up scroll bar
 		this.scrollbar.addAdjustmentListener(this);
 		this.scrollbar.setValues(500, 100, 0, 1100);
 		this.scrollbar.setOrientation(Scrollbar.HORIZONTAL);
-		this.add(scrollbar, boarder.SOUTH);
+		this.add(scrollbar, BorderLayout.SOUTH);
 		
 		this.pack();
 		this.setVisible(true);
@@ -70,7 +70,6 @@ public class JFrameListener extends JFrame implements ActionListener, Adjustment
 
 	@Override
 	public void actionPerformed(ActionEvent arg0) {
-		// TODO Auto-generated method stub
 		//System.out.println("action!!");
 		Button btn = (Button) arg0.getSource();
 		

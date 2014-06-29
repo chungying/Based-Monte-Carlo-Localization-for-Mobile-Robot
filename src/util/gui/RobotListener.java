@@ -11,7 +11,6 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 
 import robot.RobotState;
-import samcl.SAMCL;
 
 @SuppressWarnings("serial")
 public class RobotListener extends JFrame implements ActionListener{
@@ -45,7 +44,7 @@ public class RobotListener extends JFrame implements ActionListener{
 			control_panel.add(B[i]);
 			B[i].addActionListener(this);
 		}
-		this.add(control_panel, boarder.NORTH);
+		this.add(control_panel, BorderLayout.NORTH);
 		
 				
 		this.pack();
@@ -61,7 +60,6 @@ public class RobotListener extends JFrame implements ActionListener{
 
 	@Override
 	public void actionPerformed(ActionEvent arg0) {
-		// TODO Auto-generated method stub
 		//System.out.println("action!!");
 		Button btn = (Button) arg0.getSource();
 		

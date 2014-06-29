@@ -13,8 +13,6 @@ import java.util.Vector;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
-import org.apache.hadoop.hbase.util.Bytes;
-
 import robot.RobotState;
 import util.gui.Panel;
 import util.gui.RobotListener;
@@ -27,6 +25,7 @@ import com.beust.jcommander.JCommander;
 
 public class Main {
 	
+	@SuppressWarnings("unused")
 	public static void main(String[] args) throws IOException, InterruptedException {
 		/**
 		 * First step:

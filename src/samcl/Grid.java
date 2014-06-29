@@ -342,25 +342,25 @@ public class Grid extends MouseAdapter {
 		}
 	}
 
-	public void getBatchFromCloud(List<Particle> last_set2, byte[] fam)
+	public void getBatchFromCloud(List<Particle> src)
 			throws IOException {
-		// TODO first step: setup List<Get>
+		// first step: setup List<Get>
 		// HTable, Particles
 		List<Get> gets = new ArrayList<Get>();
-		for (Particle p : last_set2) {
+		byte[] fam = Bytes.toBytes("distance");
+		for (Particle p : src) {
 			String str = Transformer.XY2String(p.getX(), p.getY());
 			Get get = new Get(Bytes.toBytes(str));
 			get.addFamily(fam);
 			gets.add(get);
 		}
 
-		// TODO second: fetch from the Results to the List<Particles>
+		// second: fetch from the Results to the List<Particles>
 		// Particles(X, Y, Z), Results
 		Result[] results = this.table.get(gets);
-		if (results.length == last_set2.size()) {
+		if (results.length == src.size()) {
 			for (int i = 0; i < results.length; i++) {
-				// TODO require sensor's number
-				convertResultToParticle(last_set2.get(i), results[i], fam);
+				convertResultToParticle(src.get(i), results[i], fam);
 			}
 		}else
 			throw new IOException("the length is different.");
@@ -464,7 +464,6 @@ public class Grid extends MouseAdapter {
 			map_image = ImageIO.read(inputstream);
 			// context.getCounter(Counters.READ_SUCCEED).increment(1);
 			this.convert();
-			// TODO must be added ---2014/05/02
 			fs.close();
 		} catch (IOException e) {
 			context.getCounter(Counters.READ_FAILED).increment(1);
@@ -481,7 +480,6 @@ public class Grid extends MouseAdapter {
 			map_image = ImageIO.read(inputstream);
 			// context.getCounter(Counters.READ_SUCCEED).increment(1);
 			this.convert();
-			// TODO must be added
 			fs.close();
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -564,7 +562,7 @@ public class Grid extends MouseAdapter {
 					// System.out.println("temp = "+ temp.length);
 					// System.out.println("point= "+ measurement_points.length);
 					if (i + x == 0 || i + x >= this.width || j + y == 0
-							|| j + y >= this.height) {// TODO checkout the
+							|| j + y >= this.height) {// TODO checkout the condition
 														// condition
 						for (int k = 0; k < measurement_points.length; k++) {
 							// System.out.println("i+x = "+(i+x));
