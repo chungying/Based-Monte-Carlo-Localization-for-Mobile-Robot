@@ -1,13 +1,21 @@
 package util.metrics;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import org.apache.hadoop.hbase.util.Bytes;
+
 public class Transformer {
-	
+	@Deprecated
 	static public String XY2String(int X, int Y){
 		String str = "("+String.valueOf(10000 + Y)+","+String.valueOf(10000 + X)+")";
+		return str;
+	}
+	
+	static public String xy2String(int X, int Y){
+		String str = String.format("%05d", X)+String.format("%05d", Y);
 		return str;
 	}
 	
@@ -97,6 +105,26 @@ public class Transformer {
 		}
 		
 		return min_particle;
+	}
+	
+	public static byte[] String2Rowkey( int X, int Y , Random random){
+		String str = xy2String(X,Y);
+		random.setSeed(Long.parseLong(str));
+		String rand = String.format("%04d", random.nextInt(1000));
+		return Bytes.toBytes(rand+":"+str);
+	}
+	public static synchronized void  main(String[] args) throws IOException{
+		int x = 115;
+		int y = 5765;
+		System.out.println(xy2String(x,y));
+		byte[] bytes = String2Rowkey(x,y, new Random());
+		String strback = Bytes.toString(bytes);
+		System.out.println(strback);
+		String[] strs = strback.split(":");
+		int nx = Integer.parseInt(strs[1].substring(0, 5));
+		int ny = Integer.parseInt(strs[1].substring(5, 9));
+		System.out.println("(x,y) = ("+x+","+y+")");
+		
 	}
 	
 }
