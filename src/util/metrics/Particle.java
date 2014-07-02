@@ -20,7 +20,7 @@ public class Particle implements Cloneable{
 	/**
 	 * assgned from outside
 	 */
-	private boolean ifmeasurements;
+	private boolean ifmeasurements = false;
 	private float[] measurements;
 
 	/**

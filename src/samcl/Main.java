@@ -43,8 +43,8 @@ public class Main {
 				(float) 0.6, //rate of population
 				10);//competitive strength
 		if(args.length==0){
-			String[] targs = {"-cl",
-					"-i","file:///home/w514/map.jpg"
+			String[] targs = {/*"-cl",*/
+					"-i","file:///Users/ihsumlee/Jolly/jpg/test6.jpg"
 					,"-o","4"
 					};
 			args = targs;
@@ -66,6 +66,10 @@ public class Main {
 			//samcl.Pre_caching();
 		}else
 			samcl.setup();
+		
+		//pre-caching?
+		samcl.Pre_caching();
+	
 		
 		/**
 		 * Second step:
@@ -123,30 +127,7 @@ public class Main {
 			Tools.drawRobot(grap, robot.getX(), robot.getY(), robot.getHead(), 10, Color.RED);
 			panel.repaint();
 			System.out.println(robot.toString());
-			
-			
-//			samcl.precomputed_grid.getBatchFromCloud(robots, Bytes.toBytes("distance"));
-//			System.out.println(robots.get(0).toString());
-//			robots.get(0).setX(robot.getX());
-//			robots.get(0).setY(robot.getY());
-//			robots.get(0).setZ(Transformer.th2Z(robot.getHead(),samcl.orientation, samcl.precomputed_grid.orientation_delta_degree));
-			
 		}
-		
-		
-		
-		
-
-		
-		
-		
-//		int counter = 0;
-//		while(true){
-//			counter++;
-//			samcl.run();
-//			System.out.println("end.....");
-//		}
-		
 	}
 	
 	

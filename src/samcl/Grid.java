@@ -429,6 +429,14 @@ public class Grid extends MouseAdapter {
 
 	}
 
+	/**
+	 * @return <pre>
+	 * if z >= 0
+	 * return the range of the measurements of this orientation
+	 * else
+	 * return all of the measurements
+	 * </pre>
+	 */
 	public float[] getMeasurements(boolean oncloud, int X, int Y, int Z)
 			throws IOException {
 		if (oncloud) {
