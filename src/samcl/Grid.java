@@ -316,7 +316,7 @@ public class Grid extends MouseAdapter {
 			this.RPCcount++;
 			for (Result result : results) {
 				// List<Cell> Cells = result.listCells();
-
+				//TODO ******most important!!!!
 				for (Cell cell : result.rawCells()) {
 					str = Bytes.toString(CellUtil.cloneQualifier(cell));
 					str = str.replace("(", "");
