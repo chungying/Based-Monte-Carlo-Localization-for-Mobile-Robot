@@ -8,17 +8,6 @@ import java.util.Random;
 import org.apache.hadoop.hbase.util.Bytes;
 
 public class Transformer {
-	@Deprecated
-	static public String XY2String(int X, int Y){
-		String str = "("+String.valueOf(10000 + Y)+","+String.valueOf(10000 + X)+")";
-		return str;
-	}
-	
-	static public String xy2String(int X, int Y){
-		String str = String.format("%05d", X)+String.format("%05d", Y);
-		return str;
-	}
-	
 	static public int th2Z(double head, int orientation, double orientation_delta_degree){
 		return ((int) Math.round( head/orientation_delta_degree ) )% orientation;
 	}
@@ -106,24 +95,55 @@ public class Transformer {
 		
 		return min_particle;
 	}
-	
-	public static byte[] String2Rowkey( int X, int Y , Random random){
+	@Deprecated
+	static public String XY2String(int X, int Y){
+		String str = "("+String.valueOf(10000 + Y)+","+String.valueOf(10000 + X)+")";
+		return str;
+	}
+
+	static public String xy2String(int X, int Y){
+		String str = String.format("%05d", X)+String.format("%05d", Y);
+		return str;
+	}
+	static final String separator = ":";
+	public static String xy2RowkeyString( int X, int Y , Random random){
 		String str = xy2String(X,Y);
 		random.setSeed(Long.parseLong(str));
 		String rand = String.format("%04d", random.nextInt(1000));
-		return Bytes.toBytes(rand+":"+str);
+		return rand+separator+str;
 	}
-	public static synchronized void  main(String[] args) throws IOException{
-		int x = 115;
+	
+	/**
+	 * @param rowkey is the form of "....:0000000000" where "." is a character and "0" is a number.
+	 * @param p is the Particle stored the X and Y from rowkey.
+	 */
+	public static void rowkeyString2xy(String rowkey, Particle p){
+		String str = rowkey.replaceAll("...."+separator, "");
+		p.setX(Integer.valueOf( str.substring(0, 5) ));
+		p.setY(Integer.valueOf( str.substring(5,10) ));
+	}
+	
+	public static void main(String[] args) throws IOException{
+		Random random = new Random();
+		int x = 1156;
 		int y = 5765;
-		System.out.println(xy2String(x,y));
-		byte[] bytes = String2Rowkey(x,y, new Random());
-		String strback = Bytes.toString(bytes);
-		System.out.println(strback);
-		String[] strs = strback.split(":");
-		int nx = Integer.parseInt(strs[1].substring(0, 5));
-		int ny = Integer.parseInt(strs[1].substring(5, 9));
-		System.out.println("(x,y) = ("+x+","+y+")");
+		
+		String str = xy2RowkeyString(x,y, random);
+		String str2 = xy2String(x+1,y+1);
+		System.out.println("str:"+str);
+		System.out.println("str2:"+str2);
+		Particle p = new Particle(0, 0, 0);
+		System.out.println("1\t"+p.toString());
+		
+		rowkeyString2xy(str, p);
+		System.out.println("str\t"+p.toString());
+		rowkeyString2xy(str2, p);
+		System.out.println("str2\t"+p.toString());
+		
+//		System.out.println(str);
+//		System.out.println(str2);
+//		System.out.println(str.replaceAll("...."+separator, ""));
+//		System.out.println(str2.replaceAll("...."+separator, ""));
 		
 	}
 	
