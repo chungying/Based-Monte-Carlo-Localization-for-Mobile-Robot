@@ -43,7 +43,7 @@ public class Main {
 				(float) 0.6, //rate of population
 				10);//competitive strength
 		if(args.length==0){
-			String[] targs = {"-cl",
+			String[] targs = {/*"-cl",*/
 					"-i","file:///home/w514/map.jpg"
 					,"-o","4"
 					};

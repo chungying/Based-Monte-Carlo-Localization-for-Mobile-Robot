@@ -7,6 +7,7 @@ import java.io.IOException;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.client.HTable;
@@ -18,6 +19,7 @@ import org.apache.hadoop.io.*;
 import org.apache.hadoop.mapreduce.Reducer;
 
 import samcl.*;
+import util.metrics.Transformer;
 
 public class Reducer2Hbase 
 	extends Reducer<IntWritable, RectangleWritableComparable, ImmutableBytesWritable, Put>{
@@ -86,11 +88,15 @@ public class Reducer2Hbase
 				context.getCounter(Counters.A).increment(1);
 				//int rowkey;
 				String row_str = new String();
+				Random random = new Random();;
 				for (int i = 0; i < value.width.get(); i++) {
 					
 					for (int j = 0; j < value.height.get(); j++) {
+						
 						//TODO transform to absolute type
-						row_str = "("+( 10000+j+value.y.get() )+","+( 10000+i+value.x.get() )+")";
+						row_str = Transformer.xy2RowkeyString(i, j, random);
+						//2014/7/2
+						//row_str = "("+( 10000+j+value.y.get() )+","+( 10000+i+value.x.get() )+")";
 						//rowkey = (j + value.y.get()) * (value.width.get()) + (i + value.x.get());
 						
 						context.getCounter(Counters.PUT).increment(1);
