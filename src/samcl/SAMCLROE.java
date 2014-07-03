@@ -33,7 +33,7 @@ public class SAMCLROE extends SAMCL{
 			throws IOException {
 		for(Particle p : src){
 			Oewc.singleParticle(robotMeasurements, p, 
-					this.precomputed_grid.getMeasurements(onCloud, p.getX(), p.getY(), -1));
+					this.precomputed_grid.getMeasurements(this.table, onCloud, p.getX(), p.getY(), -1));
 		}
 	}
 

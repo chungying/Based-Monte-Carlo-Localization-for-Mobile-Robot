@@ -1,13 +1,16 @@
 package robot;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.util.Arrays;
+
+import org.apache.hadoop.hbase.client.HTable;
 
 import samcl.Grid;
 import util.gui.RobotListener;
 import util.metrics.Transformer;
 
-public class RobotState implements Runnable{
+public class RobotState implements Runnable,Closeable{
 	private double x;
 	private double y;
 	private double head;
@@ -17,20 +20,15 @@ public class RobotState implements Runnable{
 	
 	private boolean onCloud;
 	private Grid grid = null;
+	private HTable table = null;
 	
 
-	public RobotState(int x, int y, double head) {
-		super();
-		System.out.println("initial robot");
-		this.x = x;
-		this.y = y;
-		this.head = Transformer.checkHeadRange(head);
-		Vt = 0;
-		Wt = 0;
-		
-		
-		//TODO setup Grid and onCloud?
-		this.grid = null;
+	public RobotState(int x, int y, double head) throws IOException {
+		this(x, y, head, null, null);
+	}
+	
+	public RobotState(int x, int y, double head, Grid grid) throws IOException {
+		this(x, y, head, grid, null);
 	}
 	
 	/**
@@ -39,8 +37,9 @@ public class RobotState implements Runnable{
 	 * @param head
 	 * @param vt
 	 * @param wt
+	 * @throws IOException 
 	 */
-	public RobotState(int x, int y, double head, Grid grid) {
+	public RobotState(int x, int y, double head, Grid grid, String tableName) throws IOException {
 		super();
 		System.out.println("initial robot");
 		this.x = x;
@@ -51,6 +50,9 @@ public class RobotState implements Runnable{
 		
 		//TODO setup Grid and onCloud?
 		this.grid = grid;
+		//TODO table name
+		if(tableName!=null)
+			this.table = this.grid.getTable(tableName);
 	}
 	
 	public void update(double t) throws IOException{
@@ -61,7 +63,7 @@ public class RobotState implements Runnable{
 	}
 
 	private void updateSensor() throws IOException {
-		this.setMeasurements(this.grid.getMeasurements(onCloud, getX(), getY(), getHead()));
+		this.setMeasurements(this.grid.getMeasurements(this.table , onCloud, getX(), getY(), getHead()));
 	}
 
 	@Override
@@ -163,6 +165,13 @@ public class RobotState implements Runnable{
 		t.start();
 		RobotListener lstn = new RobotListener("test", robot);
 		
+		
+	}
+
+	@Override
+	public void close() throws IOException {
+		if(this.table!=null) 
+			table.close();
 		
 	}
 	

@@ -43,8 +43,8 @@ public class Main {
 				(float) 0.6, //rate of population
 				10);//competitive strength
 		if(args.length==0){
-			String[] targs = {/*"-cl",*/
-					"-i","file:///home/w514/map.jpg"
+			String[] targs = {"-cl",
+					"-i","file:///home/w514/jpg/map.jpg"
 					,"-o","4"
 					};
 			args = targs;
@@ -63,12 +63,9 @@ public class Main {
 			
 			samcl.setup();
 			System.out.println("start to pre-caching");
-			//samcl.Pre_caching();
+			samcl.Pre_caching();
 		}else
 			samcl.setup();
-		
-		//pre-caching?
-		samcl.Pre_caching();
 	
 		
 		/**
@@ -76,7 +73,7 @@ public class Main {
 		 * to create a robot
 		 * setup the listener of Robot
 		 * */
-		RobotState robot = new RobotState(70, 70, 180, samcl.precomputed_grid);
+		RobotState robot = new RobotState(70, 70, 180, samcl.precomputed_grid, "map.512.4.split");
 		robot.setOnCloud(samcl.onCloud);
 		RobotListener robotListener = new RobotListener("robot controller", robot);
 		Thread t = new Thread(robot);

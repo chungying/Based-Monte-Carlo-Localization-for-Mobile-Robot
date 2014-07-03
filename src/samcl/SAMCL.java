@@ -6,6 +6,7 @@ package samcl;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
+import java.io.Closeable;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
@@ -17,6 +18,8 @@ import javax.swing.JFrame;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.client.HTable;
+
 import robot.VelocityModel;
 import robot.RobotState;
 import util.gui.Panel;
@@ -36,15 +39,15 @@ import com.beust.jcommander.Parameter;
  *part4:Drawing global samples
  *part5:Combining two particle sets
  */
-public class SAMCL {
+public class SAMCL implements Closeable{
 	
-	public void Drawing(BufferedImage samcl_image, JFrame window
+	public void Drawing(Graphics2D grap, JFrame window
 			, RobotState robot, Particle bestParticle, List<Particle> particles, List<Particle> SER){
 		//TODO IMAGE
 		//initial Graphics2D
 		//BufferedImage samcl_image = new BufferedImage(this.precomputed_grid.width,this.precomputed_grid.height, BufferedImage.TYPE_INT_ARGB);
 		
-		Graphics2D grap = samcl_image.createGraphics();
+		//Graphics2D grap = samcl_image.createGraphics();
 		grap.drawImage(this.precomputed_grid.map_image, null, 0, 0);
 		
 		
@@ -101,7 +104,7 @@ public class SAMCL {
 			//grap.drawOval(p.getX()-2, p.getY()-2, 4, 4);
 		}
 		
-		//TODO IMAGE
+		//TODO WINDOW
 		Panel image_panel = new Panel(samcl_image);
 		//Painting on the Frame.		
 		//JFrame samcl_window = new JFrame("samcl image");
@@ -121,7 +124,6 @@ public class SAMCL {
 		
 		int counter = 0;
 		
-		//TODO IMAGE
 		while(wl.isClosing!=true){
 			counter++;
 			System.out.println(this.getClass().getName()+"\tGeneration\t"+counter+"\t-------------------");
@@ -202,7 +204,7 @@ public class SAMCL {
 			}
 
 			//draw image 
-			this.Drawing(samcl_image, samcl_window, robot, max_p, next_set, SER_set);
+			this.Drawing(grap, samcl_window, robot, max_p, next_set, SER_set);
 			
 			//update image
 			image_panel.repaint();
@@ -241,10 +243,13 @@ public class SAMCL {
 		//precomputed_grid.start_mouse(precomputed_grid);
 	}
 	
+	protected HTable table = null;
+	private String tableName = "map.512.4.split";
 	private void cloudSetup() throws IOException{
 		Configuration conf = HBaseConfiguration.create();
 		precomputed_grid.setupTable(conf);
 		precomputed_grid.readmap(this.map_filename, conf);
+		this.table = this.precomputed_grid.getTable(this.tableName);
 		/**
 		 *  the initialization of SAMCL 
 		 */
@@ -319,7 +324,8 @@ public class SAMCL {
 		
 	}
 	
-	//TODO check the parameters 
+	//check the parameters 
+	//TODO 2014/7/3 should add "table name" argument
 	@Parameter(names = {"-cl","--cloud"}, description = "if be on the cloud", required = false)
 	public boolean onCloud = false;
 	
@@ -450,14 +456,14 @@ public class SAMCL {
 		//get sensor data of all particles.
 		if(this.onCloud){
 			//get measurements from cloud  and weight
-			this.precomputed_grid.getBatchFromCloud(src);
+			this.precomputed_grid.getBatchFromCloud(this.table, src);
 			for(Particle p : src){
 				this.WeightParticle(p, robotMeasurements);
 			}
 		}else{
 			//get measurements from local database and weight
 			for(Particle p : src){
-				p.setMeasurements(this.precomputed_grid.getMeasurements(this.onCloud, p.getX(), p.getY(), p.getZ()));
+				p.setMeasurements(this.precomputed_grid.getMeasurements(this.table, this.onCloud, p.getX(), p.getY(), p.getZ()));
 				this.WeightParticle(p, robotMeasurements);
 			}
 		}
@@ -537,7 +543,7 @@ public class SAMCL {
 	private void cloudCaculatingSER(List<Particle> SER_set, float LowerBoundary, float UpperBoundary) throws IOException{
 		SER_set.clear();
 		//System.out.println("start to scan in caculating SER on the cloud");
-		this.precomputed_grid.scan(SER_set, LowerBoundary, UpperBoundary);
+		this.precomputed_grid.scan(this.table, SER_set, LowerBoundary, UpperBoundary);
 	}
 	
 	private void localCaculatingSER(List<Particle> SER_set, float LowerBoundary, float UpperBoundary){
@@ -653,7 +659,7 @@ public class SAMCL {
 				p.setWeight(Transformer.WeightFloat(p.getMeasurements(), robotMeasurements));
 			}else{
 				//Cloud , Grid class------done
-				float[] measurements = this.precomputed_grid.getMeasurements(onCloud, p.getX(), p.getY(), p.getZ());
+				float[] measurements = this.precomputed_grid.getMeasurements(this.table, onCloud, p.getX(), p.getY(), p.getZ());
 				p.setWeight(Transformer.WeightFloat(measurements, robotMeasurements));
 			}
 		}else{
@@ -670,6 +676,12 @@ public class SAMCL {
 		}
 		energy = energy / ((float)Zt.length);
 		return energy;
+	}
+
+	@Override
+	public void close() throws IOException {
+		if(this.table!=null)
+			this.table.close();
 	}
 
 }

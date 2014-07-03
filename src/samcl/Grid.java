@@ -30,8 +30,12 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
+import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.HConnection;
+import org.apache.hadoop.hbase.client.HConnectionManager;
 import org.apache.hadoop.hbase.client.HTable;
+import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
@@ -270,23 +274,36 @@ public class Grid extends MouseAdapter {
 		// super();
 		System.out.println("new Grid()");
 	}
-
+	
 	// private Configuration conf = null;
-	private HTable table = null;
+	private HConnection connection = null;
+	//private HTable table = null;
 	private byte[] family = null;
 
+	public HTable getTable(String tablename) throws IOException{
+		if(tablename != null)
+			return (HTable)this.connection.getTable(tablename);
+		else
+			return null;
+	}
+	
 	public void closeTable() throws IOException {
-		this.table.close();
+		//this.table.close();
+		connection.close();
 	}
 
 	public void setupTable(Configuration conf) throws IOException {
 		// TODO table name
 		System.out.println("set up table");
-		this.table = new HTable(conf, "map.512.4.split");
+		//this.table = new HTable(conf, "map.512.4.split");
 		this.family = Bytes.toBytes("distance");
+		
+		// TODO table pool
+		connection = HConnectionManager.createConnection(conf);
+		
 	}
 
-	public void scan(List<Particle> sER_set, float lowerBoundary,
+	public void scan(HTable table, List<Particle> sER_set, float lowerBoundary,
 			float upperBoundary) throws IOException {
 		sER_set.clear();
 
@@ -307,7 +324,7 @@ public class Grid extends MouseAdapter {
 		fls.addFilter(upperFilter);
 		scan.setFilter(fls);
 
-		ResultScanner scanner = this.table.getScanner(scan);
+		ResultScanner scanner = table.getScanner(scan);
 		String str = "";
 		String[] pose = null;
 		for (Result[] results = scanner.next(caching); results.length != 0; results = scanner
@@ -342,7 +359,7 @@ public class Grid extends MouseAdapter {
 		}
 	}
 
-	public void getBatchFromCloud(List<Particle> src)
+	public void getBatchFromCloud(HTable table, List<Particle> src)
 			throws IOException {
 		// first step: setup List<Get>
 		// HTable, Particles
@@ -357,17 +374,32 @@ public class Grid extends MouseAdapter {
 
 		// second: fetch from the Results to the List<Particles>
 		// Particles(X, Y, Z), Results
-		Result[] results = this.table.get(gets);
+		Result[] results = table.get(gets);
 		if (results.length == src.size()) {
 			for (int i = 0; i < results.length; i++) {
-				convertResultToParticle(src.get(i), results[i], fam);
+				//convertResultToParticle(src.get(i), results[i], fam);
+				Particle p = src.get(i);
+				if (!results[i].isEmpty()) {
+					float[] measurements = new float[this.sensor_number];
+					int bias = (this.sensor_number - 1) / 2;
+					for (int j = 0; j < this.sensor_number; j++) {
+						measurements[j] = Float.valueOf(Bytes.toString(results[j].getValue(
+								fam, 
+								Bytes.toBytes(
+										String.valueOf( (p.getZ() - bias + j + this.orientation) % this.orientation )
+										)
+								)));
+					}
+					p.setMeasurements(measurements);
+				}else
+					throw new IOException("There is no result!!");
 			}
 		}else
 			throw new IOException("the length is different.");
 
 	}
 
-	private void convertResultToParticle(Particle particle, Result result,
+/*	private void convertResultToParticle(Particle particle, Result result,
 			byte[] fam) throws IOException {
 		if (!result.isEmpty()) {
 			float[] measurements = new float[this.sensor_number];
@@ -382,9 +414,9 @@ public class Grid extends MouseAdapter {
 		}else
 			throw new IOException("There is no result!!");
 
-	}
+	}*/
 
-	private float[] getFromCloud(int X, int Y, int Z) throws IOException {
+	private float[] getFromCloud(HTable table, int X, int Y, int Z) throws IOException {
 		// TODOdone count RPC times
 		this.RPCcount++;
 
@@ -393,7 +425,7 @@ public class Grid extends MouseAdapter {
 		// System.out.println("rowkey: " + rowkey);
 		Get get = new Get(Bytes.toBytes(rowkey));
 		get.addFamily(this.family);
-		Result result = this.table.get(get);
+		Result result = table.get(get);
 		// List<Cell> cells = result.listCells();
 		if (Z >= 0) {
 			float[] measurements = new float[this.sensor_number];
@@ -422,9 +454,9 @@ public class Grid extends MouseAdapter {
 		}
 	}
 
-	public float[] getMeasurements(boolean onCloud, int x, int y, double head)
+	public float[] getMeasurements(HTable table, boolean onCloud, int x, int y, double head)
 			throws IOException {
-		return this.getMeasurements(onCloud, x, y, Transformer.th2Z(head,
+		return this.getMeasurements(table, onCloud, x, y, Transformer.th2Z(head,
 				this.orientation, this.orientation_delta_degree));
 
 	}
@@ -437,12 +469,12 @@ public class Grid extends MouseAdapter {
 	 * return all of the measurements
 	 * </pre>
 	 */
-	public float[] getMeasurements(boolean oncloud, int X, int Y, int Z)
+	public float[] getMeasurements(HTable table, boolean oncloud, int X, int Y, int Z)
 			throws IOException {
 		if (oncloud) {
 			// System.out.println("get from CLOUD!!!!!");
 			// System.out.println("(X,Y,Z) = ("+X+","+Y+","+Z+")");
-			return this.getFromCloud(X, Y, Z);
+			return this.getFromCloud(table, X, Y, Z);
 		} else {
 			// System.out.println("get from local!!!!!");
 			// System.out.println("(X,Y,Z) = ("+X+","+Y+","+Z+")");
@@ -452,12 +484,16 @@ public class Grid extends MouseAdapter {
 
 	public void readmap() {
 		try {
-			map_image = ImageIO.read(new URL(this.map_filename));
+			this.map_image = ImageIO.read(new URL(this.map_filename));
 			this.convert();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
 
+	public void readmap(String filename) {
+		this.map_filename = filename;
+		this.readmap();
 	}
 
 	// private Context context;
@@ -495,17 +531,6 @@ public class Grid extends MouseAdapter {
 
 	}
 
-	public void readmap(String filename) throws MalformedURLException {
-		this.map_filename = filename;
-		try {
-			map_image = ImageIO.read(new URL(this.map_filename));
-			this.convert();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-
-	}
-
 	private void convert() {
 		this.width = map_image.getWidth();
 		this.height = map_image.getHeight();
@@ -521,16 +546,8 @@ public class Grid extends MouseAdapter {
 					map_array[x][y] = Grid.GRID_OCCUPIED;
 				else
 					map_array[x][y] = Grid.GRID_EMPTY;
-				// System.out.println(pixel.toString());
 			}
 		}
-
-		// JLabel label = new JLabel(new ImageIcon(map_image));
-		// map_window = new JFrame("map image");
-		// map_window.add(label);
-		// map_window.setSize(map_image.getWidth(), map_image.getHeight());
-		// map_window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		// map_window.setVisible(false);
 	}
 
 	/**
@@ -680,6 +697,33 @@ public class Grid extends MouseAdapter {
 			return this.map_array[x][y];
 		} else {
 			return GRID_OCCUPIED;
+		}
+	}
+
+	public static void main(String[] args) throws IOException{
+		Configuration conf = HBaseConfiguration.create();
+		Grid grid = new Grid(4,4,"file:///home/w514/jpg/test6.jpg");
+		grid.readmap();
+		HTable[] tables = new HTable[10];
+		try {
+			grid.setupTable(conf);
+			
+			int n = 10;
+			long time = System.currentTimeMillis();
+			for(int i = 0 ; i < n; i++){
+				tables[i] = grid.getTable("t1");
+				Result r = tables[i].get(new Get(Bytes.toBytes("r1")));
+				System.out.println(r.toString());
+			}
+			time = System.currentTimeMillis() - time;
+			System.out.println("time : " + time +" ms");
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}finally{
+			for(HTable t: tables)
+				t.close();
+			grid.closeTable();
 		}
 	}
 }
