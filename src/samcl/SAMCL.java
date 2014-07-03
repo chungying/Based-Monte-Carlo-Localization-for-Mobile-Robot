@@ -124,20 +124,28 @@ public class SAMCL {
 		//TODO IMAGE
 		while(wl.isClosing!=true){
 			counter++;
-			System.out.println("Generation\t"+counter+"\t-------------------");
+			System.out.println(this.getClass().getName()+"\tGeneration\t"+counter+"\t-------------------");
 			//update robot's sensor
 			//Zt = this.precomputed_grid.getMeasurements( onCloud, robot.getX(), robot.getY(), Transformer.th2Z(robot.getHead(), this.orientation_delta_degree) );
 			Zt = robot.getMeasurements();
 			
-			//Setp 1: Sampling and weighting
-			System.out.println("(1)\tSampling and weighting\t");
+			//Setp 1: Sampling
+			System.out.println("(1)\tSampling\t");
 			long sampleTime = System.currentTimeMillis();
 			this.Prediction_total_particles(last_set, null, Zt);
-
+			sampleTime = System.currentTimeMillis() - sampleTime;
+			
+			//Step 1-2: Weighting
+			System.out.println("(1-2)\tWeighting\t");
+			long weightTime = System.currentTimeMillis();
+			this.batchWeight(last_set, Zt);
+			weightTime = System.currentTimeMillis() - weightTime;
+			
 			//Step 2: Determining size
 			System.out.println("(2)\tDetermining size\t");
 			long determiningTime = System.currentTimeMillis();
 			Particle max_p = this.Determining_size(last_set);
+			determiningTime = System.currentTimeMillis() - determiningTime;
 			long serTime = System.currentTimeMillis();
 			if (max_p.getWeight()>this.XI) {
 				System.out.println("\tCaculating SER\t");
@@ -152,11 +160,14 @@ public class SAMCL {
 			System.out.println("(3)\tLocal resampling\t");
 			long localResamplingTime = System.currentTimeMillis();
 			this.Local_resampling(last_set, local_set);
+			localResamplingTime = System.currentTimeMillis() - localResamplingTime;
 			System.out.println("\tlocal set size : \t" + local_set.size());
+			
 			//Step 3-2: Global resampling
 			System.out.println("(4)\tGlobal resampling\t");
 			long globalResampleTime = System.currentTimeMillis();
 			this.Global_drawing(SER_set, global_set);
+			globalResampleTime = System.currentTimeMillis() - globalResampleTime;
 			System.out.println("\tglobal set size: \t" + global_set.size());
 			
 			//Step 4: Combimining
@@ -164,85 +175,37 @@ public class SAMCL {
 			long combiminingTime = System.currentTimeMillis();
 			next_set.clear();
 			next_set.addAll(this.Combining_sets(local_set, global_set));
+			combiminingTime = System.currentTimeMillis() - combiminingTime;
 			System.out.println("\tnext set size: \t" + last_set.size());
 			//this.last_set = this.next_set;
 			last_set.clear();
 			last_set.addAll(next_set);
 			
 			//show out the information
-			long endTime = System.currentTimeMillis();
 			System.out.println("Best position:"+max_p.toString());
-			System.out.println("*************************");
 			System.out.println("Sensitive           : \t" + this.XI);
 			System.out.println("RPC counter         : \t"+this.precomputed_grid.RPCcount);
 			this.precomputed_grid.RPCcount = 0;
-			System.out.println("Sampling Time		: \t" + (determiningTime - sampleTime) + "\tms");
-			System.out.println("Determing Size Time	: \t" + (localResamplingTime - determiningTime) + "\tms");
+			System.out.println("Sampling Time		: \t" + sampleTime + "\tms");
+			System.out.println("Weighting Time		: \t" + weightTime + "\tms");
+			System.out.println("Determing Size Time	: \t" + determiningTime + "\tms");
 			System.out.println("Caculating SER Time	: \t\t\t\t\t" + serTime + "\tms");
-			System.out.println("Local Resampling Time	: \t" + (combiminingTime - localResamplingTime) + "\tms");
-			System.out.println("Global Resampling Time	: \t" + (combiminingTime - globalResampleTime) + "\tms");
-			System.out.println("Combining Time		: \t" + (endTime - combiminingTime) + "\tms");
+			System.out.println("Local Resampling Time	: \t" + localResamplingTime + "\tms");
+			System.out.println("Global Resampling Time	: \t" + globalResampleTime + "\tms");
+			System.out.println("Combining Time		: \t" + combiminingTime + "\tms");
+			System.out.println("*************************");
 			//robotz = (int) Math.round( robot.getHead()/this.orientation_delta_degree );
 			try {
 				Thread.sleep(33);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
-			
-			
-			//TODO IMAGE
-			//refresh map image, could be integrated together
-			grap.drawImage(this.precomputed_grid.map_image, null, 0, 0);
-			
-			//Draw particles
-			/*grap.setColor(Color.GRAY);
-			for (int i = 0; i < next_set.size(); i++) {
-				int x = next_set.elementAt(i).getX();
-				int y = next_set.elementAt(i).getY();
-				int z = next_set.elementAt(i).getZ();
-				grap.drawOval(x-2, y-2, 4, 4);
-				grap.drawLine(x, y, 
-						x+(int) Math.round( 10*Math.cos( Math.toRadians( z*this.orientation_delta_degree ) ) ), 
-						y+(int) Math.round( 10*Math.sin( Math.toRadians( z*this.orientation_delta_degree ) ) ));
-			}*/
 
-			//TODO IMAGE
-			//Best particle
-			//integrated
-			grap.setColor(Color.GREEN);
-			grap.drawOval(max_p.getX()-4, max_p.getY()-4, 8, 8);
-			grap.drawLine(max_p.getX(), max_p.getY(), 
-					max_p.getX()+(int) Math.round(20*Math.cos(Math.toRadians(max_p.getZ()*this.orientation_delta_degree))), 
-					max_p.getY()+(int) Math.round(20*Math.sin(Math.toRadians(max_p.getZ()*this.orientation_delta_degree))));
+			//draw image 
+			this.Drawing(samcl_image, samcl_window, robot, max_p, next_set, SER_set);
 			
-			//TODO IMAGE
-			//Draw Robot and show image
-			//integrated
-			grap.setColor(Color.RED);
-			int rx = robot.getX();
-			int ry = robot.getY();
-			double rh = robot.getHead();
-			grap.drawOval(rx-5, ry-5, 10, 10);
-			grap.drawLine(rx, ry, 
-					rx+(int)Math.round(20*Math.cos(Math.toRadians(rh))), 
-					ry+(int)Math.round(20*Math.sin(Math.toRadians(rh))));
-			
-			if (SER_set.size() >= 1) {	
-				//TODO IMAGE
-				//integrated to the Drawing
-				grap.setColor(Color.PINK);
-				for (int i = 0; i < SER_set.size(); i++) {
-					int x = SER_set.get(i).getX();
-					int y = SER_set.get(i).getY();
-					grap.drawOval(x, y, 1, 1);
-				}
-			} else {
-				System.out.println("there are " + SER_set.size() + " positions");
-			}
-
 			//update image
-			image_panel.repaint();			
-
+			image_panel.repaint();
 		}
 	}
 	
@@ -472,9 +435,6 @@ public class SAMCL {
 					//System.out.println("sampling.... i :	" + i);
 					this.pixel_sampling(src.get(i), 11, 7);
 				}
-				
-				this.batchWeight(src, robotMeasurements);
-				
 			}
 			else{
 				//System.out.println("*********into else");
@@ -486,6 +446,23 @@ public class SAMCL {
 		}		
 	}
 	
+	public void batchWeight(List<Particle> src, float[] robotMeasurements) throws IOException {
+		//get sensor data of all particles.
+		if(this.onCloud){
+			//get measurements from cloud  and weight
+			this.precomputed_grid.getBatchFromCloud(src);
+			for(Particle p : src){
+				this.WeightParticle(p, robotMeasurements);
+			}
+		}else{
+			//get measurements from local database and weight
+			for(Particle p : src){
+				p.setMeasurements(this.precomputed_grid.getMeasurements(this.onCloud, p.getX(), p.getY(), p.getZ()));
+				this.WeightParticle(p, robotMeasurements);
+			}
+		}
+	}
+
 	/**
 	 * parameters:sensitive coefficient(Threshold),the ratio of the global samples and local samples(Alpha)
 	 * input:the maximum of weight(wmax),total number of particles(NT)
@@ -666,24 +643,6 @@ public class SAMCL {
 		
 		temp = p.getTh() + Rcup;
 		p.setTh(temp);
-	}
-	
-	private void batchWeight(List<Particle> src, float[] robotMeasurements) throws IOException {
-		//get sensor data of all particles.
-		if(this.onCloud){
-			//get measurements from cloud 
-			this.precomputed_grid.getBatchFromCloud(src);
-		}else{
-			//get measurements from local database
-			for(Particle p : src){
-				p.setMeasurements(this.precomputed_grid.getMeasurements(this.onCloud, p.getX(), p.getY(), p.getZ()));
-			}
-		}
-	
-		//calculate the weight of all particles.
-		for(Particle p : src){
-			this.WeightParticle(p, robotMeasurements);
-		}
 	}
 	
 	private void WeightParticle(Particle p, float[] robotMeasurements) throws IOException{

@@ -67,6 +67,10 @@ public class Main {
 		}else
 			samcl.setup();
 		
+		//pre-caching?
+		samcl.Pre_caching();
+	
+		
 		/**
 		 * Second step:
 		 * to create a robot
@@ -123,30 +127,7 @@ public class Main {
 			Tools.drawRobot(grap, robot.getX(), robot.getY(), robot.getHead(), 10, Color.RED);
 			panel.repaint();
 			System.out.println(robot.toString());
-			
-			
-//			samcl.precomputed_grid.getBatchFromCloud(robots, Bytes.toBytes("distance"));
-//			System.out.println(robots.get(0).toString());
-//			robots.get(0).setX(robot.getX());
-//			robots.get(0).setY(robot.getY());
-//			robots.get(0).setZ(Transformer.th2Z(robot.getHead(),samcl.orientation, samcl.precomputed_grid.orientation_delta_degree));
-			
 		}
-		
-		
-		
-		
-
-		
-		
-		
-//		int counter = 0;
-//		while(true){
-//			counter++;
-//			samcl.run();
-//			System.out.println("end.....");
-//		}
-		
 	}
 	
 	

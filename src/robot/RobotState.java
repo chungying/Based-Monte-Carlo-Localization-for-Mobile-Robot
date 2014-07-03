@@ -60,8 +60,8 @@ public class RobotState implements Runnable{
 		//System.out.println(this.toString());
 	}
 
-	private float[] updateSensor() throws IOException {
-		return this.grid.getMeasurements(onCloud, getX(), getY(), getHead());
+	private void updateSensor() throws IOException {
+		this.setMeasurements(this.grid.getMeasurements(onCloud, getX(), getY(), getHead()));
 	}
 
 	@Override
@@ -84,7 +84,7 @@ public class RobotState implements Runnable{
 				
 				//update sensor data 
 				if(this.grid!=null){
-					this.setMeasurements(this.updateSensor());
+					this.updateSensor();
 				}	
 			} catch (IOException e) {
 				e.printStackTrace();

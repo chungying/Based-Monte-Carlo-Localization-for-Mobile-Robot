@@ -316,7 +316,7 @@ public class Grid extends MouseAdapter {
 			this.RPCcount++;
 			for (Result result : results) {
 				// List<Cell> Cells = result.listCells();
-
+				//TODO ******most important!!!!
 				for (Cell cell : result.rawCells()) {
 					str = Bytes.toString(CellUtil.cloneQualifier(cell));
 					str = str.replace("(", "");
@@ -429,6 +429,14 @@ public class Grid extends MouseAdapter {
 
 	}
 
+	/**
+	 * @return <pre>
+	 * if z >= 0
+	 * return the range of the measurements of this orientation
+	 * else
+	 * return all of the measurements
+	 * </pre>
+	 */
 	public float[] getMeasurements(boolean oncloud, int X, int Y, int Z)
 			throws IOException {
 		if (oncloud) {
