@@ -7,7 +7,9 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Vector;
 
 import javax.swing.JFrame;
@@ -43,9 +45,10 @@ public class Main {
 				(float) 0.6, //rate of population
 				10);//competitive strength
 		if(args.length==0){
-			String[] targs = {"-cl",
-					"-i","file:///home/w514/jpg/map.jpg"
-					,"-o","4"
+			String[] targs = {/*"-cl",*/
+					//"-i","file:///home/w514/jpg/map.jpg"
+					"-i","file:///Users/ihsumlee/Jolly/jpg/map.jpg"
+					,"-o","360"
 					};
 			args = targs;
 		}
@@ -63,7 +66,7 @@ public class Main {
 			
 			samcl.setup();
 			System.out.println("start to pre-caching");
-			samcl.Pre_caching();
+			//samcl.Pre_caching();
 		}else
 			samcl.setup();
 	
@@ -73,7 +76,9 @@ public class Main {
 		 * to create a robot
 		 * setup the listener of Robot
 		 * */
-		RobotState robot = new RobotState(70, 70, 180, samcl.precomputed_grid, "map.512.4.split");
+		RobotState robot = new RobotState(256, 20, 0, null/*samcl.precomputed_grid*/, null/*"map.512.4.split"*/);
+		robot.setVt(50);
+		robot.setWt(15);
 		robot.setOnCloud(samcl.onCloud);
 		RobotListener robotListener = new RobotListener("robot controller", robot);
 		Thread t = new Thread(robot);
@@ -116,14 +121,41 @@ public class Main {
 		
 		
 		//TODO test 2014/06/19
-		samcl.run(robot, samcl_window);
+		//samcl.run(robot, samcl_window);
 		
+		
+		List<Particle> parts = new ArrayList<Particle>();
+		
+		for(int i = 0 ; i < 100; i++){
+			parts.add(new Particle(0, 0, 0,samcl.orientation));
+		}
+		int rx, ry;
+		double rh;
+		int i = 0;
 		while(true){
+			i++;
 			Thread.sleep(33);
 			grap.drawImage(samcl.precomputed_grid.map_image, null, 0, 0);
+			rx = robot.getX();
+			ry = robot.getY();
+			rh = robot.getHead();
+			Tools.drawRobot(grap, rx, ry, rh, 20, Color.ORANGE);
 			Tools.drawRobot(grap, robot.getX(), robot.getY(), robot.getHead(), 10, Color.RED);
+			for(Particle p : parts){
+				System.out.println("drawing particles");
+				if(i<10000000){
+					p.setX(rx);
+					p.setY(ry);
+					p.setTh(rh);
+				}
+				SAMCL.Motion_sampling(p, robot.getUt());
+				Tools.drawRobot(grap, p.getX(), p.getY(), p.getTh(), 4, Color.BLUE);
+			}
 			panel.repaint();
-			System.out.println(robot.toString());
+			//System.out.println(robot.toString());
+			
+			
+			
 		}
 	}
 	

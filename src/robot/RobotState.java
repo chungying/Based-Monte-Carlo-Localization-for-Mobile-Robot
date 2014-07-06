@@ -14,8 +14,13 @@ public class RobotState implements Runnable,Closeable{
 	private double x;
 	private double y;
 	private double head;
-	private double Vt;
-	private double Wt;
+	private VelocityModel ut = new VelocityModel();
+public VelocityModel getUt() {
+		return ut;
+	}
+
+	//	private double Vt;
+//	private double Wt;
 	private float[] measurements;
 	
 	private boolean onCloud;
@@ -45,8 +50,10 @@ public class RobotState implements Runnable,Closeable{
 		this.x = x;
 		this.y = y;
 		this.head = Transformer.checkHeadRange(head);
-		Vt = 0;
-		Wt = 0;
+		ut.setVelocity(0);
+		ut.setAngular_velocity(0);
+		//Vt = 0;
+		//Wt = 0;
 		
 		//TODO setup Grid and onCloud?
 		this.grid = grid;
@@ -56,9 +63,9 @@ public class RobotState implements Runnable,Closeable{
 	}
 	
 	public void update(double t) throws IOException{
-		this.x = this.x +  ( Vt * t * Math.cos( Math.toRadians(head) ) ) /*+ (int)(Math.round(Wt))*/;
-		this.y = this.y +  ( Vt * t * Math.sin( Math.toRadians(head) ) ) /*+ (int)(Math.round(Wt))*/;
-		this.head = Transformer.checkHeadRange((this.Wt * t) + this.head);
+		this.x = this.x +  ( ut.getVelocity() * t * Math.cos( Math.toRadians(head) ) ) /*+ (int)(Math.round(Wt))*/;
+		this.y = this.y +  ( ut.getVelocity() * t * Math.sin( Math.toRadians(head) ) ) /*+ (int)(Math.round(Wt))*/;
+		this.head = Transformer.checkHeadRange((ut.getAngular_velocity() * t) + this.head);
 		//System.out.println(this.toString());
 	}
 
@@ -98,25 +105,25 @@ public class RobotState implements Runnable,Closeable{
 	}
 
 	public double getVt() {
-		return Vt;
+		return ut.velocity;
 	}
 
 	public void setVt(double vt) {
-		Vt = vt;
+		ut.setVelocity(vt);
 	}
 
 	/**
 	 * @return the angular velocity in degree/times 
 	 */
 	public double getWt() {
-		return Wt;
+		return ut.getAngular_velocity();
 	}
 
 	/**
 	 * @param wt in degree/times
 	 */
 	public void setWt(double wt) {
-		Wt = wt;
+		ut.setAngular_velocity(wt);
 	}
 
 	public int getX() {
@@ -150,7 +157,7 @@ public class RobotState implements Runnable,Closeable{
 	@Override
 	public String toString() {
 		return "RobotState (" + x + "\t," + y + "\t," + head + "\t),\n["
-				+ Vt + "\t," + Wt + "\t]\n"+Arrays.toString(measurements);
+				+ ut.getVelocity() + "\t," + ut.getAngular_velocity() + "\t]\n"+Arrays.toString(measurements);
 	}
 
 	
@@ -163,8 +170,18 @@ public class RobotState implements Runnable,Closeable{
 		robot.setVt(1);
 		Thread t = new Thread(robot);
 		t.start();
+		
 		RobotListener lstn = new RobotListener("test", robot);
 		
+		
+		try {
+			Thread.sleep(10000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		robot.setVt(-1);
+		robot.setWt(1);
 		
 	}
 

@@ -629,12 +629,11 @@ public class SAMCL implements Closeable{
 	}
 	
 	//TODO motion sampling is unfinished
-	@SuppressWarnings("unused")
-	private void Motion_sampling(Particle p, VelocityModel u){
+	public static void Motion_sampling(Particle p, VelocityModel u){
 		double Vcup = u.velocity + 
-				Distribution.sample_normal_distribution(u.velocity*u.velocity + u.angular_velocity*u.angular_velocity);
+				Distribution.sample_normal_distribution(2*u.velocity*u.velocity + u.angular_velocity*u.angular_velocity);
 		double Wcup = u.angular_velocity + 
-				Distribution.sample_normal_distribution(u.velocity*u.velocity + u.angular_velocity*u.angular_velocity);
+				Distribution.sample_normal_distribution(2*u.velocity*u.velocity + u.angular_velocity*u.angular_velocity);
 		double Rcup =  Distribution.sample_normal_distribution(u.velocity*u.velocity + u.angular_velocity*u.angular_velocity);
 		
 		double temp = p.getX() 
@@ -642,7 +641,7 @@ public class SAMCL implements Closeable{
 				+ ( Vcup/Wcup ) * ( Math.sin( Math.toRadians( p.getTh() + u.angular_velocity ) ) );
 		p.setX((int)Math.round(temp));
 		
-		temp = p.getX() 
+		temp = p.getY() 
 				- ( Vcup/Wcup ) * ( Math.cos( Math.toRadians( p.getTh() ) ) )
 				+ ( Vcup/Wcup ) * ( Math.cos( Math.toRadians( p.getTh() + u.angular_velocity ) ) );
 		p.setY((int)Math.round(temp));
