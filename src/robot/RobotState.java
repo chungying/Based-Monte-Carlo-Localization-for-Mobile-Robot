@@ -2,7 +2,9 @@ package robot;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import org.apache.hadoop.hbase.client.HTable;
 
@@ -15,6 +17,7 @@ public class RobotState implements Runnable,Closeable{
 	private double y;
 	private double head;
 	private VelocityModel ut = new VelocityModel();
+	private PathPlan pp = null;
 public VelocityModel getUt() {
 		return ut;
 	}
@@ -77,6 +80,12 @@ public VelocityModel getUt() {
 	public void run(){
 		long time = 0;
 		long duration = 0;
+		List<Pose> path = new ArrayList<Pose>();
+		Pose pose1 = new Pose(40,30,0);
+		path.add(pose1);
+		Pose pose2 = new Pose(40,30,90);
+		path.add(pose2);
+		int target = 0;
 		while(true){
 			time = System.currentTimeMillis();
 			//delay
@@ -89,6 +98,29 @@ public VelocityModel getUt() {
 			//System.out.print(time+ "\t");
 			try {
 				//update kinematic model
+/*				if(pp!=null){
+					pp.nextPose(this);
+					//System.out.println(pp.currentP);
+					if(this.getPose().eauals(pp.currentP)){
+						System.out.println("!!!!!!!!!!!");
+						System.out.println(this.getPose());
+						System.out.println(pp.currentP);
+					}
+				}*/
+				if(target<path.size()){
+					if(this.getPose().equal(path.get(target))){
+						if(target==0){
+							this.setPose(path.get(target));
+							this.setVt(0);
+							this.setWt(15);
+						}else if(target==1){
+							this.setPose(path.get(target));
+							this.setVt(10);
+							this.setWt(0);
+						}
+						target++;
+					}
+				}
 				this.update(duration/1000.0);
 				
 				//update sensor data 
@@ -210,6 +242,14 @@ public VelocityModel getUt() {
 		this.x = pose.X;
 		this.y = pose.Y;
 		this.head = pose.H;
+	}
+
+	public PathPlan getPp() {
+		return pp;
+	}
+
+	public void setPp(PathPlan pp) {
+		this.pp = pp;
 	}
 	
 }

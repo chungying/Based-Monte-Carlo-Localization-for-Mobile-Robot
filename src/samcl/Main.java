@@ -54,92 +54,7 @@ public class Main {
 			args = targs;
 		}
 		
-		new JCommander(samcl, args);
-		SamclListener al0L = new SamclListener("al 0", samcl){
-
-			@Override
-			public void adjustmentValueChanged(AdjustmentEvent e) {
-				// TODO Auto-generated method stub
-				int value = this.scrollbar.getValue();
-				
-				float tune = converter(value);
-				samcl.al[0] = this.al[0] * tune;
-				System.out.println(samcl.al[0]);
-			}
-			
-		};
-		al0L.setLocation(10, 200);
-		
-		SamclListener al1L = new SamclListener("al 1", samcl){
-
-			@Override
-			public void adjustmentValueChanged(AdjustmentEvent e) {
-				// TODO Auto-generated method stub
-				int value = this.scrollbar.getValue();
-				float tune = converter(value);
-				samcl.al[1] = this.al[1] * tune;
-				System.out.println(samcl.al[1]);
-			}
-			
-		};
-		al1L.setLocation(310, 200);
-		
-		SamclListener al2L = new SamclListener("al 2", samcl){
-
-			@Override
-			public void adjustmentValueChanged(AdjustmentEvent e) {
-				// TODO Auto-generated method stub
-				int value = this.scrollbar.getValue();
-				float tune = converter(value);
-				samcl.al[2] = this.al[2] * tune;
-				System.out.println(samcl.al[2]);
-			}
-			
-		};
-		al2L.setLocation(10, 250);
-		
-		SamclListener al3L = new SamclListener("al 3", samcl){
-
-			@Override
-			public void adjustmentValueChanged(AdjustmentEvent e) {
-				// TODO Auto-generated method stub
-				int value = this.scrollbar.getValue();
-				float tune = converter(value);
-				samcl.al[3] = this.al[3] * tune;
-				System.out.println(samcl.al[3]);
-			}
-			
-		};
-		al3L.setLocation(310, 250);
-		
-		SamclListener al4L = new SamclListener("al 4", samcl){
-
-			@Override
-			public void adjustmentValueChanged(AdjustmentEvent e) {
-				// TODO Auto-generated method stub
-				int value = this.scrollbar.getValue();
-				float tune = converter(value);
-				samcl.al[4] = this.al[4] * tune;
-				System.out.println(samcl.al[4]);
-			}
-			
-		};
-		al4L.setLocation(10, 300);
-		
-		SamclListener al5L = new SamclListener("al 5", samcl){
-
-			@Override
-			public void adjustmentValueChanged(AdjustmentEvent e) {
-				// TODO Auto-generated method stub
-				int value = this.scrollbar.getValue();
-				float tune = converter(value);
-				samcl.al[5] = this.al[5] * tune;
-				System.out.println(samcl.al[5]);
-			}
-			
-		};
-		al5L.setLocation(310, 300);
-		
+		new JCommander(samcl, args);		
 		
 		if(!samcl.onCloud){
 			if (!Arrays.asList(args).contains("-i") && !Arrays.asList(args).contains("--image")) {
@@ -162,8 +77,8 @@ public class Main {
 		 * setup the listener of Robot
 		 * */
 		RobotState robot = new RobotState(256, 20, 0, null/*samcl.precomputed_grid*/, null/*"map.512.4.split"*/);
-		robot.setVt(100);
-		robot.setWt(60);
+		robot.setVt(0);
+		robot.setWt(0);
 		robot.setOnCloud(samcl.onCloud);
 		RobotListener robotListener = new RobotListener("robot controller", robot);
 		Thread t = new Thread(robot);
@@ -220,7 +135,7 @@ public class Main {
 		double time = System.currentTimeMillis()/1000;
 		while(true){
 			i++;
-			Thread.sleep(333);
+			Thread.sleep(33);
 			grap.drawImage(samcl.precomputed_grid.map_image, null, 0, 0);
 			
 			px = robot.getX();

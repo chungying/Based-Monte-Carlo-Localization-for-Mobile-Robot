@@ -22,25 +22,25 @@ public class Pose {
 			return false;
 	}
 	
-	public boolean equlsHead(Pose p){
-		double d = Math.sqrt((p.H-this.H+360)*(p.H-this.H+360));
-		if(Math.abs(d-360)<0.5)
+	public boolean equalsHead(Pose p){
+		double d = Pose.compareToHead(this, p);
+		if(Math.abs(d)<0.5)
 			return true;
 		else
 			return false;
 	}
 	
-	public boolean eauals(Pose p){
+	public boolean equal(Pose p){
 		if(!this.equalsPose(p))
 			return false;
-		else if(!this.equlsHead(p))
+		else if(!this.equalsHead(p))
 			return false;
 		else
 			return true;
 	}
 	
 	public static double compareToOrientation(Pose src, Pose dst){
-		return (Math.toDegrees((Math.atan2(dst.Y-src.Y, dst.X-src.X)))+360)%360;
+		return Pose.compareToHead(src, new Pose(0, 0, Math.toDegrees( ( Math.atan2( dst.Y-src.Y, dst.X-src.X ) ) ) ) );
 	}
 	
 	public static double compareToDistance(Pose src, Pose dst){
@@ -63,25 +63,31 @@ public class Pose {
 		}
 	}
 	
+	@Override
+	public String toString() {
+		return "Pose [X=" + X + ", Y=" + Y + ", H=" + H + "]";
+	}
+
 	public static void main(String[] args){
-		System.out.println(Pose.compareToHead(	new Pose(0,0,9), 
-													new Pose(0,0,359)));
-		System.out.println(Pose.compareToHead( new Pose(0,0,90), 
-				  							  		new Pose(0,0,270)));
-		System.out.println(Pose.compareToHead( new Pose(0,0,90), 
-				  							  		new Pose(0,0,180)));
-		System.out.println(Pose.compareToHead( new Pose(0,0,90), 
-				  							  		new Pose(0,0,90)));
+		System.out.println(Pose.compareToOrientation(	new Pose(0,0,0), 
+													new Pose(0,-1,359)));
+		System.out.println(Pose.compareToOrientation( new Pose(0,0,90), 
+				  							  		new Pose(0,1,270)));
 		
-		System.out.println(Pose.compareToHead(	new Pose(0,0,1), 
-													new Pose(0,0,1)));
-		System.out.println(Pose.compareToHead( new Pose(0,0,271), 
-			  										new Pose(0,0,1)));
-		System.out.println(Pose.compareToHead( new Pose(0,0,181), 
-			  										new Pose(0,0,1)));
-		System.out.println(Pose.compareToHead( new Pose(0,0,91), 
-			  										new Pose(0,0,1)));
+		
+		System.out.println(Pose.compareToOrientation( new Pose(0,0,90), 
+				  							  		new Pose(1,0,180)));
+		System.out.println(Pose.compareToOrientation( new Pose(0,0,90), 
+				  							  		new Pose(-1,0,90)));
+		
+		System.out.println(Pose.compareToOrientation(	new Pose(0,0,1), 
+													new Pose(1,1,1)));
+		System.out.println(Pose.compareToOrientation( new Pose(0,0,271), 
+			  										new Pose(1,-1,1)));
+		System.out.println(Pose.compareToOrientation( new Pose(0,0,181), 
+			  										new Pose(-1,1,1)));
+		System.out.println(Pose.compareToOrientation( new Pose(0,0,91), 
+			  										new Pose(-1,-1,1)));
 		
 	}
-	
 }
