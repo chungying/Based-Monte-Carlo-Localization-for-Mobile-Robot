@@ -48,35 +48,38 @@ public class Pose {
 	}
 	
 	public static double compareToHead(Pose src, Pose dst){
-		double a = Transformer.checkHeadRange(src.H);
-		System.out.print("a:"+a+ " ");
-		double b = Transformer.checkHeadRange(dst.H);
-		System.out.print("b:"+b);
-		
-		
-		if(Math.abs(b-a) <= 180 ) 
-			return Transformer.checkHeadRange(b-a);//positive
-		else
-			return (b-a-360)%360;//negative
+		//System.out.print(Transformer.checkHeadRange(src.H)+ "degree => "+Transformer.checkHeadRange(dst.H)+"degree = ");
+		double d = Transformer.checkHeadRange(dst.H) - Transformer.checkHeadRange(src.H); 
+		if(d>0){
+			if(d>180)
+				return d-360;
+			else
+				return d;
+		}else{
+			if(d<=-180)
+				return d+360;
+			else
+				return d;
+		}
 	}
 	
 	public static void main(String[] args){
-		System.out.println("=>"+Pose.compareToHead(	new Pose(0,0,1), 
+		System.out.println(Pose.compareToHead(	new Pose(0,0,9), 
 													new Pose(0,0,359)));
-		System.out.println("=>"+Pose.compareToHead( new Pose(0,0,1), 
+		System.out.println(Pose.compareToHead( new Pose(0,0,90), 
 				  							  		new Pose(0,0,270)));
-		System.out.println("=>"+Pose.compareToHead( new Pose(0,0,1), 
+		System.out.println(Pose.compareToHead( new Pose(0,0,90), 
 				  							  		new Pose(0,0,180)));
-		System.out.println("=>"+Pose.compareToHead( new Pose(0,0,1), 
+		System.out.println(Pose.compareToHead( new Pose(0,0,90), 
 				  							  		new Pose(0,0,90)));
 		
-		System.out.println("=>"+Pose.compareToHead(	new Pose(0,0,359), 
+		System.out.println(Pose.compareToHead(	new Pose(0,0,1), 
 													new Pose(0,0,1)));
-		System.out.println("=>"+Pose.compareToHead( new Pose(0,0,270), 
+		System.out.println(Pose.compareToHead( new Pose(0,0,271), 
 			  										new Pose(0,0,1)));
-		System.out.println("=>"+Pose.compareToHead( new Pose(0,0,180), 
+		System.out.println(Pose.compareToHead( new Pose(0,0,181), 
 			  										new Pose(0,0,1)));
-		System.out.println("=>"+Pose.compareToHead( new Pose(0,0,90), 
+		System.out.println(Pose.compareToHead( new Pose(0,0,91), 
 			  										new Pose(0,0,1)));
 		
 	}
