@@ -14,14 +14,16 @@ public class SamclListener extends JFrame implements  AdjustmentListener{
 	/**
 	 * 
 	 */
-	Scrollbar scrollbar = new Scrollbar();
+	protected Scrollbar scrollbar = new Scrollbar();
 	SAMCL samcl;
 	float delta_energy;
+	protected double al[] = {1,1,1,1,1,1};
 	
 	public SamclListener(String title,  SAMCL samcl) {
 		this(title);;
 		this.samcl = samcl;
 		this.delta_energy = samcl.delta_energy;
+//		this.al = samcl.al;
 	}
 	
 	
@@ -53,7 +55,7 @@ public class SamclListener extends JFrame implements  AdjustmentListener{
 		//System.out.println(converter(value)*0.01);
 	}
 
-	private float converter(int value) {
+	public float converter(int value) {
 		return (float)value/(this.scrollbar.getMaximum()-this.scrollbar.getMinimum()-this.scrollbar.getVisibleAmount());
 	}
 }

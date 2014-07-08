@@ -41,6 +41,7 @@ import com.beust.jcommander.Parameter;
  */
 public class SAMCL implements Closeable{
 	
+	public static double[] al = {1,1,1,1,1,1};
 	public void Drawing(Graphics2D grap, JFrame window
 			, RobotState robot, Particle bestParticle, List<Particle> particles, List<Particle> SER){
 		//TODO IMAGE
@@ -629,24 +630,24 @@ public class SAMCL implements Closeable{
 	}
 	
 	//TODO motion sampling is unfinished
-	public static void Motion_sampling(Particle p, VelocityModel u){
+	public static void Motion_sampling(Particle p, VelocityModel u, double deltaT){
 		double Vcup = u.velocity + 
-				Distribution.sample_normal_distribution(2*u.velocity*u.velocity + u.angular_velocity*u.angular_velocity);
+				Distribution.sample_normal_distribution(al[0]*u.velocity*u.velocity + al[1]*u.angular_velocity*u.angular_velocity);
 		double Wcup = u.angular_velocity + 
-				Distribution.sample_normal_distribution(2*u.velocity*u.velocity + u.angular_velocity*u.angular_velocity);
-		double Rcup =  Distribution.sample_normal_distribution(u.velocity*u.velocity + u.angular_velocity*u.angular_velocity);
+				Distribution.sample_normal_distribution(al[2]*u.velocity*u.velocity + al[3]*u.angular_velocity*u.angular_velocity);
+		double Rcup =  Distribution.sample_normal_distribution(al[4]*u.velocity*u.velocity + al[5]*u.angular_velocity*u.angular_velocity);
 		
 		double temp = p.getX() 
 				- ( Vcup/Wcup ) * ( Math.sin( Math.toRadians( p.getTh() ) ) )
-				+ ( Vcup/Wcup ) * ( Math.sin( Math.toRadians( p.getTh() + u.angular_velocity ) ) );
+				+ ( Vcup/Wcup ) * ( Math.sin( Math.toRadians( p.getTh() + Wcup*deltaT ) ) );
 		p.setX((int)Math.round(temp));
 		
 		temp = p.getY() 
-				- ( Vcup/Wcup ) * ( Math.cos( Math.toRadians( p.getTh() ) ) )
-				+ ( Vcup/Wcup ) * ( Math.cos( Math.toRadians( p.getTh() + u.angular_velocity ) ) );
+				+ ( Vcup/Wcup ) * ( Math.cos( Math.toRadians( p.getTh() ) ) )
+				- ( Vcup/Wcup ) * ( Math.cos( Math.toRadians( p.getTh() + Wcup*deltaT ) ) );
 		p.setY((int)Math.round(temp));
 		
-		temp = p.getTh() + Rcup;
+		temp = p.getTh() + Wcup*deltaT + Rcup*deltaT;
 		p.setTh(temp);
 	}
 	

@@ -7,6 +7,11 @@ import java.util.List;
 import util.metrics.Particle;
 
 public class Tools {
+	static public void drawPoint(Graphics2D grap, int x, int y, double head, int radius, Color color){
+		grap.setColor(color);
+		grap.drawOval(x-(radius/2), y-(radius/2), radius, radius);
+	}
+	
 	static public void drawRobot(Graphics2D grap, int x, int y, double head, int radius, Color color){
 		grap.setColor(color);
 		grap.drawOval(x-(radius/2), y-(radius/2), radius, radius);

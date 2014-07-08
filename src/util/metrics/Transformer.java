@@ -13,7 +13,7 @@ public class Transformer {
 	}
 	
 	static public double checkHeadRange(double h){
-		return (h+720)%360;
+		return (h%360+360)%360;
 	}
 
 	public static float[] drawMeasurements(float[] circles, int z) {

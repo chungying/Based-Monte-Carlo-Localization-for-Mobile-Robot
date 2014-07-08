@@ -3,6 +3,7 @@ package samcl;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
+import java.awt.event.AdjustmentEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
@@ -46,15 +47,99 @@ public class Main {
 				10);//competitive strength
 		if(args.length==0){
 			String[] targs = {/*"-cl",*/
-					//"-i","file:///home/w514/jpg/map.jpg"
-					"-i","file:///Users/ihsumlee/Jolly/jpg/map.jpg"
+					"-i","file:///home/w514/jpg/map.jpg"
+					//"-i","file:///Users/ihsumlee/Jolly/jpg/map.jpg"
 					,"-o","360"
 					};
 			args = targs;
 		}
 		
 		new JCommander(samcl, args);
-		SamclListener samclListener = new SamclListener("samcl tuner", samcl);
+		SamclListener al0L = new SamclListener("al 0", samcl){
+
+			@Override
+			public void adjustmentValueChanged(AdjustmentEvent e) {
+				// TODO Auto-generated method stub
+				int value = this.scrollbar.getValue();
+				
+				float tune = converter(value);
+				samcl.al[0] = this.al[0] * tune;
+				System.out.println(samcl.al[0]);
+			}
+			
+		};
+		al0L.setLocation(10, 200);
+		
+		SamclListener al1L = new SamclListener("al 1", samcl){
+
+			@Override
+			public void adjustmentValueChanged(AdjustmentEvent e) {
+				// TODO Auto-generated method stub
+				int value = this.scrollbar.getValue();
+				float tune = converter(value);
+				samcl.al[1] = this.al[1] * tune;
+				System.out.println(samcl.al[1]);
+			}
+			
+		};
+		al1L.setLocation(310, 200);
+		
+		SamclListener al2L = new SamclListener("al 2", samcl){
+
+			@Override
+			public void adjustmentValueChanged(AdjustmentEvent e) {
+				// TODO Auto-generated method stub
+				int value = this.scrollbar.getValue();
+				float tune = converter(value);
+				samcl.al[2] = this.al[2] * tune;
+				System.out.println(samcl.al[2]);
+			}
+			
+		};
+		al2L.setLocation(10, 250);
+		
+		SamclListener al3L = new SamclListener("al 3", samcl){
+
+			@Override
+			public void adjustmentValueChanged(AdjustmentEvent e) {
+				// TODO Auto-generated method stub
+				int value = this.scrollbar.getValue();
+				float tune = converter(value);
+				samcl.al[3] = this.al[3] * tune;
+				System.out.println(samcl.al[3]);
+			}
+			
+		};
+		al3L.setLocation(310, 250);
+		
+		SamclListener al4L = new SamclListener("al 4", samcl){
+
+			@Override
+			public void adjustmentValueChanged(AdjustmentEvent e) {
+				// TODO Auto-generated method stub
+				int value = this.scrollbar.getValue();
+				float tune = converter(value);
+				samcl.al[4] = this.al[4] * tune;
+				System.out.println(samcl.al[4]);
+			}
+			
+		};
+		al4L.setLocation(10, 300);
+		
+		SamclListener al5L = new SamclListener("al 5", samcl){
+
+			@Override
+			public void adjustmentValueChanged(AdjustmentEvent e) {
+				// TODO Auto-generated method stub
+				int value = this.scrollbar.getValue();
+				float tune = converter(value);
+				samcl.al[5] = this.al[5] * tune;
+				System.out.println(samcl.al[5]);
+			}
+			
+		};
+		al5L.setLocation(310, 300);
+		
 		
 		if(!samcl.onCloud){
 			if (!Arrays.asList(args).contains("-i") && !Arrays.asList(args).contains("--image")) {
@@ -77,8 +162,8 @@ public class Main {
 		 * setup the listener of Robot
 		 * */
 		RobotState robot = new RobotState(256, 20, 0, null/*samcl.precomputed_grid*/, null/*"map.512.4.split"*/);
-		robot.setVt(50);
-		robot.setWt(15);
+		robot.setVt(100);
+		robot.setWt(60);
 		robot.setOnCloud(samcl.onCloud);
 		RobotListener robotListener = new RobotListener("robot controller", robot);
 		Thread t = new Thread(robot);
@@ -126,31 +211,39 @@ public class Main {
 		
 		List<Particle> parts = new ArrayList<Particle>();
 		
-		for(int i = 0 ; i < 100; i++){
+		for(int i = 0 ; i < 1000; i++){
 			parts.add(new Particle(0, 0, 0,samcl.orientation));
 		}
-		int rx, ry;
-		double rh;
+		int rx=0, ry=0,px=0, py=0;
+		double rh=0.0;
 		int i = 0;
+		double time = System.currentTimeMillis()/1000;
 		while(true){
 			i++;
-			Thread.sleep(33);
+			Thread.sleep(333);
 			grap.drawImage(samcl.precomputed_grid.map_image, null, 0, 0);
-			rx = robot.getX();
-			ry = robot.getY();
-			rh = robot.getHead();
-			Tools.drawRobot(grap, rx, ry, rh, 20, Color.ORANGE);
-			Tools.drawRobot(grap, robot.getX(), robot.getY(), robot.getHead(), 10, Color.RED);
+			
+			px = robot.getX();
+			py = robot.getY();
+			time = System.currentTimeMillis()/1000 - time;
 			for(Particle p : parts){
-				System.out.println("drawing particles");
+				//System.out.println("drawing particles");
+				
 				if(i<10000000){
 					p.setX(rx);
 					p.setY(ry);
 					p.setTh(rh);
 				}
-				SAMCL.Motion_sampling(p, robot.getUt());
-				Tools.drawRobot(grap, p.getX(), p.getY(), p.getTh(), 4, Color.BLUE);
+				
+				SAMCL.Motion_sampling(p, robot.getUt(), time);
+				Tools.drawPoint(grap, 250 + px - p.getX(), 250 + py - p.getY(), p.getTh(), 4, Color.BLUE);
 			}
+			
+			Tools.drawRobot(grap, 250 + robot.getX()-rx, 250 + robot.getY() - ry, rh, 20, Color.ORANGE);
+			rx = robot.getX();
+			ry = robot.getY();
+			rh = robot.getHead();
+			Tools.drawRobot(grap, 250/*robot.getX()*/, 250/*robot.getY()*/, robot.getHead(), 10, Color.RED);
 			panel.repaint();
 			//System.out.println(robot.toString());
 			

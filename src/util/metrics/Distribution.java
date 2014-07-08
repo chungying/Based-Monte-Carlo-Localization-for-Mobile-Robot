@@ -11,11 +11,11 @@ public class Distribution {
 		double result = 0.0;
 		
 		for (int i = 0; i < 12; i++) {
-			rand = (Math.random() * upper*2) - upper;
+			rand = (Math.random() * upper *2) - upper;
 			result = result + rand;
 		}
 		
-		return result;
+		return result/2;
 	}
 	
 	public static int random(int min, int max){

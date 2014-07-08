@@ -191,5 +191,25 @@ public VelocityModel getUt() {
 			table.close();
 		
 	}
+
+	public Pose getPose() {
+		return new Pose(this.x,this.y,this.head);
+	}
+
+	public void stop() {
+		this.ut.reset(0.0, 0.0);
+	}
+
+	public void setVelocityModel(VelocityModel u) {
+		this.ut.setVelocity(u.getVelocity());
+		this.ut.setAngular_velocity(u.getAngular_velocity());
+		
+	}
+
+	public void setPose(Pose pose) {
+		this.x = pose.X;
+		this.y = pose.Y;
+		this.head = pose.H;
+	}
 	
 }

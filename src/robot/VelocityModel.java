@@ -5,8 +5,8 @@ public class VelocityModel {
 	public VelocityModel() {
 		super();
 	}
-	public double velocity;
-	public double angular_velocity;
+	public double velocity;// pixel/s
+	public double angular_velocity;// degree/s
 	public double getVelocity() {
 		return velocity;
 	}
@@ -18,5 +18,10 @@ public class VelocityModel {
 	}
 	public void setAngular_velocity(double angular_velocity) {
 		this.angular_velocity = angular_velocity;
+	}
+	public void reset(double v, double w) {
+		this.velocity = v;
+		this.angular_velocity = w;
+		
 	}
 }
