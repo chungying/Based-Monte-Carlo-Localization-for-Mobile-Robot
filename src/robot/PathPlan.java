@@ -15,8 +15,10 @@ import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
 import samcl.SAMCL;
+import samcl.SAMCLROE;
 import util.gui.Panel;
 import util.gui.RobotListener;
+import util.gui.SamclListener;
 import util.gui.Tools;
 import util.metrics.Particle;
 import util.metrics.Transformer;
@@ -25,7 +27,7 @@ import com.beust.jcommander.JCommander;
 
 public class PathPlan {
 	public static final double standardAngularVelocity = 15;// degree/second
-	public static final double standardVelocity = 10;// pixel/second
+	public static final double standardVelocity = 20;// pixel/second
 	private List<Pose> path = null;
 	private int currentPose;
 	public Pose currentP;
@@ -112,38 +114,31 @@ public class PathPlan {
 	
 	
 	public static void main(String[] args) throws IOException, InterruptedException{
-		final SAMCL samcl = new SAMCL(
+		final SAMCLROE samcl = new SAMCLROE(
 				18, //orientation
 				//"file:///home/w514/map.jpg",//map image file
 				//TODO file name
 				"hdfs:///user/eeuser/map1024.jpeg",
-				(float) 0.005, //delta energy
+				(float) 0.00005, //delta energy
 				100, //total particle
-				(float) 0.001, //threshold xi
+				(float) 0.01, //threshold xi
 				(float) 0.6, //rate of population
 				10);//competitive strength
 		if(args.length==0){
 			String[] targs = {/*"-cl",*/
-					//"-i","file:///home/w514/jpg/map.jpg"
-					"-i","file:///Users/ihsumlee/Jolly/jpg/map.jpg"
-					,"-o","360"
+					"-i","file:///home/w514/jpg/map.jpg"
+					//"-i","file:///Users/ihsumlee/Jolly/jpg/map.jpg"
+					,"-o","18"
 					};
 			args = targs;
 		}
 		
 		new JCommander(samcl, args);
 		
-		if(!samcl.onCloud){
-			if (!Arrays.asList(args).contains("-i") && !Arrays.asList(args).contains("--image")) {
-				String filepath = "file://" + System.getProperty("user.home") + "/test6.jpg";
-				System.out.println(filepath);
-				samcl.map_filename = filepath;
-				
-			}
-			
+		if(!samcl.onCloud){			
 			samcl.setup();
 			System.out.println("start to pre-caching");
-			//samcl.Pre_caching();
+			samcl.Pre_caching();
 		}else
 			samcl.setup();
 		
@@ -152,8 +147,8 @@ public class PathPlan {
 		 * to create a robot
 		 * setup the listener of Robot
 		 * */
-		RobotState robot = new RobotState(30, 30, 0, null/*samcl.precomputed_grid*/, null/*"map.512.4.split"*/);
-		robot.setVt(10);
+		RobotState robot = new RobotState(220, 60, 0, /*null*/samcl.precomputed_grid, null/*"map.512.4.split"*/);
+		robot.setVt(0);
 		robot.setWt(0);
 		robot.setOnCloud(samcl.onCloud);
 		PathPlan plan = new PathPlan();
@@ -167,7 +162,7 @@ public class PathPlan {
 		for(Pose p : plan.getPath()){
 			System.out.println(p.toString());
 		}
-		
+		SamclListener samclListener = new SamclListener("samcl tuner", samcl);
 		RobotListener robotListener = new RobotListener("robot controller", robot);
 		Thread t = new Thread(robot);
 		t.start();
@@ -209,7 +204,7 @@ public class PathPlan {
 		
 		
 		//TODO test 2014/06/19
-		//samcl.run(robot, samcl_window);
+		samcl.run(robot, samcl_window);
 		
 		int rx=0, ry=0,px=0, py=0;
 		double rh=0.0;
@@ -222,8 +217,11 @@ public class PathPlan {
 			time = System.currentTimeMillis()/1000 - time;
 			Tools.drawRobot(grap, robot.getX(), robot.getY(), robot.getHead(), 10, Color.RED);
 			panel.repaint();
-			System.out.println(robot.toString());
-			
+			//System.out.println(robot.toString());
+			if(i==2000){
+				System.out.println("start up ");
+				robot.setVt(PathPlan.standardVelocity);
+			}
 			
 			
 		}

@@ -81,10 +81,18 @@ public VelocityModel getUt() {
 		long time = 0;
 		long duration = 0;
 		List<Pose> path = new ArrayList<Pose>();
-		Pose pose1 = new Pose(40,30,0);
+		Pose pose1 = new Pose(440,60,0);
 		path.add(pose1);
-		Pose pose2 = new Pose(40,30,90);
+		Pose pose2 = new Pose(440,60,90);
 		path.add(pose2);
+		Pose pose3 = new Pose(440,320,90);
+		path.add(pose3);
+		Pose pose4 = new Pose(440,320,180);
+		path.add(pose4);
+		Pose pose5 = new Pose(220,320,180);
+		path.add(pose5);
+		
+		
 		int target = 0;
 		while(true){
 			time = System.currentTimeMillis();
@@ -109,18 +117,22 @@ public VelocityModel getUt() {
 				}*/
 				if(target<path.size()){
 					if(this.getPose().equal(path.get(target))){
-						if(target==0){
+						this.stop();
+						if((target%2)==0){
 							this.setPose(path.get(target));
 							this.setVt(0);
-							this.setWt(15);
-						}else if(target==1){
+							this.setWt(PathPlan.standardAngularVelocity);
+						}else if((target%2)==1){
 							this.setPose(path.get(target));
-							this.setVt(10);
+							this.setVt(PathPlan.standardVelocity);
 							this.setWt(0);
 						}
 						target++;
 					}
+				}else{
+					this.stop();
 				}
+					
 				this.update(duration/1000.0);
 				
 				//update sensor data 

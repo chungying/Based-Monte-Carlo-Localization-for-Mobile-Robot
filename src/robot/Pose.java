@@ -65,7 +65,7 @@ public class Pose {
 	
 	@Override
 	public String toString() {
-		return "Pose [X=" + X + ", Y=" + Y + ", H=" + H + "]";
+		return "Pose [\t" + X + "\t" + Y + "\t" + H + "\t]";
 	}
 
 	public static void main(String[] args){

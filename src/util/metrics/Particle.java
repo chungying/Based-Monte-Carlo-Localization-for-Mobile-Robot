@@ -130,7 +130,7 @@ public class Particle implements Cloneable{
 
 	@Override
 	public String toString() {
-		return "Particle [x=" + x + ", y=" + y + ", z=" + z + "]\n\tweight: "+this.weight+"\n\t"+"measurements\n\t"+Arrays.toString(measurements);
+		return "Particle [\t" + x + "\t" + y + "\t" + z + "\t]\tweight:\t"+this.weight+"\t";
 	}
 
 	@Override

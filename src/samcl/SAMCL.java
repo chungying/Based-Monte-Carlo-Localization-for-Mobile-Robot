@@ -20,6 +20,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.HTable;
 
+import robot.PathPlan;
 import robot.VelocityModel;
 import robot.RobotState;
 import util.gui.Panel;
@@ -59,9 +60,9 @@ public class SAMCL implements Closeable{
 		Tools.drawRobot(grap, bestParticle.getX(), bestParticle.getY(), bestParticle.getTh(), 8, Color.GREEN);
 
 		//SER
-		if (SER.size() >= 1) {
-			Tools.drawBatchPoint(grap, SER, 1, Color.PINK);
-		}
+//		if (SER.size() >= 1) {
+//			Tools.drawBatchPoint(grap, SER, 1, Color.PINK);
+//		}
 		
 		
 		
@@ -127,76 +128,83 @@ public class SAMCL implements Closeable{
 		
 		while(wl.isClosing!=true){
 			counter++;
-			System.out.println(this.getClass().getName()+"\tGeneration\t"+counter+"\t-------------------");
+			
+			if(counter==100){
+				System.out.println("start up ");
+				robot.setVt(PathPlan.standardVelocity);
+			}
+			
+//			System.out.println(this.getClass().getName()+"\tGeneration\t"+counter+"\t-------------------");
 			//update robot's sensor
 			//Zt = this.precomputed_grid.getMeasurements( onCloud, robot.getX(), robot.getY(), Transformer.th2Z(robot.getHead(), this.orientation_delta_degree) );
 			Zt = robot.getMeasurements();
 			
 			//Setp 1: Sampling
-			System.out.println("(1)\tSampling\t");
+//			System.out.println("(1)\tSampling\t");
 			long sampleTime = System.currentTimeMillis();
 			this.Prediction_total_particles(last_set, null, Zt);
 			sampleTime = System.currentTimeMillis() - sampleTime;
 			
 			//Step 1-2: Weighting
-			System.out.println("(1-2)\tWeighting\t");
+//			System.out.println("(1-2)\tWeighting\t");
 			long weightTime = System.currentTimeMillis();
 			this.batchWeight(last_set, Zt);
 			weightTime = System.currentTimeMillis() - weightTime;
 			
 			//Step 2: Determining size
-			System.out.println("(2)\tDetermining size\t");
+//			System.out.println("(2)\tDetermining size\t");
 			long determiningTime = System.currentTimeMillis();
 			Particle max_p = this.Determining_size(last_set);
 			determiningTime = System.currentTimeMillis() - determiningTime;
 			long serTime = System.currentTimeMillis();
 			if (max_p.getWeight()>this.XI) {
-				System.out.println("\tCaculating SER\t");
+//				System.out.println("\tCaculating SER\t");
 				this.Caculating_SER(Zt, SER_set);
-				System.out.println("\tSER set size = \t"+SER_set.size());
+//				System.out.println("\tSER set size = \t"+SER_set.size());
 				serTime = System.currentTimeMillis() -serTime;
 			}else{
 				serTime = System.currentTimeMillis() - serTime;
 			}
 			
 			//Step 3-1: Local resampling
-			System.out.println("(3)\tLocal resampling\t");
+//			System.out.println("(3)\tLocal resampling\t");
 			long localResamplingTime = System.currentTimeMillis();
 			this.Local_resampling(last_set, local_set);
 			localResamplingTime = System.currentTimeMillis() - localResamplingTime;
-			System.out.println("\tlocal set size : \t" + local_set.size());
+//			System.out.println("\tlocal set size : \t" + local_set.size());
 			
 			//Step 3-2: Global resampling
-			System.out.println("(4)\tGlobal resampling\t");
+//			System.out.println("(4)\tGlobal resampling\t");
 			long globalResampleTime = System.currentTimeMillis();
 			this.Global_drawing(SER_set, global_set);
 			globalResampleTime = System.currentTimeMillis() - globalResampleTime;
-			System.out.println("\tglobal set size: \t" + global_set.size());
+//			System.out.println("\tglobal set size: \t" + global_set.size());
 			
 			//Step 4: Combimining
-			System.out.println("(5)\tCombimining\t");
+//			System.out.println("(5)\tCombimining\t");
 			long combiminingTime = System.currentTimeMillis();
 			next_set.clear();
 			next_set.addAll(this.Combining_sets(local_set, global_set));
 			combiminingTime = System.currentTimeMillis() - combiminingTime;
-			System.out.println("\tnext set size: \t" + last_set.size());
+//			System.out.println("\tnext set size: \t" + last_set.size());
 			//this.last_set = this.next_set;
 			last_set.clear();
 			last_set.addAll(next_set);
 			
 			//show out the information
-			System.out.println("Best position:"+max_p.toString());
-			System.out.println("Sensitive           : \t" + this.XI);
-			System.out.println("RPC counter         : \t"+this.precomputed_grid.RPCcount);
+			System.out.print("Best position:\t\t\t\t\t"+max_p.toString());
+			System.out.println("Robot position:\t"+robot.getPose().toString());
+//			System.out.println("Sensitive           : \t" + this.XI);
+//			System.out.println("RPC counter         : \t"+this.precomputed_grid.RPCcount);
 			this.precomputed_grid.RPCcount = 0;
-			System.out.println("Sampling Time		: \t" + sampleTime + "\tms");
-			System.out.println("Weighting Time		: \t" + weightTime + "\tms");
-			System.out.println("Determing Size Time	: \t" + determiningTime + "\tms");
-			System.out.println("Caculating SER Time	: \t\t\t\t\t" + serTime + "\tms");
-			System.out.println("Local Resampling Time	: \t" + localResamplingTime + "\tms");
-			System.out.println("Global Resampling Time	: \t" + globalResampleTime + "\tms");
-			System.out.println("Combining Time		: \t" + combiminingTime + "\tms");
-			System.out.println("*************************");
+//			System.out.println("Sampling Time		: \t" + sampleTime + "\tms");
+//			System.out.println("Weighting Time		: \t" + weightTime + "\tms");
+//			System.out.println("Determing Size Time	: \t" + determiningTime + "\tms");
+//			System.out.println("Caculating SER Time	: \t" + serTime + "\tms");
+//			System.out.println("Local Resampling Time	: \t" + localResamplingTime + "\tms");
+//			System.out.println("Global Resampling Time	: \t" + globalResampleTime + "\tms");
+//			System.out.println("Combining Time		: \t" + combiminingTime + "\tms");
+//			System.out.println("*************************");
 			//robotz = (int) Math.round( robot.getHead()/this.orientation_delta_degree );
 			try {
 				Thread.sleep(33);
