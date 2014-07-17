@@ -102,9 +102,9 @@ public class Transformer {
 	}
 
 	static public String xy2String(int X, int Y){
-		String str = String.format("%05d", X)+String.format("%05d", Y);
-		return str;
+		return String.format("%05d", X)+String.format("%05d", Y);
 	}
+	
 	static final String separator = ":";
 	public static String xy2RowkeyString( int X, int Y , Random random){
 		String str = xy2String(X,Y);
