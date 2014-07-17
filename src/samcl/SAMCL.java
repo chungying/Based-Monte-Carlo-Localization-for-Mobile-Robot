@@ -31,6 +31,7 @@ import util.metrics.Particle;
 import util.metrics.Transformer;
 
 import com.beust.jcommander.Parameter;
+import com.google.protobuf.ServiceException;
 
 /**
  * @author w514
@@ -72,9 +73,10 @@ public class SAMCL implements Closeable{
 	public boolean isClosing;
 	/**
 	 * run SAMCL
-	 * @throws IOException 
+	 * @throws Throwable 
+	 * @throws ServiceException 
 	 */
-	public void run(RobotState robot, JFrame samcl_window) throws IOException{
+	public void run(RobotState robot, JFrame samcl_window) throws ServiceException, Throwable{
 
 		List<Particle> local_set = new ArrayList<Particle>();
 		List<Particle> global_set = new ArrayList<Particle>();
@@ -142,7 +144,7 @@ public class SAMCL implements Closeable{
 			//Setp 1: Sampling
 //			System.out.println("(1)\tSampling\t");
 			long sampleTime = System.currentTimeMillis();
-			this.Prediction_total_particles(last_set, null, Zt);
+			this.Prediction_total_particles(last_set, null);
 			sampleTime = System.currentTimeMillis() - sampleTime;
 			
 			//Step 1-2: Weighting
@@ -438,10 +440,10 @@ public class SAMCL implements Closeable{
 	}
 	
 	/**
-	 * input:last particles set(Xt-1),motion control(ut),measurement(Zt),3-Dimentional grid(G3D)
+	 * input:last particles set(Xt-1),motion control(ut),3-Dimentional grid(G3D)
 	 * output:particles(xt),weight(wt)
 	 */
-	public void Prediction_total_particles(List<Particle> src, VelocityModel u, float[] robotMeasurements){
+	public void Prediction_total_particles(List<Particle> src, VelocityModel u){
 		//System.out.println("*********into Sample_total_particles");
 		try {
 			if(!src.isEmpty()){
@@ -461,7 +463,7 @@ public class SAMCL implements Closeable{
 		}		
 	}
 	
-	public void batchWeight(List<Particle> src, float[] robotMeasurements) throws IOException {
+	public void batchWeight(List<Particle> src, float[] robotMeasurements) throws IOException, ServiceException, Throwable {
 		//get sensor data of all particles.
 		if(this.onCloud){
 			//get measurements from cloud  and weight

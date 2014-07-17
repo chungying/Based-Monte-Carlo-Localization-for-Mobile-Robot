@@ -71,7 +71,6 @@ implements Coprocessor, CoprocessorService{
 				//Step 2: Orientation Estimation and setup response
 				orientationEstimate(responseBuilder, existParticles, Zt);
 				
-				
 				/*
 				OewcProtos.Particle p = existParticles.get(existParticles.size()-1);
 				Get get = new Get(Bytes.toBytes(p.toRowKeyString()));
@@ -104,10 +103,11 @@ implements Coprocessor, CoprocessorService{
 			    scanner.close();
 			    */
 				responseBuilder.setCount(1).setWeight(1.0f);
+				responseBuilder.setStr("Particle number: "+String.valueOf(existParticles.size()));
 			}else{
 				
 				responseBuilder.setCount(-1).setWeight(-1.0f).build();
-				
+				responseBuilder.setStr("no OEWC");
 			}
 			done.run(responseBuilder.build());
 	    
@@ -160,6 +160,7 @@ implements Coprocessor, CoprocessorService{
 			setX(p.getX()).setY(p.getY()).setZ(bestZ).setW(bestW);
 			responseBuilder.addParticles(outputP);
 		}
+		
 	}
 	
 	public List<Float> getMeasurements(int z, List<Float> circleMeasurements){

@@ -24,6 +24,7 @@ import util.metrics.Particle;
 import util.metrics.Transformer;
 
 import com.beust.jcommander.JCommander;
+import com.google.protobuf.ServiceException;
 
 public class PathPlan {
 	public static final double standardAngularVelocity = 15;// degree/second
@@ -113,7 +114,7 @@ public class PathPlan {
 	}
 	
 	
-	public static void main(String[] args) throws IOException, InterruptedException{
+	public static void main(String[] args) throws ServiceException, Throwable{
 		final SAMCLROE samcl = new SAMCLROE(
 				18, //orientation
 				//"file:///home/w514/map.jpg",//map image file

@@ -14,6 +14,7 @@ import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
 import com.beust.jcommander.JCommander;
+import com.google.protobuf.ServiceException;
 
 import robot.RobotState;
 import util.gui.Panel;
@@ -46,7 +47,7 @@ public class SAMCLROE extends SAMCL{
 
 	
 	@SuppressWarnings("unused")
-	public static void main(String[] args) throws IOException, InterruptedException {
+	public static void main(String[] args) throws ServiceException, Throwable {
 		/**
 		 * First step:
 		 * to create the localization algorithm
