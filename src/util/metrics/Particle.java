@@ -10,14 +10,16 @@ public class Particle implements Cloneable{
 	private int y;
 	private int z;
 	private double th;
-	public int orientation;
-	public float delta_degree;
 	//private float th;
 	
 	/**
 	 * be initialized outside
 	*/
 	private float weight;
+	public int orientation;
+	public float delta_degree;
+	//private float th;
+	
 	/**
 	 * assgned from outside
 	 */

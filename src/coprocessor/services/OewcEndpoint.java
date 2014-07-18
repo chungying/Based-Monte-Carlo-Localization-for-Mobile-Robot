@@ -56,7 +56,7 @@ implements Coprocessor, CoprocessorService{
 	@Override
 	public void getRowCount(RpcController controller, OewcRequest request,
 			RpcCallback<OewcResponse> done) {
-		try{
+		try{ 
 			//initial and get the data from client
 			OewcResponse.Builder responseBuilder = OewcResponse.newBuilder();
 			List<OewcProtos.Particle> requsetParts = request.getParticlesList();
