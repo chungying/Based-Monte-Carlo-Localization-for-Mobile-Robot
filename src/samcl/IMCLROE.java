@@ -39,7 +39,8 @@ public class IMCLROE extends SAMCL{
 		}
 		
 		//TODO change the result to src 
-		
+		src.clear();
+		src.addAll(result);
 	}
 
 	public IMCLROE(boolean cloud, int orientation, String map_filename,
