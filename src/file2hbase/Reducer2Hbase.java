@@ -88,26 +88,20 @@ public class Reducer2Hbase
 				context.getCounter(Counters.A).increment(1);
 				//int rowkey;
 				String row_str = new String();
-				Random random = new Random();;
+				Random random = new Random();
+				int translateX = value.x.get();
+				int translateY = value.y.get();
 				for (int i = 0; i < value.width.get(); i++) {
 					
 					for (int j = 0; j < value.height.get(); j++) {
 						
 						//TODO transform to absolute type
-						row_str = Transformer.xy2RowkeyString(i, j, random);
-						//2014/7/2
-						//row_str = "("+( 10000+j+value.y.get() )+","+( 10000+i+value.x.get() )+")";
-						//rowkey = (j + value.y.get()) * (value.width.get()) + (i + value.x.get());
-						
+						row_str = Transformer.xy2RowkeyString(i+translateX, j+translateY, random);
 						context.getCounter(Counters.PUT).increment(1);
-						
-						
-						
 						//TODO	2014/05/04 test for energy as rowkey
-						
-						
 						Put put = new Put(Bytes.toBytes(row_str));
-						//TODO improve
+						
+						//TODO have been improved
 						//put.setWriteToWAL(false);
 						put.setDurability(Durability.SKIP_WAL);
 						

@@ -106,11 +106,19 @@ public class Transformer {
 	}
 	
 	static final String separator = ":";
-	public static String xy2RowkeyString( int X, int Y , Random random){
-		String str = xy2String(X,Y);
-		random.setSeed(Long.parseLong(str));
+	public static String xy2RowkeyString(long l, String str, Random random){
+		random.setSeed(l);
 		String rand = String.format("%04d", random.nextInt(1000));
 		return rand+separator+str;
+	}
+	
+	public static String xy2RowkeyString( int X, int Y , Random random){
+		String str = xy2String(X,Y);
+		return xy2RowkeyString(Long.parseLong(str), str, random);
+	}
+	
+	public static String xy2RowkeyString( int X, int Y){
+		return xy2RowkeyString(X, Y, new Random());
 	}
 	
 	/**
