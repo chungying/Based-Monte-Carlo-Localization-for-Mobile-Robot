@@ -16,7 +16,19 @@ public class Transformer {
 		return (h%360+360)%360;
 	}
 
-	public static float[] drawMeasurements(float[] circles, int z) {
+	public static float[] drawMeasurements(Float[] circles, int z) {
+		int sensor_number = (circles.length/2) +1;
+		float[] measurements = new float[sensor_number];
+		int bias = (sensor_number - 1) / 2;
+		int index;
+		for (int i = 0; i < sensor_number; i++) {
+			index = ( (z - bias + i + circles.length) % circles.length );
+			measurements[i] = circles[index];
+		}
+		return measurements;
+	}
+
+	public static float[] drawMeasurements(float[] circles, int z) {		
 		int sensor_number = (circles.length/2) +1;
 		float[] measurements = new float[sensor_number];
 		int bias = (sensor_number - 1) / 2;

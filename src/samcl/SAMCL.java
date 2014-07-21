@@ -43,7 +43,6 @@ import com.google.protobuf.ServiceException;
  */
 public class SAMCL implements Closeable{
 	
-	public static double[] al = {1,1,1,1,1,1};
 	public void Drawing(Graphics2D grap, JFrame window
 			, RobotState robot, Particle bestParticle, List<Particle> particles, List<Particle> SER){
 		//TODO IMAGE
@@ -237,8 +236,10 @@ public class SAMCL implements Closeable{
 		this.precomputed_grid = new Grid(this.orientation, this.sensor_number, this.map_filename);
 		
 		if(this.onCloud){
+			System.out.println("cloud setup");
 			this.cloudSetup();
 		}else{
+			System.out.println("local setup");
 			this.localSetup();
 		}
 	}
@@ -327,7 +328,7 @@ public class SAMCL implements Closeable{
 		this.ALPHA = aLPHA;
 		this.tournament_presure = tournament_presure;
 		
-		this.onCloud = true;
+		this.onCloud = cloud;
 		
 	}
 	
@@ -376,8 +377,8 @@ public class SAMCL implements Closeable{
 	//for Sample_total_particles()
 	
 	//for Determining_size()
-	private int Nl;
-	private int Ng;
+	protected int Nl;
+	protected int Ng;
 	//for Local_resampling()
 	
 	
@@ -639,29 +640,7 @@ public class SAMCL implements Closeable{
 		p.setZ(pz);
 	}
 	
-	//TODO motion sampling is unfinished
-	public static void Motion_sampling(Particle p, VelocityModel u, double deltaT){
-		double Vcup = u.velocity + 
-				Distribution.sample_normal_distribution(al[0]*u.velocity*u.velocity + al[1]*u.angular_velocity*u.angular_velocity);
-		double Wcup = u.angular_velocity + 
-				Distribution.sample_normal_distribution(al[2]*u.velocity*u.velocity + al[3]*u.angular_velocity*u.angular_velocity);
-		double Rcup =  Distribution.sample_normal_distribution(al[4]*u.velocity*u.velocity + al[5]*u.angular_velocity*u.angular_velocity);
-		
-		double temp = p.getX() 
-				- ( Vcup/Wcup ) * ( Math.sin( Math.toRadians( p.getTh() ) ) )
-				+ ( Vcup/Wcup ) * ( Math.sin( Math.toRadians( p.getTh() + Wcup*deltaT ) ) );
-		p.setX((int)Math.round(temp));
-		
-		temp = p.getY() 
-				+ ( Vcup/Wcup ) * ( Math.cos( Math.toRadians( p.getTh() ) ) )
-				- ( Vcup/Wcup ) * ( Math.cos( Math.toRadians( p.getTh() + Wcup*deltaT ) ) );
-		p.setY((int)Math.round(temp));
-		
-		temp = p.getTh() + Wcup*deltaT + Rcup*deltaT;
-		p.setTh(temp);
-	}
-	
-	private void WeightParticle(Particle p, float[] robotMeasurements) throws IOException{
+	public void WeightParticle(Particle p, float[] robotMeasurements) throws IOException{
 		//if the position is occupied.
 		if( this.precomputed_grid.map_array(p.getX(), p.getY())==Grid.GRID_EMPTY ) {
 			//if the particle has got the measurements or would get measurements from Grid

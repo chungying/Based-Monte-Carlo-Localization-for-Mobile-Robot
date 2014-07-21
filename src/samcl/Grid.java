@@ -15,9 +15,12 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
+import java.util.AbstractMap;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map.Entry;
 
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
@@ -610,6 +613,7 @@ public class Grid extends MouseAdapter {
 		}
 	}
 
+	@Deprecated
 	public void getlaserdist(int x, int y, float[] measurements,
 			Point[] measurement_points) {
 		int checkX, checkY;
@@ -633,6 +637,34 @@ public class Grid extends MouseAdapter {
 			measurements[i] = 1 - measurements[i] / this.max_distance;
 			measurement_points[i] = new Point(checkX, checkY);
 		}
+	}
+	
+	public SimpleEntry<List<Float>, List<Point>> getLaserDist(int x, int y){
+		List<Float> measurements = new ArrayList<Float>();
+		List<Point>  measurementPoints = new ArrayList<Point>();
+		int checkX, checkY;
+		int step;
+		// double orientation_degree = this.orientation_delta_degree;
+		for (int i = 0; i < this.orientation; i++) {
+			step = 0;
+			checkX = x;
+			checkY = y;
+			while (this.map_array(checkX, checkY) == Grid.GRID_EMPTY) {
+				checkX = (int) Math.round((x + step
+						* Math.cos((i * this.orientation_delta_degree)
+								* Math.PI / 180)));
+				checkY = (int) Math.round((y + step
+						* Math.sin((i * this.orientation_delta_degree)
+								* Math.PI / 180)));
+				step++;
+			}
+			measurements.add(1 - (float) Math.sqrt(((checkX - x) * (checkX - x))
+					+ ((checkY - y) * (checkY - y))) / this.max_distance);
+			//measurements[i] = 1 - measurements[i] / this.max_distance;
+			measurementPoints.add(new Point(checkX, checkY));
+		}
+		
+		return new SimpleEntry<List<Float>, List<Point>>(measurements, measurementPoints);
 	}
 
 	/**

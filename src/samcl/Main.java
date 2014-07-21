@@ -3,7 +3,6 @@ package samcl;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
-import java.awt.event.AdjustmentEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
@@ -19,8 +18,8 @@ import javax.swing.JOptionPane;
 import robot.RobotState;
 import util.gui.Panel;
 import util.gui.RobotListener;
-import util.gui.SamclListener;
 import util.gui.Tools;
+import util.metrics.Distribution;
 import util.metrics.Particle;
 import util.metrics.Transformer;
 
@@ -150,7 +149,7 @@ public class Main {
 					p.setTh(rh);
 				}
 				
-				SAMCL.Motion_sampling(p, robot.getUt(), time);
+				Distribution.Motion_sampling(p, robot.getUt(), time);
 				Tools.drawPoint(grap, 250 + px - p.getX(), 250 + py - p.getY(), p.getTh(), 4, Color.BLUE);
 			}
 			

@@ -2,6 +2,8 @@ package util.metrics;
 
 import java.util.Random;
 
+import robot.VelocityModel;
+
 public class Distribution {
 	public static double sample_normal_distribution(double b){
 		double upper = Math.sqrt(b);
@@ -22,6 +24,28 @@ public class Distribution {
 		Random rand = new Random();
 		int result = min + rand.nextInt(max - min + 1); 
 		return result;
+	}
+	
+	public static double[] al = {1,1,1,1,1,1};
+	public static void Motion_sampling(Particle p, VelocityModel u, double deltaT){
+		double Vcup = u.velocity + 
+				Distribution.sample_normal_distribution(al[0]*u.velocity*u.velocity + al[1]*u.angular_velocity*u.angular_velocity);
+		double Wcup = u.angular_velocity + 
+				Distribution.sample_normal_distribution(al[2]*u.velocity*u.velocity + al[3]*u.angular_velocity*u.angular_velocity);
+		double Rcup =  Distribution.sample_normal_distribution(al[4]*u.velocity*u.velocity + al[5]*u.angular_velocity*u.angular_velocity);
+		
+		double temp = p.getX() 
+				- ( Vcup/Wcup ) * ( Math.sin( Math.toRadians( p.getTh() ) ) )
+				+ ( Vcup/Wcup ) * ( Math.sin( Math.toRadians( p.getTh() + Wcup*deltaT ) ) );
+		p.setX((int)Math.round(temp));
+		
+		temp = p.getY() 
+				+ ( Vcup/Wcup ) * ( Math.cos( Math.toRadians( p.getTh() ) ) )
+				- ( Vcup/Wcup ) * ( Math.cos( Math.toRadians( p.getTh() + Wcup*deltaT ) ) );
+		p.setY((int)Math.round(temp));
+		
+		temp = p.getTh() + Wcup*deltaT + Rcup*deltaT;
+		p.setTh(temp);
 	}
 	
 }
