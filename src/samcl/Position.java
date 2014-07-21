@@ -5,9 +5,23 @@ import java.util.Arrays;
 
 public class Position {
 		public int sensor_number;
-		public Point[] measurement_points;
+		@Deprecated
+		private Point[] measurement_points;
 		public float[] circle_measurements;
+		
+		public void setCircle_measurements(float[] circle_measurements) {
+			this.circle_measurements = circle_measurements;
+		}
+
 		public float[] energy;
+
+		public float[] getEnergy() {
+			return energy;
+		}
+
+		public void setEnergy(float[] energy) {
+			this.energy = energy;
+		}
 
 		/**
 	 * @param z
@@ -52,7 +66,8 @@ public class Position {
 	 * else
 	 * return all of the points of the measurements
 	 */
-	public Point[] getMeasurement_points(int z) {
+	@Deprecated
+	private Point[] getMeasurement_points(int z) {
 		if (z >= 0) {
 			Point[] measurements = new Point[this.sensor_number];
 			int bias = (this.sensor_number - 1) / 2;
