@@ -29,17 +29,30 @@ import com.google.protobuf.ServiceException;
 public class PathPlan {
 	public static final double standardAngularVelocity = 15;// degree/second
 	public static final double standardVelocity = 20;// pixel/second
+	
 	private List<Pose> path = null;
-	private int currentPose;
-	public Pose currentP;
+	
+	
+	public Pose currentPose;
+	private int currentTarget;
+	private int nextTarget;
+	
+	public int nextPose(Pose robot){
+		return currentTarget;
+	}
+	
+	
 	public boolean nextPose(RobotState robot){
+		
+		
+		
 		//System.out.println("next target"+path.get(currentPose+1));
-		if( path.get(currentPose+1).equals(robot.getPose()) ){
+		if( path.get(currentTarget+1).equals(robot.getPose()) ){
 			robot.stop();
-			currentPose++;
-			currentP = path.get(currentPose);
-			robot.setPose(currentP);
-			this.setVelocityModel(robot, path.get(currentPose+1));
+			currentTarget++;
+			currentPose = path.get(currentTarget);
+			robot.setPose(currentPose);
+			this.setVelocityModel(robot, path.get(currentTarget+1));
 			return true;
 		}
 		else{
@@ -109,8 +122,8 @@ public class PathPlan {
 			}
 		}
 		this.path = newPath;
-		this.currentPose = 0;
-		this.currentP = newPath.get(0);
+		this.currentTarget = 0;
+		this.currentPose = newPath.get(0);
 	}
 	
 	
@@ -206,9 +219,7 @@ public class PathPlan {
 		
 		//TODO test 2014/06/19
 		samcl.run(robot, samcl_window);
-		
-		int rx=0, ry=0,px=0, py=0;
-		double rh=0.0;
+
 		int i = 0;
 		double time = System.currentTimeMillis()/1000;
 		while(true){

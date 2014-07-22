@@ -129,7 +129,7 @@ public class SAMCL implements Closeable{
 		
 		while(wl.isClosing!=true){
 			counter++;
-			
+			//TODO test robot
 			if(counter==100){
 				System.out.println("start up ");
 				robot.setVt(PathPlan.standardVelocity);

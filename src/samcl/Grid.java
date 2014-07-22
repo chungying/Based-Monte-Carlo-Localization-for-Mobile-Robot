@@ -457,6 +457,19 @@ public class Grid extends MouseAdapter {
 		}
 	}
 
+	
+	
+	/**
+	 * @param table if onCloud is true , read table from table.
+	 * @param onCloud if onCloud is true , read table from table.
+	 * @param x the pose where to read.
+	 * @param y the pose where to read.
+	 * @param head the orientation where to read.
+	 * @return <pre>
+	 * if onCloud is true , read table from table.
+	 * <pre>
+	 * @throws IOException
+	 */
 	public float[] getMeasurements(HTable table, boolean onCloud, int x, int y, double head)
 			throws IOException {
 		return this.getMeasurements(table, onCloud, x, y, Transformer.th2Z(head,
@@ -464,24 +477,30 @@ public class Grid extends MouseAdapter {
 
 	}
 
-	/**
+	/**	 
+	 * @param table if onCloud is true , read table from table.
+	 * @param onCloud if onCloud is true , read table from table.
+	 * @param x the pose where to read.
+	 * @param y the pose where to read.
+	 * @param z the orientation where to read.
 	 * @return <pre>
+	 * 
 	 * if z >= 0
 	 * return the range of the measurements of this orientation
 	 * else
 	 * return all of the measurements
 	 * </pre>
 	 */
-	public float[] getMeasurements(HTable table, boolean oncloud, int X, int Y, int Z)
+	public float[] getMeasurements(HTable table, boolean oncloud, int x, int y, int z)
 			throws IOException {
 		if (oncloud) {
 			// System.out.println("get from CLOUD!!!!!");
 			// System.out.println("(X,Y,Z) = ("+X+","+Y+","+Z+")");
-			return this.getFromCloud(table, X, Y, Z);
+			return this.getFromCloud(table, x, y, z);
 		} else {
 			// System.out.println("get from local!!!!!");
 			// System.out.println("(X,Y,Z) = ("+X+","+Y+","+Z+")");
-			return this.G[X][Y].getMeasurements(Z);
+			return this.G[x][y].getMeasurements(z);
 		}
 	}
 
