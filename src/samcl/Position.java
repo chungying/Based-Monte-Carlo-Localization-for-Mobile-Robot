@@ -1,9 +1,50 @@
 package samcl;
 
 import java.awt.Point;
+import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Map.Entry;
+
+import com.beust.jcommander.JCommander;
 
 public class Position {
+
+	static public void main(String[] args) throws IOException{
+		//for debug mode
+				if(args.length==0){
+					String[] targs = {/*"-cl",*/
+							"-i","file:///Users/ihsumlee/Jolly/jpg/test6.jpg"
+							//"-i","file:///Users/ihsumlee/Jolly/jpg/map.jpg"
+							,"-o","36"
+							};
+					args = targs;
+				}
+				
+				/**
+				 * First step:
+				 * to create the localization algorithm
+				 * and setup the listener for S	AMCL
+				 */
+				final SAMCL samcl = new SAMCL(
+						18, //orientation
+						//"file:///home/w514/map.jpg",//map image file
+						"hdfs:///user/eeuser/map1024.jpeg",
+						(float) 0.005, //delta energy
+						100, //total particle
+						(float) 0.001, //threshold xi
+						(float) 0.6, //rate of population
+						10);//competitive strength
+				
+				JCommander jc = new JCommander(samcl, args);
+				System.out.println(args.length);
+				//jc.parse(args[0],args[1]);
+				List<Object> obj = jc.getObjects();
+				System.out.println(jc.getParsedCommand());
+//				for(Entry<String, JCommander> o: jc.getCommands().entrySet()){
+//					System.out.println(o.toString());
+//				}
+	}
 		public int sensor_number;
 		@Deprecated
 		private Point[] measurement_points;

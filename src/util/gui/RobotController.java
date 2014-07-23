@@ -13,7 +13,7 @@ import javax.swing.JPanel;
 import robot.RobotState;
 
 @SuppressWarnings("serial")
-public class RobotListener extends JFrame implements ActionListener{
+public class RobotController extends JFrame implements ActionListener{
 	
 	public String S[] = {
 			/*0*/"Pause/Continue",	/*1*/"Stop",				/*2*/"",
@@ -74,7 +74,7 @@ public class RobotListener extends JFrame implements ActionListener{
 	 * @param title
 	 * @throws HeadlessException
 	 */
-	public RobotListener(String title) throws HeadlessException {
+	public RobotController(String title) throws HeadlessException {
 		super(title);
 		BorderLayout boarder = new BorderLayout(3,3);
 		this.setLayout(boarder);
@@ -94,7 +94,7 @@ public class RobotListener extends JFrame implements ActionListener{
 		
 	}
 	
-	public RobotListener(String title, RobotState robot) {
+	public RobotController(String title, RobotState robot) {
 		this(title);
 		this.robot = robot;
 	}

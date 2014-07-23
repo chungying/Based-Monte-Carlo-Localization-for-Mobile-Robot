@@ -24,9 +24,11 @@ import robot.VelocityModel;
 import robot.RobotState;
 import util.gui.Panel;
 import util.gui.Tools;
+import util.metrics.Distribution;
 import util.metrics.Particle;
 import util.metrics.Transformer;
 
+import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.google.protobuf.ServiceException;
 
@@ -40,94 +42,58 @@ import com.google.protobuf.ServiceException;
  */
 public class SAMCL implements Closeable{
 	
-	public void Drawing(Graphics2D grap, JFrame window
-			, RobotState robot, Particle bestParticle, List<Particle> particles, List<Particle> SER){
-		//Graphics2D grap = samcl_image.createGraphics();
-		grap.drawImage(this.precomputed_grid.map_image, null, 0, 0);
-		
-		//Robot
-		Tools.drawRobot(grap, robot.getX(), robot.getY(), robot.getHead(), 10, Color.RED);
-
-		//Best Particle
-		Tools.drawRobot(grap, bestParticle.getX(), bestParticle.getY(), bestParticle.getTh(), 8, Color.GREEN);
-
-		//SER
-//		if (SER.size() >= 1) {
-//			Tools.drawBatchPoint(grap, SER, 1, Color.PINK);
-//		}
-	}
-	
-	
-//	public boolean isClosing;
+	//	public boolean isClosing;
 	/**
 	 * run SAMCL
 	 * @throws Throwable 
-	 * @throws ServiceException 
 	 */
-	public void run(RobotState robot, JFrame samcl_window) throws ServiceException, Throwable{
-
-		List<Particle> local_set = new ArrayList<Particle>();
-		List<Particle> global_set = new ArrayList<Particle>();
-		List<Particle> last_set = new ArrayList<Particle>();
-		//in order to be thread-safe, use CopyOnWriteArrayList.
-		List<Particle> next_set = new CopyOnWriteArrayList<Particle>();
-		List<Particle> SER_set = new CopyOnWriteArrayList<Particle>();
-		
-		
-//		this.isClosing = false;
-		//robot = new RobotState(32,41,0);
-	
+	public void run(RobotState robot, JFrame samcl_window) throws Throwable{
 		System.out.println("press enter to continue.");
 		System.in.read();
 		System.out.println("start!");
 
+		List<Particle> local_set = new ArrayList<Particle>();
+		List<Particle> global_set = new ArrayList<Particle>();
+		//in order to be thread-safe, use CopyOnWriteArrayList.
+		List<Particle> last_set = new CopyOnWriteArrayList<Particle>();
+		List<Particle> SER_set = new CopyOnWriteArrayList<Particle>();		
+		
 		//Drawing the image
 		BufferedImage samcl_image = new BufferedImage(this.precomputed_grid.width,this.precomputed_grid.height, BufferedImage.TYPE_INT_ARGB);
 		Graphics2D grap = samcl_image.createGraphics();
 		grap.drawImage(this.precomputed_grid.map_image, null, 0, 0);
-				
+		//TODO WINDOW
+		Panel image_panel = new Panel(samcl_image);
+		samcl_window.add(image_panel);
+		samcl_window.setVisible(true);
+		
 		//Initial Particles and Painting
 		last_set.clear();
 		Particle p = null;
 		for (int i = 0; i < this.Nt; i++) {
 			p=this.global_sampling();
 			last_set.add(p);
-			//TODOend IMAGE
-			//abolish paint the initial particles 2014/6/27
-			//grap.drawOval(p.getX()-2, p.getY()-2, 4, 4);
 		}
 		
-		//TODO WINDOW
-		Panel image_panel = new Panel(samcl_image);
-		//Painting on the Frame.		
-		//JFrame samcl_window = new JFrame("samcl image");
-		//samcl_window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		//samcl_window.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-//		WindowListen wl = new WindowListen(samcl_window, this.isClosing);
-//		samcl_window.addWindowListener(wl);
-		//Show window
-//		samcl_window.setSize(width, height);
-		//samcl_window.add(new JLabel(new ImageIcon(samcl_image)));
-		samcl_window.add(image_panel);
-		samcl_window.setVisible(true);
-				
 		//get the robot's range finder
-		//float[] Zt = this.precomputed_grid.getMeasurements( onCloud, robot.getX(), robot.getY(), Transformer.th2Z(robot.getHead(), orientation_delta_degree) );
+		//robot.unlock();
+		robot.goStraight();
 		float[] Zt = robot.getMeasurements();
 		
 		int counter = 0;
-		
-		while(/*wl.isClosing!=*/true){
+		long time = 0;
+		long duration = 0;
+		while(true){
+			time = System.currentTimeMillis();
 			counter = counter +1;
 			
-
 			//update robot's sensor
 			Zt = robot.getMeasurements();
 			
 			//Setp 1: Sampling
 //			System.out.println("(1)\tSampling\t");
 			long sampleTime = System.currentTimeMillis();
-			this.Prediction_total_particles(last_set, null);
+			this.Prediction_total_particles(last_set, robot.getUt(), duration);
 			sampleTime = System.currentTimeMillis() - sampleTime;
 			
 			//Step 1-2: Weighting
@@ -141,15 +107,10 @@ public class SAMCL implements Closeable{
 			long determiningTime = System.currentTimeMillis();
 			Particle max_p = this.Determining_size(last_set);
 			determiningTime = System.currentTimeMillis() - determiningTime;
+			//Step 2-2: Calculating SER
 			long serTime = System.currentTimeMillis();
-			if (max_p.getWeight()>this.XI) {
-//				System.out.println("\tCaculating SER\t");
-				this.Caculating_SER(Zt, SER_set);
-//				System.out.println("\tSER set size = \t"+SER_set.size());
-				serTime = System.currentTimeMillis() -serTime;
-			}else{
-				serTime = System.currentTimeMillis() - serTime;
-			}
+			this.Caculating_SER(max_p.getWeight(), Zt, SER_set);
+			serTime = System.currentTimeMillis() - serTime;
 			
 			//Step 3-1: Local resampling
 //			System.out.println("(3)\tLocal resampling\t");
@@ -168,16 +129,13 @@ public class SAMCL implements Closeable{
 			//Step 4: Combimining
 //			System.out.println("(5)\tCombimining\t");
 			long combiminingTime = System.currentTimeMillis();
-			next_set.clear();
-			next_set.addAll(this.Combining_sets(local_set, global_set));
+			last_set.clear();
+			last_set.addAll(this.Combining_sets(local_set, global_set));
 			combiminingTime = System.currentTimeMillis() - combiminingTime;
 //			System.out.println("\tnext set size: \t" + last_set.size());
-			//this.last_set = this.next_set;
-			last_set.clear();
-			last_set.addAll(next_set);
 			
 			//show out the information
-			System.out.print("Best position:\t\t\t\t\t"+max_p.toString());
+			System.out.print("Best position:"+max_p.toString());
 			System.out.println("Robot position:\t"+robot.getPose().toString());
 //			System.out.println("Sensitive           : \t" + this.XI);
 //			System.out.println("RPC counter         : \t"+this.precomputed_grid.RPCcount);
@@ -191,20 +149,26 @@ public class SAMCL implements Closeable{
 //			System.out.println("Combining Time		: \t" + combiminingTime + "\tms");
 //			System.out.println("*************************");
 			//robotz = (int) Math.round( robot.getHead()/this.orientation_delta_degree );
-			try {
-				Thread.sleep(33);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-
+			
+			this.delay(this.period);
+			
 			//draw image 
-			this.Drawing(grap, samcl_window, robot, max_p, next_set, SER_set);
+			this.Drawing(grap, samcl_window, robot, max_p, last_set, SER_set);
 			
 			//update image
 			image_panel.repaint();
+			duration = System.currentTimeMillis() - time;
 		}
 	}
 	
+	private void delay(int milliSecond) {
+		try {
+			Thread.sleep(milliSecond);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
+
 	public void setup() throws IOException{
 		if(this.Delta_Energy!=null)
 			this.delta_energy = Float.parseFloat(Delta_Energy);
@@ -254,6 +218,24 @@ public class SAMCL implements Closeable{
 		//precomputed_grid.start_mouse(precomputed_grid);
 	}
 	
+	public void Drawing(Graphics2D grap, JFrame window
+				, RobotState robot, Particle bestParticle, List<Particle> particles, List<Particle> SER){
+			//Graphics2D grap = samcl_image.createGraphics();
+			grap.drawImage(this.precomputed_grid.map_image, null, 0, 0);
+			
+			//Robot
+			Tools.drawRobot(grap, robot.getX(), robot.getY(), robot.getHead(), 10, Color.RED);
+	
+			//Best Particle
+			Tools.drawRobot(grap, bestParticle.getX(), bestParticle.getY(), bestParticle.getTh(), 8, Color.GREEN);
+	
+			//SER
+	//		if (SER.size() >= 1) {
+	//			Tools.drawBatchPoint(grap, SER, 1, Color.PINK);
+	//		}
+		}
+
+
 	/**
 	 * @param orientation angular resolution
 	 * @param map_filename 
@@ -318,7 +300,9 @@ public class SAMCL implements Closeable{
 	public SAMCL() throws IOException{
 		
 	}
-	
+	@Parameter(names = "--period", description = "the period of an executed time.", required = false)
+	private int period = 33;
+
 	//check the parameters 
 	@Parameter(names = {"-cl","--cloud"}, description = "if be on the cloud, default is false", required = false)
 	public boolean onCloud = false;
@@ -404,41 +388,42 @@ public class SAMCL implements Closeable{
 	/**
 	 * input:measurement(Zt),energy grid(GE)
 	 * output:similar energy region(SER)
+	 * @param weight 
 	 * @throws IOException 
 	 */
-	public void Caculating_SER(float[] Zt, List<Particle> SER_set) throws IOException{
-		/*Get the reference energy*/
-		float energy = this.Caculate_energy(Zt);
-		float UpperBoundary = energy + this.delta_energy;
-		float LowerBoundary = energy - this.delta_energy;
-		if(LowerBoundary<0)
-			LowerBoundary = 0.0f;
-		if(UpperBoundary>1.0f)
-			UpperBoundary = 1.0f;
-		SER_set.clear();
-		//System.out.println("Zt:"+Arrays.toString(Zt));
-		//System.out.println("Robot's Energy: "+ energy);
-		//System.out.println("upper boundary: "+ UpperBoundary);
-		//System.out.println("lower boundary: "+ LowerBoundary);
-		if (onCloud) {
-			this.cloudCaculatingSER(SER_set, LowerBoundary, UpperBoundary);
-		}else{
-			this.localCaculatingSER(SER_set, LowerBoundary,  UpperBoundary);
+	public void Caculating_SER(float weight, float[] Zt, List<Particle> SER_set) throws IOException{
+		if (weight>this.XI) {//if do calculate SER or not?
+			/*Get the reference energy*/
+			float energy = this.Caculate_energy(Zt);
+			float UpperBoundary = energy + this.delta_energy;
+			float LowerBoundary = energy - this.delta_energy;
+			if(LowerBoundary<0)
+				LowerBoundary = 0.0f;
+			if(UpperBoundary>1.0f)
+				UpperBoundary = 1.0f;
+			SER_set.clear();
+			if (onCloud) {
+				this.cloudCaculatingSER(SER_set, LowerBoundary, UpperBoundary);
+			}else{
+				this.localCaculatingSER(SER_set, LowerBoundary,  UpperBoundary);
+			}
 		}
 	}
 	
 	/**
 	 * input:last particles set(Xt-1),motion control(ut),3-Dimentional grid(G3D)
 	 * output:particles(xt),weight(wt)
+	 * @param duration 
 	 */
-	public void Prediction_total_particles(List<Particle> src, VelocityModel u){
+	public void Prediction_total_particles(List<Particle> src, VelocityModel u, long duration){
 		//System.out.println("*********into Sample_total_particles");
 		try {
 			if(!src.isEmpty()){
-				for(int i = 0; i < src.size(); i++){
-					//this.Motion_sampling(src.elementAt(i),u);
+				Random random = new Random();
+				for(Particle p : src){
+					Distribution.Motion_sampling(p, u, duration/1000); 
 					//System.out.println("sampling.... i :	" + i);
-					this.pixel_sampling(src.get(i), 11, 7);
+					this.pixel_sampling(p, 11, 7, random);
 				}
 			}
 			else{
@@ -575,9 +560,9 @@ public class SAMCL implements Closeable{
 			}
 		}
 	}
+	
 	@Parameter(names = {"-sr","--safeRange"}, description = "the range of edge which wouldn't be used in process, must be greater than 1, default is 10 pixel.", required = false)
 	public int safe_edge = 10;
-	
 	private Particle global_sampling(){
 		Random rand = new Random();
 		Particle p = new Particle(
@@ -595,34 +580,21 @@ public class SAMCL implements Closeable{
 		return p;
 	}
 	
-	
+	private void pixel_sampling(Particle p, int radius, int angular, Random random){//TODO static?
 
-	
-	private void pixel_sampling(Particle p, int radius, int angular){
-		
-		
-		Random random = new Random();
 		int r ;
-//		System.out.print("random intx\t");
 		r = random.nextInt(radius)-( radius - 1 )/2;
-//		System.out.print((int)r+"\n");
 		int px = p.getX() + r;
-//		System.out.print("random y\t");
 		r = random.nextInt(radius)-( radius - 1 )/2;
-//		System.out.print(r+"\n");
 		int py = p.getY() + r;
-	
+		
 		while(this.precomputed_grid.map_array(px, py) == Grid.GRID_OCCUPIED ){
 			if(Particle.underSafeEdge(px, py, this.width, this.height, this.safe_edge) ==false){
 				p = this.global_sampling();
 			}
-//			System.out.print("random x\t");
 			r = random.nextInt(radius)-( radius - 1 )/2;
-//			System.out.print(r+"\n");
 			px = p.getX() + r;
-//			System.out.print("random y\t");
 			r = random.nextInt(radius)-( radius - 1 )/2;
-//			System.out.print(r+"\n");
 			py = p.getY() + r;
 		}
 		r = random.nextInt(angular)-( angular - 1 )/2;
@@ -637,7 +609,7 @@ public class SAMCL implements Closeable{
 		//if the position is occupied.
 		if( this.precomputed_grid.map_array(p.getX(), p.getY())==Grid.GRID_EMPTY ) {
 			//if the particle has got the measurements or would get measurements from Grid
-			if(p.isIfmeasurements()){
+			if(p.isIfmeasurements()){//FIXME
 				p.setWeight(Transformer.WeightFloat(p.getMeasurements(), robotMeasurements));
 			}else{
 				//Cloud , Grid class------done
@@ -650,7 +622,7 @@ public class SAMCL implements Closeable{
 		}
 	}
 	
-	public float Caculate_energy(float[] Zt){
+	public float Caculate_energy(float[] Zt){//TODO static?
 		float energy = 0;
 		for (int i = 0; i < Zt.length; i++) {
 			
@@ -662,8 +634,10 @@ public class SAMCL implements Closeable{
 
 	@Override
 	public void close() throws IOException {
-		if(this.table!=null)
+		if(this.table!=null){
 			this.table.close();
+			this.precomputed_grid.closeTable();
+		}
 	}
 
 }

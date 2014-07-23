@@ -18,7 +18,7 @@ import com.google.protobuf.ServiceException;
 
 import robot.RobotState;
 import util.gui.Panel;
-import util.gui.RobotListener;
+import util.gui.RobotController;
 import util.gui.SamclListener;
 import util.gui.Tools;
 import util.metrics.Particle;
@@ -98,7 +98,7 @@ public class SAMCLROE extends SAMCL{
 		 * */
 		RobotState robot = new RobotState(70, 70, 180, samcl.precomputed_grid);
 		robot.setOnCloud(samcl.onCloud);
-		RobotListener robotListener = new RobotListener("robot controller", robot);
+		RobotController robotListener = new RobotController("robot controller", robot);
 		Thread t = new Thread(robot);
 		t.start();
 		/**

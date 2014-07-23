@@ -11,7 +11,6 @@ import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
 
 import com.google.protobuf.RpcController;
-import com.google.protobuf.ServiceException;
 
 import coprocessor.services.OewcEndpoint;
 import coprocessor.services.generated.OewcProtos;
@@ -28,7 +27,7 @@ public class IMCLROE extends SAMCL{
 	
 	@Override
 	public void batchWeight(List<Particle> src, float[] robotMeasurements)
-			throws ServiceException, Throwable {
+			throws Throwable {
 		
 		Batch.Call<OewcEndpoint,OewcResponse> b = new OewcCall(src,robotMeasurements);
 		Map<byte[],OewcResponse> results = this.table.coprocessorService(OewcEndpoint.class, null, null, b);

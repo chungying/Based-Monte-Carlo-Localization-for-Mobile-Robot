@@ -38,14 +38,14 @@ public class Get {
 	}
 	
 	public static void main(String[] args) throws IOException {
-		String[] test = {
-				"-t","map.512.18.split",
-				"-x","19",
-				"-y","19",
-				""
-		};
+//		String[] test = {
+//				"-t","map.512.18.split",
+//				"-x","19",
+//				"-y","19",
+//				""
+//		};
 		
-		CommandLine cmd = parseArgs(test);
+		CommandLine cmd = parseArgs(args);
 		
 		String tableName = cmd.getOptionValue("t");
 		String X = cmd.getOptionValue("x");

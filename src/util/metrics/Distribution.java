@@ -26,7 +26,16 @@ public class Distribution {
 		return result;
 	}
 	
-	public static double[] al = {1,1,1,1,1,1};
+	public static double[] al = {
+		0.0001,0.0001,
+		0.1,0.1,
+		0.001,0.001
+		};
+	/**
+	 * @param p ready to use motion sampling
+	 * @param u the robot's velocity model
+	 * @param deltaT miliseconds
+	 */
 	public static void Motion_sampling(Particle p, VelocityModel u, double deltaT){
 		double Vcup = u.velocity + 
 				Distribution.sample_normal_distribution(al[0]*u.velocity*u.velocity + al[1]*u.angular_velocity*u.angular_velocity);
@@ -34,14 +43,19 @@ public class Distribution {
 				Distribution.sample_normal_distribution(al[2]*u.velocity*u.velocity + al[3]*u.angular_velocity*u.angular_velocity);
 		double Rcup =  Distribution.sample_normal_distribution(al[4]*u.velocity*u.velocity + al[5]*u.angular_velocity*u.angular_velocity);
 		
-		double temp = p.getX() 
-				- ( Vcup/Wcup ) * ( Math.sin( Math.toRadians( p.getTh() ) ) )
-				+ ( Vcup/Wcup ) * ( Math.sin( Math.toRadians( p.getTh() + Wcup*deltaT ) ) );
+		double temp = p.getX()  
+				+ ( Vcup/Wcup ) *(
+						 Math.sin( Math.toRadians( p.getTh() + Wcup*deltaT ) ) 
+						-  Math.sin( Math.toRadians( p.getTh() ) ) 
+						);
+				
 		p.setX((int)Math.round(temp));
 		
 		temp = p.getY() 
-				+ ( Vcup/Wcup ) * ( Math.cos( Math.toRadians( p.getTh() ) ) )
-				- ( Vcup/Wcup ) * ( Math.cos( Math.toRadians( p.getTh() + Wcup*deltaT ) ) );
+				+ ( Vcup/Wcup ) *( 
+						 Math.cos( Math.toRadians( p.getTh() ) ) 
+						-  Math.cos( Math.toRadians( p.getTh() + Wcup*deltaT ) )  
+						);
 		p.setY((int)Math.round(temp));
 		
 		temp = p.getTh() + Wcup*deltaT + Rcup*deltaT;

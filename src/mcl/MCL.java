@@ -69,7 +69,7 @@ public class MCL extends SAMCL{
 
 	@Override
 	public void batchWeight(List<Particle> src, float[] robotMeasurements)
-			throws IOException, ServiceException, Throwable {
+			throws IOException, ServiceException {
 		for(Particle p : src){
 			List<Float> M = this.precomputed_grid.getLaserDist(p.getX(), p.getY()).getKey();
 			Float[] m = M.toArray(new Float[M.size()]);

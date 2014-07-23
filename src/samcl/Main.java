@@ -9,18 +9,17 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Vector;
 
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
 import robot.RobotState;
 import util.gui.Panel;
-import util.gui.RobotListener;
+import util.gui.RobotController;
 import util.gui.Tools;
+import util.gui.Window;
 import util.metrics.Distribution;
 import util.metrics.Particle;
-import util.metrics.Transformer;
 
 import com.beust.jcommander.JCommander;
 import com.google.protobuf.ServiceException;
@@ -29,6 +28,20 @@ public class Main {
 	
 	@SuppressWarnings("unused")
 	public static void main(String[] args) throws ServiceException, Throwable {
+		//for debug mode
+		if(args.length==0){
+			String[] targs = {/*"-cl",*/
+					"-i","file:///Users/ihsumlee/Jolly/jpg/white.jpg"
+					//"-i","file:///Users/ihsumlee/Jolly/jpg/map.jpg"
+					,"-o","10"
+					,"-rl","true"
+					,"-rx","22"
+					,"-ry","60"
+					,"-p","10"
+					};
+			args = targs;
+		}
+		
 		/**
 		 * First step:
 		 * to create the localization algorithm
@@ -43,77 +56,47 @@ public class Main {
 				(float) 0.001, //threshold xi
 				(float) 0.6, //rate of population
 				10);//competitive strength
-		if(args.length==0){
-			String[] targs = {/*"-cl",*/
-					"-i","file:///Users/ihsumlee/Jolly/jpg/test6.jpg"
-					//"-i","file:///Users/ihsumlee/Jolly/jpg/map.jpg"
-					,"-o","36"
-					};
-			args = targs;
-		}
-		
-		new JCommander(samcl, args);		
-		
+		JCommander jc = new JCommander();
+		jc.setAcceptUnknownOptions(true);
+		jc.addObject(samcl);
+		jc.parse(args);
+		samcl.setup();
 		if(!samcl.onCloud){
-			samcl.setup();
 			System.out.println("start to pre-caching");
 			samcl.Pre_caching();
-		}else
-			samcl.setup();
-	
+		}	
 		
 		/**
 		 * Second step:
 		 * to create a robot
 		 * setup the listener of Robot
 		 * */
+		//TODO add jcommander: x, y, lock
 		RobotState robot = new RobotState(20, 20, 0, /*null*/samcl.precomputed_grid, null/*"map.512.4.split"*/, null);
+		jc = new JCommander();
+		jc.setAcceptUnknownOptions(true);
+		jc.addObject(robot);
+		jc.parse(args);
 		robot.setVt(0);
 		robot.setWt(0);
-		robot.setOnCloud(samcl.onCloud);
-		RobotListener robotListener = new RobotListener("robot controller", robot);
+		RobotController robotController = new RobotController("robot controller", robot);
 		Thread t = new Thread(robot);
 		t.start();
 		/**
 		 * Third step:
 		 * start to run samcl
 		 */
-		final JFrame samcl_window = new JFrame("samcl image");
-		Panel panel = new Panel(new BufferedImage(samcl.precomputed_grid.width,samcl.precomputed_grid.height, BufferedImage.TYPE_INT_ARGB));
-		samcl_window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		samcl_window.add(panel);
-		samcl_window.setSize(samcl.precomputed_grid.width, samcl.precomputed_grid.height);
-		samcl_window.addWindowListener(new WindowAdapter(){
-			@Override
-			public void windowClosing(WindowEvent e) {
-				System.out.println("close table!!!!!!!!!!!!!!!!!!!!!!!");
-				if (JOptionPane.showConfirmDialog(samcl_window,
-						"Are you sure to close this window?", "Really Closing?", 
-			            JOptionPane.YES_NO_OPTION,
-			            JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION){
-					try {
-						if(samcl.onCloud)
-							samcl.precomputed_grid.closeTable();
-					} catch (IOException e1) {
-						e1.printStackTrace();
-					}
-					System.exit(0);
-				}
-			}
-		
-		});
-		
-		samcl_window.setVisible(true);
-		Graphics2D grap = panel.img.createGraphics();
-		Vector<Particle> robots = new Vector<Particle>();
-		robots.add(new Particle(robot.getX(),robot.getY(),Transformer.th2Z(robot.getHead(),samcl.orientation, samcl.precomputed_grid.orientation_delta_degree)));
-		
-		
-		
+		//TODO WINDOW
+		Window samcl_window = new Window("samcl image", samcl);
 		
 		//TODO test 2014/06/19
-		samcl.run(robot, samcl_window);
+		//samcl.run(robot, samcl_window);
 		
+		//below is for test.
+		Panel panel = new Panel(new BufferedImage(samcl.precomputed_grid.width,samcl.precomputed_grid.height, BufferedImage.TYPE_INT_ARGB));
+		samcl_window.add(panel);
+		samcl_window.setVisible(true);
+		Graphics2D grap = panel.img.createGraphics();
 		
 		List<Particle> parts = new ArrayList<Particle>();
 		
@@ -128,32 +111,31 @@ public class Main {
 			i++;
 			Thread.sleep(33);
 			grap.drawImage(samcl.precomputed_grid.map_image, null, 0, 0);
-			
+			//System.out.println(robot.toString());
 			px = robot.getX();
 			py = robot.getY();
 			time = System.currentTimeMillis()/1000 - time;
 			for(Particle p : parts){
 				//System.out.println("drawing particles");
 				
-				if(i<10000000){
+//				if(i<10000000){
 					p.setX(rx);
 					p.setY(ry);
 					p.setTh(rh);
-				}
+//				}
 				
 				Distribution.Motion_sampling(p, robot.getUt(), time);
-				Tools.drawPoint(grap, 250 + px - p.getX(), 250 + py - p.getY(), p.getTh(), 4, Color.BLUE);
+				Tools.drawPoint(grap,  p.getX(), p.getY(), p.getTh(), 4, Color.BLUE);
+				System.out.println(p.toString());
 			}
 			
-			Tools.drawRobot(grap, 250 + robot.getX()-rx, 250 + robot.getY() - ry, rh, 20, Color.ORANGE);
+			Tools.drawRobot(grap,  robot.getX(),  robot.getY(), robot.getHead(), 20, Color.ORANGE);
 			rx = robot.getX();
 			ry = robot.getY();
 			rh = robot.getHead();
 			Tools.drawRobot(grap, 250/*robot.getX()*/, 250/*robot.getY()*/, robot.getHead(), 10, Color.RED);
 			panel.repaint();
 			//System.out.println(robot.toString());
-			
-			
 			
 		}
 	}
