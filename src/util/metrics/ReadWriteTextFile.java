@@ -23,7 +23,7 @@ public class ReadWriteTextFile {
 	  */
 	static public Position[][] getContents(File mFile, File eFile) {
 		//...checks on mFile are elided
-		StringBuilder contents = new StringBuilder();
+		
 		int x = 2;
 		int y = 3;
 		int z = 2;

@@ -20,13 +20,10 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.HTable;
 
-import robot.PathPlan;
 import robot.VelocityModel;
 import robot.RobotState;
 import util.gui.Panel;
 import util.gui.Tools;
-import util.gui.WindowListen;
-import util.metrics.Distribution;
 import util.metrics.Particle;
 import util.metrics.Transformer;
 
@@ -45,13 +42,8 @@ public class SAMCL implements Closeable{
 	
 	public void Drawing(Graphics2D grap, JFrame window
 			, RobotState robot, Particle bestParticle, List<Particle> particles, List<Particle> SER){
-		//TODO IMAGE
-		//initial Graphics2D
-		//BufferedImage samcl_image = new BufferedImage(this.precomputed_grid.width,this.precomputed_grid.height, BufferedImage.TYPE_INT_ARGB);
-		
 		//Graphics2D grap = samcl_image.createGraphics();
 		grap.drawImage(this.precomputed_grid.map_image, null, 0, 0);
-		
 		
 		//Robot
 		Tools.drawRobot(grap, robot.getX(), robot.getY(), robot.getHead(), 10, Color.RED);
@@ -63,13 +55,10 @@ public class SAMCL implements Closeable{
 //		if (SER.size() >= 1) {
 //			Tools.drawBatchPoint(grap, SER, 1, Color.PINK);
 //		}
-		
-		
-		
 	}
 	
 	
-	public boolean isClosing;
+//	public boolean isClosing;
 	/**
 	 * run SAMCL
 	 * @throws Throwable 
@@ -85,12 +74,13 @@ public class SAMCL implements Closeable{
 		List<Particle> SER_set = new CopyOnWriteArrayList<Particle>();
 		
 		
-		this.isClosing = false;
+//		this.isClosing = false;
 		//robot = new RobotState(32,41,0);
 	
 		System.out.println("press enter to continue.");
 		System.in.read();
-		//TODO IMAGE
+		System.out.println("start!");
+
 		//Drawing the image
 		BufferedImage samcl_image = new BufferedImage(this.precomputed_grid.width,this.precomputed_grid.height, BufferedImage.TYPE_INT_ARGB);
 		Graphics2D grap = samcl_image.createGraphics();
@@ -112,11 +102,11 @@ public class SAMCL implements Closeable{
 		//Painting on the Frame.		
 		//JFrame samcl_window = new JFrame("samcl image");
 		//samcl_window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		samcl_window.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-		WindowListen wl = new WindowListen(samcl_window, this.isClosing);
-		samcl_window.addWindowListener(wl);
+		//samcl_window.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+//		WindowListen wl = new WindowListen(samcl_window, this.isClosing);
+//		samcl_window.addWindowListener(wl);
 		//Show window
-		samcl_window.setSize(width, height);
+//		samcl_window.setSize(width, height);
 		//samcl_window.add(new JLabel(new ImageIcon(samcl_image)));
 		samcl_window.add(image_panel);
 		samcl_window.setVisible(true);
@@ -127,17 +117,11 @@ public class SAMCL implements Closeable{
 		
 		int counter = 0;
 		
-		while(wl.isClosing!=true){
-			counter++;
-			//TODO test robot
-			if(counter==100){
-				System.out.println("start up ");
-				robot.setVt(PathPlan.standardVelocity);
-			}
+		while(/*wl.isClosing!=*/true){
+			counter = counter +1;
 			
-//			System.out.println(this.getClass().getName()+"\tGeneration\t"+counter+"\t-------------------");
+
 			//update robot's sensor
-			//Zt = this.precomputed_grid.getMeasurements( onCloud, robot.getX(), robot.getY(), Transformer.th2Z(robot.getHead(), this.orientation_delta_degree) );
 			Zt = robot.getMeasurements();
 			
 			//Setp 1: Sampling
@@ -256,7 +240,6 @@ public class SAMCL implements Closeable{
 	}
 	
 	protected HTable table = null;
-	private String tableName = "map.512.4.split";
 	private void cloudSetup() throws IOException{
 		Configuration conf = HBaseConfiguration.create();
 		precomputed_grid.setupTable(conf);
@@ -337,34 +320,38 @@ public class SAMCL implements Closeable{
 	}
 	
 	//check the parameters 
-	//TODO 2014/7/3 should add "table name" argument
-	@Parameter(names = {"-cl","--cloud"}, description = "if be on the cloud", required = false)
+	@Parameter(names = {"-cl","--cloud"}, description = "if be on the cloud, default is false", required = false)
 	public boolean onCloud = false;
 	
-	@Parameter(names = {"-o","--orientation"}, description = "the number of orientation of a cell", required = false)
+	@Parameter(names = {"-o","--orientation"}, description = "the number of orientation of a cell, default is 18.", required = false)
 	public int orientation = 18;
 	
 	//for Pre_caching()
-	@Parameter(names = {"-i","--image"}, description = "the image of map", required = false)
+	@Parameter(names = {"-i","--image"}, description = "the image of map, default is \"file:///home/eeuser/map1024.jpeg\"", required = false)
 	public String map_filename = "file:///home/eeuser/map1024.jpeg";
 	
 	//for Caculating_SER()
-	@Parameter(names = {"-d","--delta"}, description = "the delta of SER", required = false)
+	@Parameter(names = {"-d","--delta"}, description = "the delta of SER, default is 0.01", required = false)
 	public String Delta_Energy = null;
 	public float delta_energy = (float)0.01;
 	
 	//for Determining_size()
-	@Parameter(names = {"-x","--xi"}, description = "the sensitive coefficient", required = false)
+	@Parameter(names = {"-x","--xi"}, description = "the sensitive coefficient, default is 0.1", required = false)
 	public String xi = null;
 	public float XI = (float)0.1;
-	@Parameter(names = {"-a","--alpha"}, description = "the ratio of population", required = false)
+	
+	@Parameter(names = {"-a","--alpha"}, description = "the ratio of population(global:local), default is 0.6", required = false)
 	public String alpha = null;
 	public float ALPHA = (float)0.6;
-	@Parameter(names = {"-n","--number"}, description = "the number of total population", required = false)
-	public int Nt = 100;
 	
-	@Parameter(names = {"-p","--presure"}, description = "the tournament presure", required = false)
-	private int tournament_presure;
+	@Parameter(names = {"-n","--number"}, description = "the number of total population, default is 100 particles.", required = false)
+	public int Nt = 100;
+
+	@Parameter(names = {"-t","--tableName"}, description = "the name of HBase table, default is \"map.512.4.split\"", required = false)
+	public String tableName = "map.512.4.split";
+	
+	@Parameter(names = {"-p","--presure"}, description = "the tournament presure, default is 10 particles.", required = false)
+	private int tournament_presure = 10;
 	
 	private double orientation_delta_degree;
 	private int sensor_number;
@@ -465,19 +452,25 @@ public class SAMCL implements Closeable{
 	}
 	
 	public void batchWeight(List<Particle> src, float[] robotMeasurements) throws IOException, ServiceException, Throwable {
-		//get sensor data of all particles.
-		if(this.onCloud){
-			//get measurements from cloud  and weight
-			this.precomputed_grid.getBatchFromCloud(this.table, src);
-			for(Particle p : src){
-				this.WeightParticle(p, robotMeasurements);
+		if (robotMeasurements!=null) {
+			//get sensor data of all particles.
+			if (this.onCloud) {
+				//get measurements from cloud  and weight
+				this.precomputed_grid.getBatchFromCloud(this.table, src);
+				for (Particle p : src) {
+					this.WeightParticle(p, robotMeasurements);
+				}
+			} else {
+				//get measurements from local database and weight
+				for (Particle p : src) {
+					p.setMeasurements(this.precomputed_grid.getMeasurements(
+							this.table, this.onCloud, p.getX(), p.getY(),
+							p.getZ()));
+					this.WeightParticle(p, robotMeasurements);
+				}
 			}
 		}else{
-			//get measurements from local database and weight
-			for(Particle p : src){
-				p.setMeasurements(this.precomputed_grid.getMeasurements(this.table, this.onCloud, p.getX(), p.getY(), p.getZ()));
-				this.WeightParticle(p, robotMeasurements);
-			}
+			throw new Exception("robot didn't get the sensor data!!!");
 		}
 	}
 
@@ -582,8 +575,8 @@ public class SAMCL implements Closeable{
 			}
 		}
 	}
-	
-	private int safe_edge = 10;
+	@Parameter(names = {"-sr","--safeRange"}, description = "the range of edge which wouldn't be used in process, must be greater than 1, default is 10 pixel.", required = false)
+	public int safe_edge = 10;
 	
 	private Particle global_sampling(){
 		Random rand = new Random();

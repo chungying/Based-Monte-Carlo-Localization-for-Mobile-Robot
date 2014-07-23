@@ -15,13 +15,10 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
-import java.util.AbstractMap;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map.Entry;
-
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
@@ -38,7 +35,6 @@ import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.HConnectionManager;
 import org.apache.hadoop.hbase.client.HTable;
-import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
@@ -278,11 +274,11 @@ public class Grid extends MouseAdapter {
 		System.out.println("new Grid()");
 	}
 	
-	// private Configuration conf = null;
-	private HConnection connection = null;
-	//private HTable table = null;
-	private byte[] family = null;
 
+	private HConnection connection = null;
+	private byte[] family = null;
+	private byte[] energy = null;
+	
 	public HTable getTable(String tablename) throws IOException{
 		if(tablename != null)
 			return (HTable)this.connection.getTable(tablename);
@@ -291,29 +287,27 @@ public class Grid extends MouseAdapter {
 	}
 	
 	public void closeTable() throws IOException {
-		//this.table.close();
 		connection.close();
 	}
 
 	public void setupTable(Configuration conf) throws IOException {
-		// TODO table name
 		System.out.println("set up table");
-		//this.table = new HTable(conf, "map.512.4.split");
 		this.family = Bytes.toBytes("distance");
-		
-		// TODO table pool
+		this.energy = Bytes.toBytes("energy");
+		//setup connection to afford the getTable(tableName);
 		connection = HConnectionManager.createConnection(conf);
 		
 	}
 
-	public void scan(HTable table, List<Particle> sER_set, float lowerBoundary,
+	public void scan(HTable table, List<Particle> ser_set, float lowerBoundary,
 			float upperBoundary) throws IOException {
-		sER_set.clear();
-
+		ser_set.clear();
+		//energy format
+		// "0.0~1.0", "energy":"(X,Y)"  => "Z"
 		String lower = String.valueOf(lowerBoundary);
 		String upper = String.valueOf(upperBoundary);
 		Scan scan = new Scan(Bytes.toBytes(lower), Bytes.toBytes(upper));
-		scan.addFamily(Bytes.toBytes("energy"));
+		scan.addFamily(this.energy);
 
 		int caching = 1024;
 		scan.setCaching(caching);
@@ -328,33 +322,29 @@ public class Grid extends MouseAdapter {
 		scan.setFilter(fls);
 
 		ResultScanner scanner = table.getScanner(scan);
-		String str = "";
-		String[] pose = null;
+		 
 		for (Result[] results = scanner.next(caching); results.length != 0; results = scanner
 				.next(caching)) {
-			// TODOdone count RPC
+			// for count RPC
 			this.RPCcount++;
 			for (Result result : results) {
 				// List<Cell> Cells = result.listCells();
-				//TODO ******most important!!!!
+				//improved 0723
 				for (Cell cell : result.rawCells()) {
-					str = Bytes.toString(CellUtil.cloneQualifier(cell));
-					str = str.replace("(", "");
-					str = str.replace(")", "");
-					pose = str.split(",");
-
-					// System.out.println("(X, Y, Z) = "
-					// + "(" + (Integer.parseInt(pose[1])-10000) + ","
-					// + (Integer.parseInt(pose[0])-10000) + ","
-					// + (Bytes.toString(CellUtil.cloneQualifier(cell))) + ")"
-					// );
+					String XYstr = Bytes.toString(CellUtil.cloneQualifier(cell));
+					
+					//convert Cell to Particle
+					//improved 0723
 					Particle p = new Particle(
-							Integer.parseInt(pose[1]) - 10000,
-							Integer.parseInt(pose[0]) - 10000,
-							Integer.parseInt(Bytes.toString(CellUtil
-									.cloneValue(cell))));
+							Transformer.rowkeyString2X(XYstr), 
+							Transformer.rowkeyString2Y(XYstr), 
+							Integer.parseInt( Bytes.toString(
+									CellUtil.cloneValue(cell) ) )
+							);
+					Transformer.rowkeyString2xy(XYstr, p);
+					
 					if (p.underSafeEdge(width, height, safe_edge))
-						sER_set.add(p);
+						ser_set.add(p);
 					// System.out.println(p.toString());
 					// System.out.println("----------------------------------------------------");
 				}
@@ -369,7 +359,7 @@ public class Grid extends MouseAdapter {
 		List<Get> gets = new ArrayList<Get>();
 		byte[] fam = Bytes.toBytes("distance");
 		for (Particle p : src) {
-			String str = Transformer.XY2String(p.getX(), p.getY());
+			String str = Transformer.xy2String(p.getX(), p.getY());
 			Get get = new Get(Bytes.toBytes(str));
 			get.addFamily(fam);
 			gets.add(get);
@@ -423,7 +413,7 @@ public class Grid extends MouseAdapter {
 		// TODOdone count RPC times
 		this.RPCcount++;
 
-		String rowkey = Transformer.XY2String(X, Y);
+		String rowkey = Transformer.xy2String(X, Y);
 		// System.out.print("family:"+Bytes.toString(family)+"\t");
 		// System.out.println("rowkey: " + rowkey);
 		Get get = new Get(Bytes.toBytes(rowkey));
@@ -518,17 +508,14 @@ public class Grid extends MouseAdapter {
 		this.readmap();
 	}
 
-	// private Context context;
-	// TODO for debug mode, there could use counter to debug
+	// for MapReduce, before calculate the data, task must read the map information from filesystem.
 	public void readmap(String filename,
 			@SuppressWarnings("rawtypes") Context context) {
 		try {
-			// context.getCounter(Counters.READMAP).increment(1);
 			FileSystem fs = FileSystem.get(URI.create(filename),
 					context.getConfiguration());
 			FSDataInputStream inputstream = fs.open(new Path(filename));
 			map_image = ImageIO.read(inputstream);
-			// context.getCounter(Counters.READ_SUCCEED).increment(1);
 			this.convert();
 			fs.close();
 		} catch (IOException e) {
@@ -604,13 +591,8 @@ public class Grid extends MouseAdapter {
 				for (int j = 0; j < height; j++) {
 					float[] temp = new float[this.orientation];
 					Point[] measurement_points = new Point[this.orientation];
-					// System.out.println("orien= "+ this.orientation);
-					// System.out.println("senso= "+ this.sensor_number);
-					// System.out.println("temp = "+ temp.length);
-					// System.out.println("point= "+ measurement_points.length);
 					if (i + x == 0 || i + x >= this.width || j + y == 0
-							|| j + y >= this.height) {// TODO checkout the condition
-														// condition
+							|| j + y >= this.height) {//edge of the picture would not be calculated.
 						for (int k = 0; k < measurement_points.length; k++) {
 							// System.out.println("i+x = "+(i+x));
 							// System.out.println("j+y = "+(j+y));
@@ -624,8 +606,6 @@ public class Grid extends MouseAdapter {
 						this.G[i][j] = new position(temp, measurement_points);
 					}
 				}
-				// System.out.print("\n");
-				// System.out.println("("+x+","+(this.height-100)+","+(0)+")"+(G[x][this.height-100].toString()));
 			}
 		} catch (NullPointerException e) {
 			e.printStackTrace();
@@ -769,7 +749,6 @@ public class Grid extends MouseAdapter {
 			time = System.currentTimeMillis() - time;
 			System.out.println("time : " + time +" ms");
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}finally{
 			for(HTable t: tables)

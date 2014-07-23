@@ -1,7 +1,6 @@
 package util.metrics;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 
@@ -10,7 +9,6 @@ import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;

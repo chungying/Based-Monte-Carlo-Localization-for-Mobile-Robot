@@ -1,7 +1,5 @@
 package util.metrics;
 
-import java.util.Arrays;
-
 public class Particle implements Cloneable{
 	/**
 	 * constructor
@@ -9,8 +7,9 @@ public class Particle implements Cloneable{
 	private int x;
 	private int y;
 	private int z;
+	//TODO is particle need the degree??
+	@SuppressWarnings("unused")
 	private double th;
-	//private float th;
 	
 	/**
 	 * be initialized outside

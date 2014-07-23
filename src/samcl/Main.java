@@ -8,7 +8,6 @@ import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Vector;
 
@@ -24,11 +23,12 @@ import util.metrics.Particle;
 import util.metrics.Transformer;
 
 import com.beust.jcommander.JCommander;
+import com.google.protobuf.ServiceException;
 
 public class Main {
 	
 	@SuppressWarnings("unused")
-	public static void main(String[] args) throws IOException, InterruptedException {
+	public static void main(String[] args) throws ServiceException, Throwable {
 		/**
 		 * First step:
 		 * to create the localization algorithm
@@ -37,7 +37,6 @@ public class Main {
 		final SAMCL samcl = new SAMCL(
 				18, //orientation
 				//"file:///home/w514/map.jpg",//map image file
-				//TODO file name
 				"hdfs:///user/eeuser/map1024.jpeg",
 				(float) 0.005, //delta energy
 				100, //total particle
@@ -46,9 +45,9 @@ public class Main {
 				10);//competitive strength
 		if(args.length==0){
 			String[] targs = {/*"-cl",*/
-					"-i","file:///home/w514/jpg/map.jpg"
+					"-i","file:///Users/ihsumlee/Jolly/jpg/test6.jpg"
 					//"-i","file:///Users/ihsumlee/Jolly/jpg/map.jpg"
-					,"-o","360"
+					,"-o","36"
 					};
 			args = targs;
 		}
@@ -56,16 +55,9 @@ public class Main {
 		new JCommander(samcl, args);		
 		
 		if(!samcl.onCloud){
-			if (!Arrays.asList(args).contains("-i") && !Arrays.asList(args).contains("--image")) {
-				String filepath = "file://" + System.getProperty("user.home") + "/test6.jpg";
-				System.out.println(filepath);
-				samcl.map_filename = filepath;
-				
-			}
-			
 			samcl.setup();
 			System.out.println("start to pre-caching");
-			//samcl.Pre_caching();
+			samcl.Pre_caching();
 		}else
 			samcl.setup();
 	
@@ -75,7 +67,7 @@ public class Main {
 		 * to create a robot
 		 * setup the listener of Robot
 		 * */
-		RobotState robot = new RobotState(256, 20, 0, null/*samcl.precomputed_grid*/, null/*"map.512.4.split"*/);
+		RobotState robot = new RobotState(20, 20, 0, /*null*/samcl.precomputed_grid, null/*"map.512.4.split"*/, null);
 		robot.setVt(0);
 		robot.setWt(0);
 		robot.setOnCloud(samcl.onCloud);
@@ -90,7 +82,7 @@ public class Main {
 		Panel panel = new Panel(new BufferedImage(samcl.precomputed_grid.width,samcl.precomputed_grid.height, BufferedImage.TYPE_INT_ARGB));
 		samcl_window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		samcl_window.add(panel);
-		samcl_window.setSize(panel.img.getWidth(), panel.img.getHeight());
+		samcl_window.setSize(samcl.precomputed_grid.width, samcl.precomputed_grid.height);
 		samcl_window.addWindowListener(new WindowAdapter(){
 			@Override
 			public void windowClosing(WindowEvent e) {
@@ -120,7 +112,7 @@ public class Main {
 		
 		
 		//TODO test 2014/06/19
-		//samcl.run(robot, samcl_window);
+		samcl.run(robot, samcl_window);
 		
 		
 		List<Particle> parts = new ArrayList<Particle>();

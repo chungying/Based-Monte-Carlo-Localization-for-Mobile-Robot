@@ -3,7 +3,7 @@ package robot;
 import util.metrics.Transformer;
 
 public class Pose {
-	public static final double ERROR = 0.1;
+	public static final double ERROR = 0.15;
 	public double X;
 	public double Y;
 	public double H;

@@ -86,10 +86,7 @@ public class File2Hbase {
 
 		Configuration conf = HBaseConfiguration.create();
 
-		// TODO comfirm the configuration of family about distance, energy and
-		// laser point)
-		// TODO done
-		// co ImportFromFile-7-Args Give the command line arguments to the
+		// ImportFromFile-7-Args Give the command line arguments to the
 		// generic parser first to handle "-Dxyz" properties.
 		String[] otherArgs = new GenericOptionsParser(conf, args)
 				.getRemainingArgs();
@@ -107,9 +104,7 @@ public class File2Hbase {
 		String orientation = cmd.getOptionValue("o");
 		System.out.println(input);
 		
-		
-		// TODO set mapper and reducer number
-		// co ImportFromFile-8-JobDef Define the job with the required classes.
+		// ImportFromFile-8-JobDef Define the job with the required classes.
 		@SuppressWarnings("deprecation")
 		Job job = new Job(conf, "Import from file " + input + "through " + reducers + "reducer(s)" + " into table " + table);
 		// ((JobConf)job.getConfiguration()).setJar("/home/w514/iff.jar");
@@ -119,7 +114,7 @@ public class File2Hbase {
 		job.getConfiguration().set("conf.input", input);
 		job.setInputFormatClass(WholeFileInputFormat.class);
 		
-		job.setMapperClass(File2Mapper.class);// TODO
+		job.setMapperClass(File2Mapper.class);
 		
 		job.setMapOutputKeyClass(IntWritable.class);
 		job.setMapOutputValueClass(RectangleWritableComparable.class);

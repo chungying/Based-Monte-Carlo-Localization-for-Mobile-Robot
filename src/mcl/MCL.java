@@ -18,11 +18,12 @@ import util.metrics.Transformer;
 public class MCL extends SAMCL{
 	
 	public static void main(String[] args) throws ServiceException, Throwable{
+		//TODO finish the main function
 		final MCL mcl = new MCL(false, 18, "file:///home/w514/jpg/test6.jpg", 0.001f, 100, 0.01f, 0.3f, 10);
 		mcl.setup();
 		mcl.Pre_caching();
 		
-		RobotState robot = new RobotState(19,19, 0, mcl.precomputed_grid, null); 
+		RobotState robot = new RobotState(19,19, 0, mcl.precomputed_grid, null, null); 
 		Thread t = new Thread(robot);
 		t.start();
 		
@@ -48,6 +49,7 @@ public class MCL extends SAMCL{
 		
 		});
 		mcl.run(robot, mcl_window);
+		mcl.close();
 	}
 	
 	@Override
@@ -68,7 +70,6 @@ public class MCL extends SAMCL{
 	@Override
 	public void batchWeight(List<Particle> src, float[] robotMeasurements)
 			throws IOException, ServiceException, Throwable {
-		// TODO cannot use the original function with Pre-caching
 		for(Particle p : src){
 			List<Float> M = this.precomputed_grid.getLaserDist(p.getX(), p.getY()).getKey();
 			Float[] m = M.toArray(new Float[M.size()]);

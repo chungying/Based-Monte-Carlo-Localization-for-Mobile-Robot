@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
@@ -22,6 +21,10 @@ import samcl.SAMCL;
 import util.metrics.Particle;
 
 public class IMCLROE extends SAMCL{
+	
+	public static void main(String[] args){
+		//TODO finish the main function
+	}
 	
 	@Override
 	public void batchWeight(List<Particle> src, float[] robotMeasurements)
@@ -39,7 +42,7 @@ public class IMCLROE extends SAMCL{
 			}
 		}
 		
-		//TODO change the result to src 
+		//change the result to src 
 		src.clear();
 		src.addAll(result);
 	}
@@ -49,7 +52,6 @@ public class IMCLROE extends SAMCL{
 			int tournament_presure) throws IOException {
 		super(cloud, orientation, map_filename, delta_energy, nt, xI, aLPHA,
 				tournament_presure);
-		// TODO Auto-generated constructor stub
 	}
 	public static Particle ParticleFromO(
 			coprocessor.services.generated.OewcProtos.Particle op) {

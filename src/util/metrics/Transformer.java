@@ -5,8 +5,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import org.apache.hadoop.hbase.util.Bytes;
-
 public class Transformer {
 	static public int th2Z(double head, int orientation, double orientation_delta_degree){
 		return ((int) Math.round( head/orientation_delta_degree ) )% orientation;
@@ -107,14 +105,9 @@ public class Transformer {
 		
 		return min_particle;
 	}
-	@Deprecated
-	static public String XY2String(int X, int Y){
-		String str = "("+String.valueOf(10000 + Y)+","+String.valueOf(10000 + X)+")";
-		return str;
-	}
 
-	static public String xy2String(int X, int Y){
-		return String.format("%05d", X)+String.format("%05d", Y);
+	static public String xy2String(int x, int y){
+		return String.format("%05d", x)+String.format("%05d", y);
 	}
 	
 	static final String separator = ":";
@@ -143,6 +136,14 @@ public class Transformer {
 		p.setY(Integer.valueOf( str.substring(5,10) ));
 	}
 	
+	public static int rowkeyString2X(String rowkey){
+		return Integer.valueOf(rowkey.replaceAll("...."+separator, "").substring(0, 5));
+	}
+	
+	public static int rowkeyString2Y(String rowkey){
+		return Integer.valueOf(rowkey.replaceAll("...."+separator, "").substring(5, 10));
+	}
+	
 	public static void main(String[] args) throws IOException{
 		Random random = new Random();
 		int x = 1156;
@@ -159,6 +160,10 @@ public class Transformer {
 		System.out.println("str\t"+p.toString());
 		rowkeyString2xy(str2, p);
 		System.out.println("str2\t"+p.toString());
+		System.out.println(" str x:" + rowkeyString2X(str));
+		System.out.println(" str y:" + rowkeyString2Y(str));
+		System.out.println(" str2 x:" + rowkeyString2X(str2));
+		System.out.println(" str2 y:" + rowkeyString2Y(str2));
 		
 //		System.out.println(str);
 //		System.out.println(str2);

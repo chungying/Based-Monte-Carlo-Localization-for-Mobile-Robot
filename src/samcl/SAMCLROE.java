@@ -56,7 +56,6 @@ public class SAMCLROE extends SAMCL{
 		final SAMCLROE samcl = new SAMCLROE(
 				18, //orientation
 				//"file:///home/w514/map.jpg",//map image file
-				//TODO file name
 				"hdfs:///user/eeuser/map1024.jpeg",
 				(float) 0.005, //delta energy
 				100, //total particle

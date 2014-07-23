@@ -15,18 +15,60 @@ import robot.RobotState;
 @SuppressWarnings("serial")
 public class RobotListener extends JFrame implements ActionListener{
 	
+	public String S[] = {
+			/*0*/"Pause/Continue",	/*1*/"Stop",				/*2*/"",
+			/*3*/"",							/*4*/"Forward",		/*5*/"",
+			/*6*/"TurnLeft",				/*7*/"Backward",	/*8*/"TurnRight"
+	};
+	@Override
+	public void actionPerformed(ActionEvent e) {
+		//System.out.println("action!!");
+		Button btn = (Button) e.getSource();
+		
+		if(btn==B[0]){
+			//Pause/Continue
+			this.robot.reverseLock();
+		}
+		else if(btn==B[1]){
+			//Stop
+			System.out.println("Stop");
+			this.robot.setVt(0);
+			this.robot.setWt(0);
+		}
+		else if(btn==B[2]){
+			//
+		}
+		else if(btn==B[3]){
+			//
+		}
+		else if(btn==B[4]){//Forward
+			System.out.println("Forward");
+			this.robot.setVt(this.robot.getVt() + 1);
+		}
+		else if(btn==B[5]){
+			//
+		}
+		else if(btn==B[6]){
+			//Turnleft
+			System.out.println("Turnleft");
+			this.robot.setWt(this.robot.getWt() - 1);
+		}
+		else if(btn==B[7]){
+			//Backward
+			System.out.println("Backward");
+			this.robot.setVt(this.robot.getVt() - 1);
+		}
+		else if(btn==B[8]){
+			//Turnright
+			System.out.println("Turnright");
+			this.robot.setWt(this.robot.getWt() + 1);
+		}
+	}
+
+
 	RobotState robot;
 	JPanel control_panel = new JPanel(new GridLayout(3,3));
 	Button[] B = new Button[9];
-	
-	public String S[] = {
-			/*0*/"",			/*1*/"Forward",	/*2*/"",
-			/*3*/"TurnLeft",	/*4*/"Stop",	/*5*/"TurnRight",
-			/*6*/"",			/*7*/"Backward",	/*8*/""
-	};
-	
-	
-	
 	
 	/**
 	 * @param title
@@ -55,39 +97,5 @@ public class RobotListener extends JFrame implements ActionListener{
 	public RobotListener(String title, RobotState robot) {
 		this(title);
 		this.robot = robot;
-	}
-	
-
-	@Override
-	public void actionPerformed(ActionEvent arg0) {
-		//System.out.println("action!!");
-		Button btn = (Button) arg0.getSource();
-		
-		if(btn==B[1])//Forward
-		{
-			System.out.println("Forward");
-			this.robot.setVt(this.robot.getVt() + 1);
-		}
-		else if(btn==B[7])//Backward
-		{
-			System.out.println("Backward");
-			this.robot.setVt(this.robot.getVt() - 1);
-		}
-		else if(btn==B[3])//Turnleft
-		{
-			System.out.println("Turnleft");
-			this.robot.setWt(this.robot.getWt() - 1);
-		}
-		else if(btn==B[5])//Turnright
-		{
-			System.out.println("Turnright");
-			this.robot.setWt(this.robot.getWt() + 1);
-		}
-		else if(btn==B[4])//Stop
-		{
-			System.out.println("Stop");
-			this.robot.setVt(0);
-			this.robot.setWt(0);
-		}
 	}
 }

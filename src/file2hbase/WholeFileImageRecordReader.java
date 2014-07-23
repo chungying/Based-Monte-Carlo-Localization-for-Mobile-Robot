@@ -75,7 +75,6 @@ import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 
 	@Override
 	public boolean nextKeyValue() throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
 		FSDataInputStream in = null;
 		//cont.getCounter(RecordReaderCounters.B).increment(1);
 		if(!processed){

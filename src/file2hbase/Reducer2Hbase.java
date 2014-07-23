@@ -95,48 +95,40 @@ public class Reducer2Hbase
 					
 					for (int j = 0; j < value.height.get(); j++) {
 						
-						//TODO transform to absolute type
+						// transform to absolute type
 						row_str = Transformer.xy2RowkeyString(i+translateX, j+translateY, random);
 						context.getCounter(Counters.PUT).increment(1);
-						//TODO	2014/05/04 test for energy as rowkey
 						Put put = new Put(Bytes.toBytes(row_str));
 						
-						//TODO have been improved
+						// have been improved to keep the better efficiency
 						//put.setWriteToWAL(false);
 						put.setDurability(Durability.SKIP_WAL);
 						
 						for (int k = 0; k < gridmap.orientation; k++) {
-							
-//							if("distance".equals((String)Bytes.toString(Family_Distance))){
-//								context.getCounter(Counters.B).increment(1);
-//							}
-//							if(gridmap.orientation==4){
-//								context.getCounter(Counters.C).increment(1);
-//							}
-							
+
 							context.getCounter(Counters.D).increment(1);
 							
 							String measurements = String.valueOf(gridmap.G[i][j].circle_measurements[k]);
-							//TODO
+							
 							put.add(Family_Distance,
 									Bytes.toBytes(String.valueOf(k)),
 									Bytes.toBytes(measurements));
 							
 							context.getCounter(Counters.E).increment(1);
 							
-							//TODO improve energy to 2 dimensional
+							
 							String energy = String.valueOf(gridmap.G[i][j].getEnergy(k));
 							Put putEnergy = new Put(Bytes.toBytes(energy));
 							putEnergy.add(Family_Energy, 
 									Bytes.toBytes(row_str),
-									Bytes.toBytes(String.valueOf(k)));//TODO add something useful
-							//context.write(new ImmutableBytesWritable(Bytes.toBytes(energy)), putEnergy);
+									Bytes.toBytes(String.valueOf(k)));
+							
 							puts.add(putEnergy);
 							
 							context.getCounter(Counters.F).increment(1);
 							
 							String laser_x = String.valueOf(gridmap.G[i][j].measurement_points[k].x);
-							//TODO
+							
 							put.add(Family_X,
 									Bytes.toBytes(String.valueOf(k)),
 									Bytes.toBytes(laser_x));
@@ -144,7 +136,7 @@ public class Reducer2Hbase
 							context.getCounter(Counters.G).increment(1);
 							
 							String laser_y = String.valueOf(gridmap.G[i][j].measurement_points[k].y);
-							//TODO
+							
 							put.add(Family_Y,
 									Bytes.toBytes(String.valueOf(k)),
 									Bytes.toBytes(laser_y));
@@ -155,7 +147,6 @@ public class Reducer2Hbase
 						context.getCounter(Counters.H).increment(1);
 						puts.add(put);
 						
-						//context.write(new ImmutableBytesWritable(Bytes.toBytes(rowkey)), put);
 						context.getCounter(Counters.I).increment(1);
 					}
 				}

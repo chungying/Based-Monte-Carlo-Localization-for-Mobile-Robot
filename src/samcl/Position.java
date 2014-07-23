@@ -66,6 +66,7 @@ public class Position {
 	 * else
 	 * return all of the points of the measurements
 	 */
+	@SuppressWarnings("unused")
 	@Deprecated
 	private Point[] getMeasurement_points(int z) {
 		if (z >= 0) {

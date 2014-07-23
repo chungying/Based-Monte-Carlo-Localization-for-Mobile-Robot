@@ -18,25 +18,66 @@ public class RobotState implements Runnable,Closeable{
 	public static final double standardVelocity = 20;// pixel/second
 	
 	public static void main(String[] args) throws IOException{
+		List<Pose> path = new ArrayList<Pose>();
+		path.add(new Pose(440,60,0));
+		path.add(new Pose(440,60,90));
+		path.add(new Pose(440,320,90));
+		path.add(new Pose(440,320,180));
+		path.add(new Pose(220,320,180));
+		path.add(new Pose(220,320,270));
+		path.add(new Pose(220,60,270));
 		//test
-		RobotState robot = new RobotState(220,60,0);
+		RobotState robot = new RobotState(220,60,0,path);
 		//robot.setWt(1);
 		//robot.setVt(1);
 		Thread t = new Thread(robot);
 		t.start();
 		
-		RobotListener lstn = new RobotListener("test", robot);
+		@SuppressWarnings("unused")
+		RobotListener lstn = new RobotListener("robot controller", robot);
 		
 		
 		try {
+			System.out.println("sleep 2s .......");
 			Thread.sleep(2000);
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		System.out.println("set up velocity");
 		robot.setVt(10);
 		//robot.setWt(1);
-		
+		System.out.println("unlock robot");
+		robot.unlock();
+		while(true){
+			try {
+				Thread.sleep(33);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			System.out.println(robot.toString());
+		}
+	}
+
+	private boolean lock = true;
+
+	public void reverseLock(){
+		this.setLock(!this.isLock());
+	}
+	
+	public boolean isLock() {
+		return lock;
+	}
+
+	public void lock() {
+		this.setLock(true);
+	}
+	
+	public void unlock() {
+		this.setLock(false);
+	}
+	
+	private void setLock(boolean lock) {
+		this.lock = lock;
 	}
 
 	@Override
@@ -45,27 +86,32 @@ public class RobotState implements Runnable,Closeable{
 			long duration = 0;
 			
 			while(true){
-				System.out.println(this.toString());
-				System.out.println("target:" +target);
-				//delay
-				time = System.currentTimeMillis();
-				
-				try {
-					
-					updateTarget(path);
-					
-					Thread.sleep(10);
-					
-					this.update(duration/1000.0);
-					
-				} catch (IOException e) {
-					e.printStackTrace();
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-				
-				//next iteration
-				duration = System.currentTimeMillis() - time;
+				//System.out.println("lock : " + this.isLock());
+//				if (this.isLock()) {
+					//System.out.println(this.toString());
+					//System.out.println("target:" + target);
+					//delay
+					time = System.currentTimeMillis();
+					try {
+						if(!this.isLock()){
+							updateTarget(path);
+							this.update(duration / 1000.0);
+						}
+						
+						Thread.sleep(10);
+						//update sensor data 
+						if(this.grid!=null){
+							this.updateSensor();
+						}
+
+					} catch (IOException e) {
+						e.printStackTrace();
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+					//next iteration
+					duration = System.currentTimeMillis() - time;
+//				}
 			}
 		}
 
@@ -83,17 +129,29 @@ public class RobotState implements Runnable,Closeable{
 					this.target++;
 					//update VelocityModel
 					updateVelocityModel(this.getPose(), path.get(target));
-				}else if(target == path.size() - 1){
+				}else if(target == path.size() - 1){//finished then lock robot
 					//update robot pose to current target
 					this.setPose(path.get(target));
-				}else//finished then stop moving
-					this.stop();
+					this.setLock(false);
+				}
+					
 				
 			}else//else do nothing to keep moving
 				;
 		}
 		else//do nothing
 			;
+	}
+
+	public void update(double t) throws IOException{
+		//update pose
+		this.x = this.x +  ( ut.getVelocity() * t * Math.cos( Math.toRadians(head) ) ) /*+ (int)(Math.round(Wt))*/;
+		this.y = this.y +  ( ut.getVelocity() * t * Math.sin( Math.toRadians(head) ) ) /*+ (int)(Math.round(Wt))*/;
+		this.head = Transformer.checkHeadRange((ut.getAngular_velocity() * t) + this.head);
+	}
+
+	private void updateSensor() throws IOException {
+		this.setMeasurements(this.grid.getMeasurements(this.table , onCloud, getX(), getY(), getHead()));
 	}
 
 	private void updateVelocityModel(Pose current, Pose goal) {
@@ -138,18 +196,18 @@ public class RobotState implements Runnable,Closeable{
 
 	@Override
 	public String toString() {
-		return "RobotState (" + x + "\t," + y + "\t," + head + "\t),\n["
-				+ ut.getVelocity() + "\t," + ut.getAngular_velocity() + "\t]\n"+Arrays.toString(measurements);
+		return "RobotState (" + String.format("% 3.3f", x) + "\t," + String.format("% 3.3f", y) + "\t," + String.format("% 3.3f", head) + "\t),\n"+
+					"state : "+(this.isLock()? "  lock":"unlock")+"["+ ut.getVelocity() + "\t," + ut.getAngular_velocity() + "\t]\n"+
+					Arrays.toString(measurements);
 	}
 
 	private double x;
 	private double y;
 	private double head;
 	private VelocityModel ut = new VelocityModel();
-	List<Pose> path = null;
+	private List<Pose> path = null;
 	//current Target
-	private static int target = 0;
-	private PathPlan pp = null;
+	private int target = 0;
 	private float[] measurements;
 	private boolean onCloud;
 	private Grid grid = null;
@@ -164,9 +222,20 @@ public class RobotState implements Runnable,Closeable{
 	 *  Grid and HTable are null.
 	 */
 	public RobotState(int x, int y, double head) throws IOException {
-		this(x, y, head, null, null);
+		this(x, y, head, null, null, null);
 	}
 	
+	/**
+	 * @param x
+	 * @param y
+	 * @param head
+	 * @param path
+	 * @throws IOException 
+	 */
+	public RobotState(int x, int y, double head, List<Pose> path) throws IOException {
+		this(x, y, head, null, null, path);
+	}
+
 	/**
 	 * @param x
 	 * @param y
@@ -176,7 +245,33 @@ public class RobotState implements Runnable,Closeable{
 	 * HTable is null.
 	 */
 	public RobotState(int x, int y, double head, Grid grid) throws IOException {
-		this(x, y, head, grid, null);
+		this(x, y, head, grid, null, null);
+	}
+	
+	/**
+	 * @param x
+	 * @param y
+	 * @param head
+	 * @param grid
+	 * @param path
+	 * @throws IOException
+	 * HTable is null.
+	 */
+	public RobotState(int x, int y, double head, Grid grid, List<Pose> path) throws IOException {
+		this(x, y, head, grid, null, path);
+	}
+	
+	/**
+	 * @param x
+	 * @param y
+	 * @param head
+	 * @param grid
+	 * @param tableName
+	 * @throws IOException
+	 * HTable is null.
+	 */
+	public RobotState(int x, int y, double head, Grid grid, String tableName) throws IOException {
+		this(x, y, head, grid, tableName, null);
 	}
 	
 	/**
@@ -185,9 +280,10 @@ public class RobotState implements Runnable,Closeable{
 	 * @param head initial head of robot.
 	 * @param grid where the sensor data from.
 	 * @param tableName 
+	 * @param path the navigation path must be continuity.
 	 * @throws IOException 
 	 */
-	public RobotState(int x, int y, double head, Grid grid, String tableName) throws IOException {
+	public RobotState(int x, int y, double head, Grid grid, String tableName, List<Pose> path) throws IOException {
 		super();
 		System.out.println("initial robot");
 		this.x = x;
@@ -195,12 +291,8 @@ public class RobotState implements Runnable,Closeable{
 		this.head = Transformer.checkHeadRange(head);
 		ut.setVelocity(0);
 		ut.setAngular_velocity(0);
-		//Vt = 0;
-		//Wt = 0;
 		
-		//TODO setup Grid and onCloud?
 		this.grid = grid;
-		//TODO table name
 		if(tableName!=null){
 			this.table = this.grid.getTable(tableName);
 			this.setOnCloud(true);
@@ -209,39 +301,12 @@ public class RobotState implements Runnable,Closeable{
 		//current Target
 		target = 0;
 		//Path
-		path = new ArrayList<Pose>();
-		Pose pose1 = new Pose(440,60,0);
-		path.add(pose1);
-		Pose pose2 = new Pose(440,60,90);
-		path.add(pose2);
-		Pose pose3 = new Pose(440,320,90);
-		path.add(pose3);
-		Pose pose4 = new Pose(440,320,180);
-		path.add(pose4);
-		Pose pose5 = new Pose(220,320,180);
-		path.add(pose5);
-		
-		if(path==null)
-			throw new NullPointerException();
+		this.path = new ArrayList<Pose>();
+		if(path!=null)
+			this.path.addAll(path);
 	}
 	
 	
-	public void update(double t) throws IOException{
-		//update pose
-		this.x = this.x +  ( ut.getVelocity() * t * Math.cos( Math.toRadians(head) ) ) /*+ (int)(Math.round(Wt))*/;
-		this.y = this.y +  ( ut.getVelocity() * t * Math.sin( Math.toRadians(head) ) ) /*+ (int)(Math.round(Wt))*/;
-		this.head = Transformer.checkHeadRange((ut.getAngular_velocity() * t) + this.head);
-		
-		//update sensor data 
-		if(this.grid!=null){
-			this.updateSensor();
-		}	
-	}
-
-	private void updateSensor() throws IOException {
-		this.setMeasurements(this.grid.getMeasurements(this.table , onCloud, getX(), getY(), getHead()));
-	}
-
 	public VelocityModel getUt() {
 		return ut;
 	}
@@ -320,14 +385,6 @@ public class RobotState implements Runnable,Closeable{
 		this.x = pose.X;
 		this.y = pose.Y;
 		this.head = pose.H;
-	}
-
-	public PathPlan getPp() {
-		return pp;
-	}
-
-	public void setPp(PathPlan pp) {
-		this.pp = pp;
 	}
 	
 }
