@@ -43,23 +43,28 @@ public class Distribution {
 				Distribution.sample_normal_distribution(al[2]*u.velocity*u.velocity + al[3]*u.angular_velocity*u.angular_velocity);
 		double Rcup =  Distribution.sample_normal_distribution(al[4]*u.velocity*u.velocity + al[5]*u.angular_velocity*u.angular_velocity);
 		
-		double temp = p.getX()  
-				+ ( Vcup/Wcup ) *(
+		if(Wcup==0.0){
+			Wcup = 4.9e-324;
+		}
+		
+		double temp = p.getX();
+		double noise =  ( Vcup/Wcup ) *(
 						 Math.sin( Math.toRadians( p.getTh() + Wcup*deltaT ) ) 
 						-  Math.sin( Math.toRadians( p.getTh() ) ) 
 						);
 				
-		p.setX((int)Math.round(temp));
+		p.setX((int)Math.round(temp + noise));
 		
-		temp = p.getY() 
-				+ ( Vcup/Wcup ) *( 
+		temp = p.getY();
+		noise =  ( Vcup/Wcup ) *( 
 						 Math.cos( Math.toRadians( p.getTh() ) ) 
 						-  Math.cos( Math.toRadians( p.getTh() + Wcup*deltaT ) )  
 						);
-		p.setY((int)Math.round(temp));
+		p.setY((int)Math.round(temp + noise));
 		
-		temp = p.getTh() + Wcup*deltaT + Rcup*deltaT;
-		p.setTh(temp);
+		temp = p.getTh();
+		noise = Wcup*deltaT + Rcup*deltaT;
+		p.setTh(temp + noise);
 	}
 	
 }

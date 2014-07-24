@@ -35,8 +35,8 @@ public class Main {
 					//"-i","file:///Users/ihsumlee/Jolly/jpg/map.jpg"
 					,"-o","10"
 					,"-rl","true"
-					,"-rx","22"
-					,"-ry","60"
+					,"-rx","100"
+					,"-ry","100"
 					,"-p","10"
 					};
 			args = targs;
@@ -45,7 +45,7 @@ public class Main {
 		/**
 		 * First step:
 		 * to create the localization algorithm
-		 * and setup the listener for S	AMCL
+		 * and setup the listener for SAMCL
 		 */
 		final SAMCL samcl = new SAMCL(
 				18, //orientation
@@ -72,7 +72,7 @@ public class Main {
 		 * setup the listener of Robot
 		 * */
 		//TODO add jcommander: x, y, lock
-		RobotState robot = new RobotState(20, 20, 0, /*null*/samcl.precomputed_grid, null/*"map.512.4.split"*/, null);
+		RobotState robot = new RobotState(100, 100, 0, /*null*/samcl.precomputed_grid, null/*"map.512.4.split"*/, null);
 		jc = new JCommander();
 		jc.setAcceptUnknownOptions(true);
 		jc.addObject(robot);
@@ -112,9 +112,12 @@ public class Main {
 			Thread.sleep(33);
 			grap.drawImage(samcl.precomputed_grid.map_image, null, 0, 0);
 			//System.out.println(robot.toString());
-			px = robot.getX();
-			py = robot.getY();
+//			px = robot.getX();
+//			py = robot.getY();
 			time = System.currentTimeMillis()/1000 - time;
+			rx = robot.getX();
+			ry = robot.getY();
+			rh = robot.getHead();
 			for(Particle p : parts){
 				//System.out.println("drawing particles");
 				
@@ -130,10 +133,8 @@ public class Main {
 			}
 			
 			Tools.drawRobot(grap,  robot.getX(),  robot.getY(), robot.getHead(), 20, Color.ORANGE);
-			rx = robot.getX();
-			ry = robot.getY();
-			rh = robot.getHead();
-			Tools.drawRobot(grap, 250/*robot.getX()*/, 250/*robot.getY()*/, robot.getHead(), 10, Color.RED);
+			
+//			Tools.drawRobot(grap, 250/*robot.getX()*/, 250/*robot.getY()*/, robot.getHead(), 10, Color.RED);
 			panel.repaint();
 			//System.out.println(robot.toString());
 			

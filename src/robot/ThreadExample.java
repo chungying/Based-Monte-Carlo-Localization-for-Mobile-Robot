@@ -31,8 +31,14 @@ public class ThreadExample {
 	    }
 	    
 	    public static void main(String[] args) {
-	    	ThreadExample t = new ThreadExample("lalala");
-	    	//t.in.redo1();
-	    	t.in.redo2();
+//	    	ThreadExample t = new ThreadExample("lalala");
+//	    	//t.in.redo1();
+//	    	t.in.redo2();
+	    	double t = 4.9e-324;
+	    	System.out.println( t);
+	    	System.out.println(t<0);
+	    	System.out.println(t==0);
+	    	System.out.println(t>0);
+	    	
 	    }
 }
