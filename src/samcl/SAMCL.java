@@ -135,6 +135,15 @@ public class SAMCL implements Closeable{
 //			System.out.println("\tnext set size: \t" + last_set.size());
 			
 			//show out the information
+			//TODO add the log() function.
+			/**
+			 * best particle
+			 * average position
+			 * robot position
+			 * time
+			 * is succeeded?
+			 * */
+			//log()
 			System.out.print("Best position:"+max_p.toString());
 			System.out.println("Robot position:\t"+robot.getPose().toString());
 //			System.out.println("Sensitive           : \t" + this.XI);
