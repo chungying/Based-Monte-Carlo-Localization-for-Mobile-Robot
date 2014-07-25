@@ -37,6 +37,8 @@ public class Distribution {
 	 * @param deltaT miliseconds
 	 */
 	public static void Motion_sampling(Particle p, VelocityModel u, double deltaT){
+		
+		
 		double Vcup = u.velocity + 
 				Distribution.sample_normal_distribution(al[0]*u.velocity*u.velocity + al[1]*u.angular_velocity*u.angular_velocity);
 		double Wcup = u.angular_velocity + 
@@ -46,13 +48,18 @@ public class Distribution {
 		if(Wcup==0.0){
 			Wcup = 4.9e-324;
 		}
+		if(Vcup==0.0){
+			Vcup = 4.9e-324;
+		}
 		
 		double temp = p.getX();
 		double noise =  ( Vcup/Wcup ) *(
 						 Math.sin( Math.toRadians( p.getTh() + Wcup*deltaT ) ) 
 						-  Math.sin( Math.toRadians( p.getTh() ) ) 
 						);
-				
+		if(noise==0.0){
+			noise = Distribution.sample_normal_distribution(1);
+		}
 		p.setX((int)Math.round(temp + noise));
 		
 		temp = p.getY();
@@ -60,6 +67,9 @@ public class Distribution {
 						 Math.cos( Math.toRadians( p.getTh() ) ) 
 						-  Math.cos( Math.toRadians( p.getTh() + Wcup*deltaT ) )  
 						);
+		if(noise==0.0){
+			noise = Distribution.sample_normal_distribution(1);
+		}
 		p.setY((int)Math.round(temp + noise));
 		
 		temp = p.getTh();

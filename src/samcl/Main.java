@@ -31,8 +31,8 @@ public class Main {
 		//for debug mode
 		if(args.length==0){
 			String[] targs = {/*"-cl",*/
-					"-i","file:///Users/ihsumlee/Jolly/jpg/white.jpg"
-					//"-i","file:///Users/ihsumlee/Jolly/jpg/map.jpg"
+					//"-i","file:///Users/ihsumlee/Jolly/jpg/white.jpg"
+					"-i","file:///home/w514/jpg/test6.jpg"
 					,"-o","10"
 					,"-rl","true"
 					,"-rx","100"
@@ -90,7 +90,7 @@ public class Main {
 		Window samcl_window = new Window("samcl image", samcl);
 		
 		//TODO test 2014/06/19
-		//samcl.run(robot, samcl_window);
+		samcl.run(robot, samcl_window);
 		
 		//below is for test.
 		Panel panel = new Panel(new BufferedImage(samcl.precomputed_grid.width,samcl.precomputed_grid.height, BufferedImage.TYPE_INT_ARGB));
