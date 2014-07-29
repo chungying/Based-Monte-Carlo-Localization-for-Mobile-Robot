@@ -142,6 +142,9 @@ public class Reducer2Hbase
 							put.add(Family_Y,
 									Bytes.toBytes(String.valueOf(k)),
 									Bytes.toBytes(laser_y));*/
+							//TODO separate the load
+							Table.put(putEnergy);
+							Table.put(put);
 						}
 						
 						
@@ -159,7 +162,8 @@ public class Reducer2Hbase
 			}
 		}
 		context.getCounter(Counters.K).increment(1);
-		Table.put(puts);
+		//TODO separate the load
+		//Table.put(puts);
 		
 	}
 
@@ -167,6 +171,7 @@ public class Reducer2Hbase
 	protected void cleanup(Context context)
 			throws IOException, InterruptedException {
 		//Table.flushCommits();
+		Table.close();
 		super.cleanup(context);
 	}
 	
