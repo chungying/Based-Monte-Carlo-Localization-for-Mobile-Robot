@@ -11,6 +11,7 @@ import mcl.MCL;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
+import org.apache.hadoop.hbase.util.Bytes;
 
 import com.beust.jcommander.JCommander;
 import com.google.protobuf.RpcController;
@@ -19,6 +20,7 @@ import coprocessor.services.OewcEndpoint;
 import coprocessor.services.generated.OewcProtos;
 import coprocessor.services.generated.OewcProtos.OewcRequest;
 import coprocessor.services.generated.OewcProtos.OewcResponse;
+import coprocessor.services.generated.OewcProtos.OewcService;
 import robot.RobotState;
 import samcl.SAMCL;
 import util.gui.RobotController;
@@ -80,13 +82,14 @@ public class IMCLROE extends SAMCL{
 	public void batchWeight(List<Particle> src, float[] robotMeasurements)
 			throws Throwable {
 		
-		Batch.Call<OewcEndpoint,OewcResponse> b = new OewcCall(src,robotMeasurements);
-		Map<byte[],OewcResponse> results = this.table.coprocessorService(OewcEndpoint.class, null, null, b);
+		Batch.Call<OewcService,OewcResponse> b = new OewcCall(src,robotMeasurements);
+		Map<byte[],OewcResponse> results = this.table.coprocessorService(OewcService.class, null, null, b);
 		//setup weight and orientatin to the particles(src)
 		Long sum = 0l;
 		List<Particle> result = new ArrayList<Particle>();
 		for(Entry<byte[], OewcResponse> entry:results.entrySet()){
 			sum = sum + entry.getValue().getCount();
+//			System.out.println(Bytes.toString(entry.getKey())+":"+entry.getValue().getStr());
 			for(OewcProtos.Particle op : entry.getValue().getParticlesList()){
 				result.add(IMCLROE.ParticleFromO(op));
 			}
@@ -117,11 +120,13 @@ public class IMCLROE extends SAMCL{
 	}
 	public static OewcRequest setupRequest(List<Particle> src, float[] measurements){
 		OewcRequest.Builder builder = OewcRequest.newBuilder();
+		//build src
 		ArrayList<OewcProtos.Particle> ps = new ArrayList<OewcProtos.Particle>();
 		for(Particle p : src){
 			ps.add(IMCLROE.particleFromS(p));
 		}
 		builder.addAllParticles(ps);
+		//build measurements TODO will modify all of type to class from primitive type, ex: int->Integer, float-> Float
 		List<Float> Zt = new ArrayList();
 		for(float f: measurements){
 			Zt.add(new Float(f));
@@ -129,7 +134,7 @@ public class IMCLROE extends SAMCL{
 		builder.addAllMeasurements(Zt);
 		return builder.build();
 	}
-	public class OewcCall implements Batch.Call<OewcEndpoint, OewcResponse>{
+	public class OewcCall implements Batch.Call<OewcService, OewcResponse>{
 		List<Particle> particles = null;
 		float[] robotMeasurements = null;
 		public OewcCall(List<Particle> particles, float[] robotMeasurements){
@@ -138,15 +143,13 @@ public class IMCLROE extends SAMCL{
 		}
 		
 		@Override
-		public OewcResponse call(OewcEndpoint endpoint) throws IOException {
+		public OewcResponse call(OewcService endpoint) throws IOException {
 			// TODO IMCLROE
 			BlockingRpcCallback<OewcResponse> done = new BlockingRpcCallback<OewcResponse>();
 			RpcController controller = new ServerRpcController();
 			OewcRequest request = IMCLROE.setupRequest(particles, robotMeasurements);
 			endpoint.getRowCount(controller, request, done);
 			return done.get();
-		}
-		
+		}	
 	}
-
 }

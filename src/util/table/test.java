@@ -145,12 +145,8 @@ public class test extends Base{
 			BlockingRpcCallback<OewcResponse> done = new BlockingRpcCallback<OewcResponse>();
 			RpcController controller = new ServerRpcController();
 			OewcRequest request = IMCLROE.setupRequest(particles, robotMeasurements);
-			//System.out.println(request.toString());
 			endpoint.getRowCount(controller, request, done);
 			return done.get();
 		}
-
-	
 	}
-	
 }
