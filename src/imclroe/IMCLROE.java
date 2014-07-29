@@ -6,23 +6,74 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import mcl.MCL;
+
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
 
+import com.beust.jcommander.JCommander;
 import com.google.protobuf.RpcController;
 
 import coprocessor.services.OewcEndpoint;
 import coprocessor.services.generated.OewcProtos;
 import coprocessor.services.generated.OewcProtos.OewcRequest;
 import coprocessor.services.generated.OewcProtos.OewcResponse;
+import robot.RobotState;
 import samcl.SAMCL;
+import util.gui.RobotController;
+import util.gui.Window;
 import util.metrics.Particle;
 
 public class IMCLROE extends SAMCL{
 	
-	public static void main(String[] args){
-		//TODO finish the main function
+	public static void main(String[] args) throws Throwable{
+		//for debug mode
+		if(args.length==0){
+			String[] targs = {/*"-cl",*/
+					//"-i","file:///Users/ihsumlee/Jolly/jpg/white.jpg"
+					"-i","file:///home/w514/jpg/test6.jpg"
+					,"-o","4"
+					,"-rl","true"
+					,"-rx","30"
+					,"-ry","30"
+					,"-p","10"
+					};
+			args = targs;
+		}
+		//TODO finish the main function,1:add robot controller
+		final IMCLROE imclroe = new IMCLROE(false, 18, "file:///home/w514/jpg/test6.jpg", 0.001f, 100, 0.01f, 0.3f, 10);
+		JCommander jc = new JCommander();
+		jc.setAcceptUnknownOptions(true);
+		jc.addObject(imclroe);
+		jc.parse(args);
+		
+		imclroe.setup();
+		imclroe.Pre_caching();
+		
+		RobotState robot = new RobotState(19,19, 0, imclroe.precomputed_grid, null, null); 
+		jc = new JCommander();
+		jc.setAcceptUnknownOptions(true);
+		jc.addObject(robot);
+		jc.parse(args);
+		robot.setInitModel(robot.getUt());
+		robot.setInitPose(robot.getPose());
+		Thread t = new Thread(robot);
+		t.start();
+		
+		RobotController robotController = new RobotController("robot controller", robot, imclroe);
+		Window window = new Window("mcl image", imclroe,robot);
+		
+		for(int i = 0; i < 10; i ++){
+			window.setTitle("mcl image:"+String.valueOf(i));
+			imclroe.run(robot, window);
+			robot.lock();
+			robot.initRobot();
+			robot.unlock();
+		}
+		
+		imclroe.close();
+
 	}
 	
 	@Override
@@ -71,6 +122,11 @@ public class IMCLROE extends SAMCL{
 			ps.add(IMCLROE.particleFromS(p));
 		}
 		builder.addAllParticles(ps);
+		List<Float> Zt = new ArrayList();
+		for(float f: measurements){
+			Zt.add(new Float(f));
+		}
+		builder.addAllMeasurements(Zt);
 		return builder.build();
 	}
 	public class OewcCall implements Batch.Call<OewcEndpoint, OewcResponse>{

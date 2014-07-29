@@ -8,48 +8,65 @@ import java.util.List;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
+import com.beust.jcommander.JCommander;
 import com.google.protobuf.ServiceException;
 
 import robot.RobotState;
 import samcl.SAMCL;
+import util.gui.RobotController;
+import util.gui.Window;
 import util.metrics.Particle;
 import util.metrics.Transformer;
 
 public class MCL extends SAMCL{
 	
 	public static void main(String[] args) throws ServiceException, Throwable{
-		//TODO finish the main function
+		//for debug mode
+		if(args.length==0){
+			String[] targs = {/*"-cl",*/
+					//"-i","file:///Users/ihsumlee/Jolly/jpg/white.jpg"
+					"-i","file:///home/w514/jpg/test6.jpg"
+					,"-o","4"
+					,"-rl","true"
+					,"-rx","30"
+					,"-ry","30"
+					,"-p","10"
+					};
+			args = targs;
+		}
+		//TODO finish the main function,1:add robot controller
 		final MCL mcl = new MCL(false, 18, "file:///home/w514/jpg/test6.jpg", 0.001f, 100, 0.01f, 0.3f, 10);
+		JCommander jc = new JCommander();
+		jc.setAcceptUnknownOptions(true);
+		jc.addObject(mcl);
+		jc.parse(args);
+		
 		mcl.setup();
 		mcl.Pre_caching();
 		
 		RobotState robot = new RobotState(19,19, 0, mcl.precomputed_grid, null, null); 
+		jc = new JCommander();
+		jc.setAcceptUnknownOptions(true);
+		jc.addObject(robot);
+		jc.parse(args);
+		robot.setInitModel(robot.getUt());
+		robot.setInitPose(robot.getPose());
 		Thread t = new Thread(robot);
 		t.start();
 		
-		final JFrame mcl_window = new JFrame("mcl_window");
-		mcl_window.setSize(mcl.precomputed_grid.width, mcl.precomputed_grid.height);
-		mcl_window.addWindowListener(new WindowAdapter(){
-			@Override
-			public void windowClosing(WindowEvent e) {
-				System.out.println("close table!!!!!!!!!!!!!!!!!!!!!!!");
-				if (JOptionPane.showConfirmDialog(mcl_window,
-						"Are you sure to close this window?", "Really Closing?", 
-			            JOptionPane.YES_NO_OPTION,
-			            JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION){
-					try {
-						if(mcl.onCloud)
-							mcl.precomputed_grid.closeTable();
-					} catch (IOException e1) {
-						e1.printStackTrace();
-					}
-					System.exit(0);
-				}
-			}
+		RobotController robotController = new RobotController("robot controller", robot, mcl);
+		Window window = new Window("mcl image", mcl,robot);
 		
-		});
-		mcl.run(robot, mcl_window);
+		for(int i = 0; i < 10; i ++){
+			window.setTitle("mcl image:"+String.valueOf(i));
+			mcl.run(robot, window);
+			robot.lock();
+			robot.initRobot();
+			robot.unlock();
+		}
+		
 		mcl.close();
+
 	}
 	
 	@Override

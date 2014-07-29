@@ -33,10 +33,11 @@ public class Distribution {
 		};
 	/**
 	 * @param p ready to use motion sampling
+	 * @param orientation 
 	 * @param u the robot's velocity model
 	 * @param deltaT miliseconds
 	 */
-	public static void Motion_sampling(Particle p, VelocityModel u, double deltaT){
+	public static void Motion_sampling(Particle p, int orientation, VelocityModel u, double deltaT){
 		
 		
 		double Vcup = u.velocity + 
@@ -74,7 +75,7 @@ public class Distribution {
 		
 		temp = p.getTh();
 		noise = Wcup*deltaT + Rcup*deltaT;
-		p.setTh(temp + noise);
+		p.setZ(Transformer.th2Z(temp + noise, orientation, 360/orientation));
 	}
 	
 }

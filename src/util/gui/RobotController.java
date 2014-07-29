@@ -11,14 +11,15 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 
 import robot.RobotState;
+import samcl.SAMCL;
 
 @SuppressWarnings("serial")
 public class RobotController extends JFrame implements ActionListener{
 	
 	public String S[] = {
-			/*0*/"Pause/Continue",	/*1*/"Stop",				/*2*/"",
-			/*3*/"",							/*4*/"Forward",		/*5*/"",
-			/*6*/"TurnLeft",				/*7*/"Backward",	/*8*/"TurnRight"
+			/*0*/"Pause/Continue",	/*1*/"Stop",		/*2*/"Terminate",
+			/*3*/"",				/*4*/"Forward",		/*5*/"Initialize",
+			/*6*/"TurnLeft",		/*7*/"Backward",	/*8*/"TurnRight"
 	};
 	@Override
 	public void actionPerformed(ActionEvent e) {
@@ -36,7 +37,9 @@ public class RobotController extends JFrame implements ActionListener{
 			this.robot.setWt(0);
 		}
 		else if(btn==B[2]){
-			//
+			//terminate
+			System.out.println("terminate the localization method");
+			this.samcl.setTerminated(true);
 		}
 		else if(btn==B[3]){
 			//
@@ -47,6 +50,10 @@ public class RobotController extends JFrame implements ActionListener{
 		}
 		else if(btn==B[5]){
 			//
+			System.out.println("Initialize robot");
+			this.robot.lock();
+			this.robot.initRobot();
+			
 		}
 		else if(btn==B[6]){
 			//Turnleft
@@ -66,10 +73,10 @@ public class RobotController extends JFrame implements ActionListener{
 	}
 
 
-	RobotState robot;
+	private RobotState robot;
+	private SAMCL samcl;
 	JPanel control_panel = new JPanel(new GridLayout(3,3));
 	Button[] B = new Button[9];
-	
 	/**
 	 * @param title
 	 * @throws HeadlessException
@@ -97,5 +104,11 @@ public class RobotController extends JFrame implements ActionListener{
 	public RobotController(String title, RobotState robot) {
 		this(title);
 		this.robot = robot;
+	}
+	
+	public RobotController(String title, RobotState robot, SAMCL samcl){
+		this(title);
+		this.robot = robot;
+		this.samcl = samcl;
 	}
 }

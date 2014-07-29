@@ -119,6 +119,8 @@ public class Reducer2Hbase
 							
 							String energy = String.valueOf(gridmap.G[i][j].getEnergy(k));
 							Put putEnergy = new Put(Bytes.toBytes(energy));
+							//putEnergy.setWriteToWAL(false);
+							put.setDurability(Durability.SKIP_WAL);
 							putEnergy.add(Family_Energy, 
 									Bytes.toBytes(row_str),
 									Bytes.toBytes(String.valueOf(k)));
@@ -127,7 +129,7 @@ public class Reducer2Hbase
 							
 							context.getCounter(Counters.F).increment(1);
 							
-							String laser_x = String.valueOf(gridmap.G[i][j].measurement_points[k].x);
+							/*String laser_x = String.valueOf(gridmap.G[i][j].measurement_points[k].x);
 							
 							put.add(Family_X,
 									Bytes.toBytes(String.valueOf(k)),
@@ -139,7 +141,7 @@ public class Reducer2Hbase
 							
 							put.add(Family_Y,
 									Bytes.toBytes(String.valueOf(k)),
-									Bytes.toBytes(laser_y));
+									Bytes.toBytes(laser_y));*/
 						}
 						
 						

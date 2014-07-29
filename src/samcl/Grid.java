@@ -332,17 +332,17 @@ public class Grid extends MouseAdapter {
 				//improved 0723
 				for (Cell cell : result.rawCells()) {
 					String XYstr = Bytes.toString(CellUtil.cloneQualifier(cell));
-					
+					System.out.println("rowkey: "+XYstr);
 					//convert Cell to Particle
 					//improved 0723
-					Particle p = new Particle(
-							Transformer.rowkeyString2X(XYstr), 
-							Transformer.rowkeyString2Y(XYstr), 
-							Integer.parseInt( Bytes.toString(
-									CellUtil.cloneValue(cell) ) )
-							);
+					int x = Transformer.rowkeyString2X(XYstr);
+					int y = Transformer.rowkeyString2Y(XYstr);
+					int z = Integer.parseInt( Bytes.toString(CellUtil.cloneValue(cell) ) );
+					System.out.println("(x, y, z)=("+x+","+y+","+z+")");
+					Particle p = new Particle(x, y, z);
+					System.out.println(p.toString());
 					Transformer.rowkeyString2xy(XYstr, p);
-					
+					System.out.println("second "+p.toString());
 					if (p.underSafeEdge(width, height, safe_edge))
 						ser_set.add(p);
 					// System.out.println(p.toString());
@@ -359,7 +359,7 @@ public class Grid extends MouseAdapter {
 		List<Get> gets = new ArrayList<Get>();
 		byte[] fam = Bytes.toBytes("distance");
 		for (Particle p : src) {
-			String str = Transformer.xy2String(p.getX(), p.getY());
+			String str = Transformer.xy2RowkeyString(p.getX(), p.getY());
 			Get get = new Get(Bytes.toBytes(str));
 			get.addFamily(fam);
 			gets.add(get);
@@ -372,20 +372,20 @@ public class Grid extends MouseAdapter {
 			for (int i = 0; i < results.length; i++) {
 				//convertResultToParticle(src.get(i), results[i], fam);
 				Particle p = src.get(i);
-				if (!results[i].isEmpty()) {
+				byte[] value = null;
+				int index;
+				//if (!results[i].isEmpty()) {
 					float[] measurements = new float[this.sensor_number];
 					int bias = (this.sensor_number - 1) / 2;
 					for (int j = 0; j < this.sensor_number; j++) {
-						measurements[j] = Float.valueOf(Bytes.toString(results[j].getValue(
-								fam, 
-								Bytes.toBytes(
-										String.valueOf( (p.getZ() - bias + j + this.orientation) % this.orientation )
-										)
-								)));
+						index = (p.getZ() - bias + j + this.orientation) % this.orientation;
+						value = results[i].getValue(fam,Bytes.toBytes(String.valueOf(index)));
+						//System.out.println(Bytes.toString(value));
+						measurements[j] = Float.valueOf(Bytes.toString(value));
 					}
 					p.setMeasurements(measurements);
-				}else
-					throw new IOException("There is no result!!");
+				//}else
+					//throw new IOException("There is no result!!");
 			}
 		}else
 			throw new IOException("the length is different.");
@@ -413,9 +413,9 @@ public class Grid extends MouseAdapter {
 		// TODOdone count RPC times
 		this.RPCcount++;
 
-		String rowkey = Transformer.xy2String(X, Y);
-		// System.out.print("family:"+Bytes.toString(family)+"\t");
-		// System.out.println("rowkey: " + rowkey);
+		String rowkey = Transformer.xy2RowkeyString(X, Y);
+		//System.out.print("family:"+Bytes.toString(family)+"\t");
+		//System.out.println("rowkey: " + rowkey);
 		Get get = new Get(Bytes.toBytes(rowkey));
 		get.addFamily(this.family);
 		Result result = table.get(get);

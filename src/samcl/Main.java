@@ -32,12 +32,13 @@ public class Main {
 		if(args.length==0){
 			String[] targs = {/*"-cl",*/
 					//"-i","file:///Users/ihsumlee/Jolly/jpg/white.jpg"
-					"-i","file:///home/w514/jpg/test6.jpg"
-					,"-o","10"
+					"-i","file:///home/w514/jpg/map.jpg"
+					,"-o","4"
 					,"-rl","true"
-					,"-rx","100"
-					,"-ry","100"
+//					,"-rx","30"
+//					,"-ry","30"
 					,"-p","10"
+//					,"-cl"
 					};
 			args = targs;
 		}
@@ -71,15 +72,18 @@ public class Main {
 		 * to create a robot
 		 * setup the listener of Robot
 		 * */
-		//TODO add jcommander: x, y, lock
-		RobotState robot = new RobotState(100, 100, 0, /*null*/samcl.precomputed_grid, null/*"map.512.4.split"*/, null);
+		RobotState robot = new RobotState(100, 100, 0, /*null*/samcl.precomputed_grid, /*null*/"map.512.4.split", null);
 		jc = new JCommander();
 		jc.setAcceptUnknownOptions(true);
 		jc.addObject(robot);
 		jc.parse(args);
+		//TODO setup robot
+		
 		robot.setVt(0);
 		robot.setWt(0);
-		RobotController robotController = new RobotController("robot controller", robot);
+		robot.setInitModel(robot.getUt());
+		robot.setInitPose(robot.getPose());
+		RobotController robotController = new RobotController("robot controller", robot,samcl);
 		Thread t = new Thread(robot);
 		t.start();
 		/**
@@ -87,10 +91,16 @@ public class Main {
 		 * start to run samcl
 		 */
 		//TODO WINDOW
-		Window samcl_window = new Window("samcl image", samcl);
+		Window samcl_window = new Window("samcl image", samcl,robot);
 		
 		//TODO test 2014/06/19
-		samcl.run(robot, samcl_window);
+		for(int i = 0; i < 10; i ++){
+			samcl_window.setTitle("samcl image:"+String.valueOf(i));
+			samcl.run(robot, samcl_window);
+			robot.lock();
+			robot.initRobot();
+			robot.unlock();
+		}
 		
 		//below is for test.
 		Panel panel = new Panel(new BufferedImage(samcl.precomputed_grid.width,samcl.precomputed_grid.height, BufferedImage.TYPE_INT_ARGB));
@@ -127,7 +137,7 @@ public class Main {
 					p.setTh(rh);
 //				}
 				
-				Distribution.Motion_sampling(p, robot.getUt(), time);
+				Distribution.Motion_sampling(p,samcl.orientation, robot.getUt(), time);
 				Tools.drawPoint(grap,  p.getX(), p.getY(), p.getTh(), 4, Color.BLUE);
 				System.out.println(p.toString());
 			}

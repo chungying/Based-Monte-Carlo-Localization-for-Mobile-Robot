@@ -37,6 +37,7 @@ public class RobotState implements Runnable,Closeable{
 				,"-rl","false"
 		};
 		new JCommander(robot,sts);
+		robot.setInitPose(robot.getPose());
 		//robot.setWt(1);
 		//robot.setVt(1);
 		Thread t = new Thread(robot);
@@ -54,6 +55,7 @@ public class RobotState implements Runnable,Closeable{
 		}
 		System.out.println("set up velocity");
 		robot.setVt(10);
+		robot.setInitModel(robot.getModel());
 		//robot.setWt(1);
 		System.out.println("unlock robot");
 		//robot.unlock();
@@ -68,6 +70,11 @@ public class RobotState implements Runnable,Closeable{
 	}
 
 	
+	private VelocityModel getModel() {
+		return this.ut;
+	}
+
+
 	public void reverseLock(){
 		this.setLock(!this.isLock());
 	}
@@ -90,6 +97,14 @@ public class RobotState implements Runnable,Closeable{
 
 	@Override
 		public void run(){
+			if(this.onCloud){
+				try {
+					this.table = this.grid.getTable(tableName);
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
 			long time = 0;
 			long duration = 0;
 			
@@ -218,6 +233,8 @@ public class RobotState implements Runnable,Closeable{
 	private double y;
 	@Parameter(names = {"-rh","--robothead"}, description = "initialize robot's Head", required = false, converter = DoubleConverter.class)
 	private double head;
+	@Parameter(names = {"-t","--table"}, description = "name of table", required = false)
+	private String tableName;
 	private VelocityModel ut = new VelocityModel();
 	private List<Pose> path = null;
 	//current Target
@@ -306,20 +323,34 @@ public class RobotState implements Runnable,Closeable{
 		ut.setAngular_velocity(0);
 		
 		this.grid = grid;
-		if(tableName!=null){
-			this.table = this.grid.getTable(tableName);
-			this.setOnCloud(true);
-		}
+		this.tableName = tableName;
 		
-		//current Target
-		target = 0;
+		
 		//Path
 		this.path = new ArrayList<Pose>();
 		if(path!=null)
 			this.path.addAll(path);
+		
+		//current Target
+		target = 0;
 	}
 	
+	private Pose initRobot = null;
+	private VelocityModel initModel = null;
+	public void setInitPose(Pose p) {
+		this.initRobot = p;
+	}
+	public void setInitModel(VelocityModel m){
+		this.initModel = new VelocityModel(m);
+	}
 	
+	public void initRobot(){
+		this.setPose(initRobot);
+		this.setVelocityModel(initModel);
+		this.target = 0;
+	}
+
+
 	public VelocityModel getUt() {
 		return ut;
 	}
@@ -376,7 +407,7 @@ public class RobotState implements Runnable,Closeable{
 
 	@Override
 	public void close() throws IOException {
-		if(this.table!=null) 
+		if(this.onCloud) 
 			table.close();
 	}
 

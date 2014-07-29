@@ -42,12 +42,18 @@ import com.google.protobuf.ServiceException;
  */
 public class SAMCL implements Closeable{
 	
+	private boolean terminated = false;
+	public void setTerminated(boolean terminated) {
+		this.terminated = terminated;
+	}
+
 	//	public boolean isClosing;
 	/**
 	 * run SAMCL
 	 * @throws Throwable 
 	 */
 	public void run(RobotState robot, JFrame samcl_window) throws Throwable{
+		this.setTerminated(false);
 		System.out.println("press enter to continue.");
 		System.in.read();
 		System.out.println("start!");
@@ -83,7 +89,7 @@ public class SAMCL implements Closeable{
 		int counter = 0;
 		long time = 0;
 		long duration = 0;
-		while(true){
+		while(!this.isTerminated()){
 			time = System.currentTimeMillis();
 			counter = counter +1;
 			
@@ -105,11 +111,11 @@ public class SAMCL implements Closeable{
 			//Step 2: Determining size
 //			System.out.println("(2)\tDetermining size\t");
 			long determiningTime = System.currentTimeMillis();
-			Particle max_p = this.Determining_size(last_set);
+			Particle maxPose = this.Determining_size(last_set);
 			determiningTime = System.currentTimeMillis() - determiningTime;
 			//Step 2-2: Calculating SER
 			long serTime = System.currentTimeMillis();
-			this.Caculating_SER(max_p.getWeight(), Zt, SER_set);
+			this.Caculating_SER(maxPose.getWeight(), Zt, SER_set);
 			serTime = System.currentTimeMillis() - serTime;
 			
 			//Step 3-1: Local resampling
@@ -134,8 +140,8 @@ public class SAMCL implements Closeable{
 			combiminingTime = System.currentTimeMillis() - combiminingTime;
 //			System.out.println("\tnext set size: \t" + last_set.size());
 			
+			Particle averagePose = this.averagePose(last_set);
 			//show out the information
-			//TODO add the log() function.
 			/**
 			 * best particle
 			 * average position
@@ -144,8 +150,10 @@ public class SAMCL implements Closeable{
 			 * is succeeded?
 			 * */
 			//log()
-			System.out.print("Best position:"+max_p.toString());
-			System.out.println("Robot position:\t"+robot.getPose().toString());
+			Transformer.log("counter:", counter, "time:", time, maxPose, robot.getPose(), averagePose);
+			//Transformer.log(this.isTerminated());
+//			System.out.print("Best position:"+maxPose.toString());
+//			System.out.println("Robot position:\t"+robot.getPose().toString());
 //			System.out.println("Sensitive           : \t" + this.XI);
 //			System.out.println("RPC counter         : \t"+this.precomputed_grid.RPCcount);
 			this.precomputed_grid.RPCcount = 0;
@@ -162,7 +170,7 @@ public class SAMCL implements Closeable{
 			this.delay(this.period);
 			
 			//draw image 
-			this.Drawing(grap, samcl_window, robot, max_p, last_set, SER_set);
+			this.Drawing(grap, samcl_window, robot, maxPose, last_set, SER_set);
 			
 			//update image
 			image_panel.repaint();
@@ -170,6 +178,22 @@ public class SAMCL implements Closeable{
 		}
 	}
 	
+	private boolean isTerminated() {
+		return this.terminated ;
+	}
+
+	private Particle averagePose(List<Particle> src_set) {
+		int xSum = 0;
+		int ySum = 0;
+		int zSum = 0;
+		for(Particle p : src_set){
+			xSum = xSum + p.getX();
+			ySum = ySum + p.getY();
+			zSum = zSum + p.getZ();
+		}
+		return new Particle(Math.round(xSum)/src_set.size(), Math.round(ySum)/src_set.size(), Math.round(zSum)/src_set.size());
+	}
+
 	private void delay(int milliSecond) {
 		try {
 			Thread.sleep(milliSecond);
@@ -212,7 +236,7 @@ public class SAMCL implements Closeable{
 		//precomputed_grid.start_mouse(precomputed_grid);
 	}
 	
-	protected HTable table = null;
+	public HTable table = null;
 	private void cloudSetup() throws IOException{
 		Configuration conf = HBaseConfiguration.create();
 		precomputed_grid.setupTable(conf);
@@ -310,7 +334,7 @@ public class SAMCL implements Closeable{
 		
 	}
 	@Parameter(names = "--period", description = "the period of an executed time.", required = false)
-	private int period = 33;
+	private int period = 3;
 
 	//check the parameters 
 	@Parameter(names = {"-cl","--cloud"}, description = "if be on the cloud, default is false", required = false)
@@ -426,23 +450,23 @@ public class SAMCL implements Closeable{
 	 */
 	public void Prediction_total_particles(List<Particle> src, VelocityModel u, long duration){
 		//System.out.println("*********into Sample_total_particles");
-		try {
+//		try {
 			if(!src.isEmpty()){
 				Random random = new Random();
 				for(Particle p : src){
-					Distribution.Motion_sampling(p, u, duration/1000); 
+					Distribution.Motion_sampling(p,this.orientation, u, duration/1000); 
 					//System.out.println("sampling.... i :	" + i);
-					this.pixel_sampling(p, 11, 7, random);
+					//this.pixel_sampling(p, 11, 7, random);
 				}
 			}
 			else{
-				//System.out.println("*********into else");
-				throw new Exception("The set is empty!\n");
+				System.out.println("*********the src_set is empty!!!!!!");
+//				throw new Exception("The set is empty!\n");
 			}
-		} catch (Exception e) {
-
-			System.out.println(e.toString()+"\n there is no last set in elder set.");
-		}		
+//		} catch (Exception e) {
+//
+//			System.out.println(e.toString()+"\n there is no last set in elder set.");
+//		}		
 	}
 	
 	public void batchWeight(List<Particle> src, float[] robotMeasurements) throws IOException, ServiceException, Throwable {
@@ -643,7 +667,7 @@ public class SAMCL implements Closeable{
 
 	@Override
 	public void close() throws IOException {
-		if(this.table!=null){
+		if(this.onCloud){
 			this.table.close();
 			this.precomputed_grid.closeTable();
 		}

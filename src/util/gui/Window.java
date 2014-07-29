@@ -7,13 +7,16 @@ import java.io.IOException;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
+import robot.RobotState;
 import samcl.SAMCL;
 
 public class Window extends JFrame{
 	public SAMCL samcl = null;
-	public Window(String name, SAMCL samcl){
+	public RobotState robot = null;
+	public Window(String name, SAMCL samcl, RobotState robot){
 		super(name);
 		this.samcl = samcl;
+		this.robot = robot;
 		this.setSize(samcl.precomputed_grid.width, samcl.precomputed_grid.height);
 		this.addWindowListener(new CustomAdapter());
 	}
@@ -27,12 +30,13 @@ public class Window extends JFrame{
 		            JOptionPane.YES_NO_OPTION,
 		            JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION){
 				try {
-					if(samcl.onCloud)
-						samcl.precomputed_grid.closeTable();
-				} catch (IOException e1) {
+					samcl.close();
+					robot.close();
+					
+				} catch (Exception e1) {
 					e1.printStackTrace();
 				}
-				System.exit(0);
+//				System.exit(0);
 			}
 			
 			super.windowClosing(e);

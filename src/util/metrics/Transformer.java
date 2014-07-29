@@ -6,6 +6,14 @@ import java.util.List;
 import java.util.Random;
 
 public class Transformer {
+	
+	static public void log(Object... obs){
+		for(Object ob: obs){
+			System.out.print(ob.toString()+"\t");
+		}
+		System.out.println();
+	}
+	
 	static public int th2Z(double head, int orientation, double orientation_delta_degree){
 		return ((int) Math.round( head/orientation_delta_degree ) )% orientation;
 	}
@@ -136,6 +144,10 @@ public class Transformer {
 		p.setY(Integer.valueOf( str.substring(5,10) ));
 	}
 	
+	public static String rowkeyString2Hash(String rowkey) {
+		return rowkey.split(separator)[0];
+	}
+
 	public static int rowkeyString2X(String rowkey){
 		return Integer.valueOf(rowkey.replaceAll("...."+separator, "").substring(0, 5));
 	}

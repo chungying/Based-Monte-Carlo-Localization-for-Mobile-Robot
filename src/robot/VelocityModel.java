@@ -5,6 +5,11 @@ public class VelocityModel {
 	public VelocityModel() {
 		super();
 	}
+	public VelocityModel(VelocityModel m) {
+		super();
+		this.setVelocity(m.getVelocity());
+		this.setAngular_velocity(m.getAngular_velocity());
+	}
 	public double velocity;// pixel/s
 	public double angular_velocity;// degree/s
 	public double getVelocity() {

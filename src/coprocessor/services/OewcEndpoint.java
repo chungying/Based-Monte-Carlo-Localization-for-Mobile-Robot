@@ -29,8 +29,8 @@ import coprocessor.services.generated.OewcProtos.OewcResponse.Builder;
 
 public class OewcEndpoint extends OewcProtos.OewcService
 implements Coprocessor, CoprocessorService{
-
-	private HRegion region;
+	private RegionCoprocessorEnvironment env;
+//	private HRegion region;
 	//private List<OewcProtos.Particle> existParticles;
 
 	@Override
@@ -41,7 +41,8 @@ implements Coprocessor, CoprocessorService{
 	@Override
 	public void start(CoprocessorEnvironment env) throws IOException {
 		if(env instanceof RegionCoprocessorEnvironment){
-			this.region = ((RegionCoprocessorEnvironment)env).getRegion();
+//			this.region = ((RegionCoprocessorEnvironment)env).getRegion();
+			this.env = (RegionCoprocessorEnvironment)env;
 		} else {
 			throw new CoprocessorException("Must be loaded on a table region!");
 		}		
@@ -56,9 +57,10 @@ implements Coprocessor, CoprocessorService{
 	@Override
 	public void getRowCount(RpcController controller, OewcRequest request,
 			RpcCallback<OewcResponse> done) {
+		OewcResponse.Builder responseBuilder = null;
 		try{ 
 			//initial and get the data from client
-			OewcResponse.Builder responseBuilder = OewcResponse.newBuilder();
+			responseBuilder = OewcResponse.newBuilder();
 			List<OewcProtos.Particle> requsetParts = request.getParticlesList();
 			List<OewcProtos.Particle> existParticles = new ArrayList<OewcProtos.Particle>();
 			List<Float> Zt = request.getMeasurementsList();
@@ -71,47 +73,20 @@ implements Coprocessor, CoprocessorService{
 				//Step 2: Orientation Estimation and setup response
 				orientationEstimate(responseBuilder, existParticles, Zt);
 				
-				/*
-				OewcProtos.Particle p = existParticles.get(existParticles.size()-1);
-				Get get = new Get(Bytes.toBytes(p.toRowKeyString()));
-				Scan scan = new Scan(get);
-				byte[] family = Bytes.toBytes("distance");
-				scan.addFamily(family);
-				InternalScanner scanner = this.region.getScanner(scan);
-				
-				List<Cell> results = new ArrayList<Cell>();
-			    boolean hasMore = false;
-			    byte[] lastRow = null;
-			    long count = 0;
-			    float weight = 0.0f;
-			    
-			    do {
-			    	hasMore = scanner.next(results);
-			    	for (Cell cell : results) {
-			    		byte[] currentRow = CellUtil.cloneRow(cell);
-			    		weight += Float.parseFloat(Bytes.toString(CellUtil.cloneValue(cell)));
-			    		if (lastRow == null || !Bytes.equals(lastRow, currentRow)) {
-			    			lastRow = currentRow;
-			    			count++;
-			    		}
-			    	}
-			    	results.clear();
-			    } while (hasMore);
-			    
-			  //Step 3: Send back the response
-			    
-			    scanner.close();
-			    */
+				//Step 3: Send back the response
 				responseBuilder.setCount(1).setWeight(1.0f);
 				responseBuilder.setStr("Particle number: "+String.valueOf(existParticles.size()));
 			}else{
 				
 				responseBuilder.setCount(-1).setWeight(-1.0f).build();
-				responseBuilder.setStr("no OEWC");
+				responseBuilder.setStr("no OEWC"+requsetParts.toString());
 			}
 			done.run(responseBuilder.build());
 	    
 		}catch(Exception e){
+			responseBuilder.setCount(-1).setWeight(-1.0f).build();
+			responseBuilder.setStr("failed:"+e.toString());
+			done.run(responseBuilder.build());
 			e.printStackTrace();
 		}
 	}
@@ -132,7 +107,7 @@ implements Coprocessor, CoprocessorService{
 			//get the round measurements to circleMeasure
 			Get get = new Get(Bytes.toBytes(p.toRowKeyString()));
 			get.addFamily(family);
-			result = this.region.get(get);
+			result = this.env.getRegion().get(get);
 			NavigableMap<byte[], byte[]> circleMap = new TreeMap<byte[], byte[]>(new BytesValueComparator());
 			circleMap.putAll(result.getFamilyMap(family));
 			List<Float> circleMeasurements = new ArrayList<Float>();
@@ -190,18 +165,40 @@ implements Coprocessor, CoprocessorService{
 
 	private boolean exsitRow(List<Particle> src, List<Particle> dst) {
 		dst.clear();
-		byte[] startKey = this.region.getStartKey();
-		byte[] endKey = this.region.getEndKey();
-		byte[] tmp = null;
-		String s = "";
-		for(Particle p : src){
-			s = p.toRowKeyString();
-			tmp = Bytes.toBytes(s);
-			if(	Bytes.compareTo(tmp, startKey)>=0 &&
-				Bytes.compareTo(tmp, endKey)<0){
+		
+		byte[] startKey = this.env.getRegion().getStartKey();
+		byte[] endKey = this.env.getRegion().getEndKey();
+		if(startKey.length!=0 && endKey.length!=0){
+			for(Particle p : src){
+				String s = p.toRowKeyString();
+				byte[] tmp = Bytes.toBytes(s);
+				if(	Bytes.compareTo(tmp, startKey)>=0 &&
+					Bytes.compareTo(tmp, endKey)<0){
+					dst.add(p);
+				}
+			}
+		}else if(startKey.length==0 && endKey.length!=0){
+			for(Particle p : src){
+				String s = p.toRowKeyString();
+				byte[] tmp = Bytes.toBytes(s);
+				if(Bytes.compareTo(tmp, endKey)<0){
+					dst.add(p);
+				}
+			}
+		}else if(startKey.length!=0 && endKey.length==0){
+			for(Particle p : src){
+				String s = p.toRowKeyString();
+				byte[] tmp = Bytes.toBytes(s);
+				if(Bytes.compareTo(tmp, startKey)>=0){
+					dst.add(p);
+				}
+			}
+		}else{
+			for(Particle p : src){
 				dst.add(p);
 			}
 		}
+		
 		if(dst.size()>0){
 			return true;
 		}else {

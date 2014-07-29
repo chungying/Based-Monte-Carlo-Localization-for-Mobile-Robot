@@ -3,6 +3,8 @@
 
 package coprocessor.services.generated;
 
+import util.metrics.Transformer;
+
 
 public final class OewcProtos {
   private OewcProtos() {}
@@ -712,9 +714,7 @@ public final class OewcProtos {
     }
 
 	public String toRowKeyString() {
-		String x = String.valueOf(this.getX());
-		String y = String.valueOf(this.getY());
-		return "("+y+","+x+")";
+		return Transformer.xy2RowkeyString(this.getX(), this.getY());
 	}
 
     // @@protoc_insertion_point(class_scope:Particle)
