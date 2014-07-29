@@ -32,13 +32,14 @@ public class IMCLROE extends SAMCL{
 	public static void main(String[] args) throws Throwable{
 		//for debug mode
 		if(args.length==0){
-			String[] targs = {/*"-cl",*/
-					//"-i","file:///Users/ihsumlee/Jolly/jpg/white.jpg"
-					"-i","file:///home/w514/jpg/test6.jpg"
+			String[] targs = {"-cl"
+					,"-t","map.512.4.split"
+					//,"-i","file:///Users/ihsumlee/Jolly/jpg/white.jpg"
+					,"-i","file:///home/w514/jpg/map.jpg"
 					,"-o","4"
 					,"-rl","true"
-					,"-rx","30"
-					,"-ry","30"
+					,"-rx","100"
+					,"-ry","100"
 					,"-p","10"
 					};
 			args = targs;
@@ -51,7 +52,7 @@ public class IMCLROE extends SAMCL{
 		jc.parse(args);
 		
 		imclroe.setup();
-		imclroe.Pre_caching();
+		if(!imclroe.onCloud)	imclroe.Pre_caching();
 		
 		RobotState robot = new RobotState(19,19, 0, imclroe.precomputed_grid, null, null); 
 		jc = new JCommander();

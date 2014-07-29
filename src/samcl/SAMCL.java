@@ -260,7 +260,7 @@ public class SAMCL implements Closeable{
 			Tools.drawRobot(grap, robot.getX(), robot.getY(), robot.getHead(), 10, Color.RED);
 	
 			//Best Particle
-			Tools.drawRobot(grap, bestParticle.getX(), bestParticle.getY(), bestParticle.getTh(), 8, Color.GREEN);
+			Tools.drawRobot(grap, bestParticle.getX(), bestParticle.getY(), bestParticle.getZ()*360/this.orientation /* bestParticle.getTh() FIXME */, 8, Color.GREEN);
 	
 			//SER
 	//		if (SER.size() >= 1) {
