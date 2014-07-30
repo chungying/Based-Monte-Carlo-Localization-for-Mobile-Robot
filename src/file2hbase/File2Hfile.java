@@ -8,8 +8,6 @@ import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
 import org.apache.hadoop.hbase.mapreduce.HFileOutputFormat;
-import org.apache.hadoop.hbase.mapreduce.HFileOutputFormat2;
-import org.apache.hadoop.hbase.mapreduce.TableOutputFormat;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
@@ -67,10 +65,10 @@ public class File2Hfile {
 		
 		job.setReducerClass(Reducer2Hfile.class);
 		
-		job.setOutputFormatClass(HFileOutputFormat2.class);
+		job.setOutputFormatClass(HFileOutputFormat.class);
 		FileOutputFormat.setOutputPath(job, new Path("/user/w514/hfileTableTest"));
 		HTable hTable = new HTable(conf, table);
-		HFileOutputFormat2.configureIncrementalLoad(job, hTable);
+		HFileOutputFormat.configureIncrementalLoad(job, hTable);
 		
 		
 		System.out.println("mapreduce.job.reduces = "+

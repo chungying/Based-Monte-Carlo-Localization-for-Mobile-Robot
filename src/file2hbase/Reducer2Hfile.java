@@ -21,7 +21,7 @@ import util.metrics.Transformer;
 import file2hbase.Reducer2Hbase.Counters;
 
 public class Reducer2Hfile 
-extends Reducer<IntWritable, RectangleWritableComparable, ImmutableBytesWritable, Cell>{
+extends Reducer<IntWritable, RectangleWritableComparable, ImmutableBytesWritable, KeyValue>{
 	private HTable Table = null;
 	private byte[] Family_Distance = null;
 	private byte[] Family_Energy = null;
@@ -60,16 +60,15 @@ extends Reducer<IntWritable, RectangleWritableComparable, ImmutableBytesWritable
 		
 		for (RectangleWritableComparable value: values) {
 			try {
-				Cell cell = CellUtil.createCell(
+				KeyValue kv = new KeyValue(
 						Bytes.toBytes(String.valueOf(value.x.get())), 
 						Bytes.toBytes("distance"), 
 						Bytes.toBytes(String.valueOf(value.y.get())), 
 						System.currentTimeMillis(),
-						KeyValue.Type.Put.getCode(),
 						Bytes.toBytes(String.valueOf(value.height.get())));
 				ImmutableBytesWritable output = new ImmutableBytesWritable();
 				output.set(Bytes.toBytes(String.valueOf(value.x.get())));
-				context.write(output, cell);
+				context.write(output, kv);
 //				Grid gridmap = new Grid(orientation, (orientation/2)+1, path);
 //
 //				gridmap.readmap(path, context);
