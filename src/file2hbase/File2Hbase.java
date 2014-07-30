@@ -33,7 +33,7 @@ public class File2Hbase {
 
 	public static final String NAME = "ImportFromFile";
 
-	private static CommandLine parseArgs(String[] args) throws ParseException {
+	public static CommandLine parseArgs(String[] args) throws ParseException {
 
 		Options options = new Options();
 
