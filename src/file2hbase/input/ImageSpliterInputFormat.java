@@ -1,5 +1,149 @@
 package file2hbase.input;
 
-public class ImageSpliterInputFormat {
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.imageio.ImageIO;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.BlockLocation;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.LocatedFileStatus;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.InputSplit;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.JobContext;
+import org.apache.hadoop.mapreduce.RecordReader;
+import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
+import org.apache.hadoop.util.StringUtils;
+
+import file2hbase.RectangleWritableComparable;
+
+public class ImageSpliterInputFormat extends TextInputFormat{
+	public static void main(String[] args){
+		Path path = new Path("/home/w514/jpg/test6.jpg,/home/w514/jpg/map.jpg");
+		System.out.println(path);
+		System.out.println(path.getParent());
+	}
+
+	 private static final Log LOG = LogFactory.getLog(ImageSpliterInputFormat.class);
+
+	 public static final String MAP_NUMBER = 
+			    "mapreduce.input.imagespliterinputformat.map.number";
+
+	protected RectangleSplit makeSplit(Path filePath, long length, String[] hosts
+			, int imageWidth, int imageHeight, RectangleWritableComparable rectangle) {
+		return new RectangleSplit(filePath, length, hosts, imageWidth, imageHeight, rectangle);
+	}
+
+	@Override
+	public List<InputSplit> getSplits(JobContext job) throws IOException {
+		// generate splits
+		List<InputSplit> splits = new ArrayList<InputSplit>();
+		List<FileStatus> files = listStatus(job);
+		for (FileStatus file: files) {
+			Path path = file.getPath();
+			long length = file.getLen();
+			if (length != 0) {
+				
+				FileSystem fs = path.getFileSystem(job.getConfiguration());
+				
+				BlockLocation[] blkLocations;
+				if (file instanceof LocatedFileStatus) {
+					blkLocations = ((LocatedFileStatus) file).getBlockLocations();
+				} else {
+					fs = path.getFileSystem(job.getConfiguration());
+					blkLocations = fs.getFileBlockLocations(file, 0, length);
+				}
+				
+				FSDataInputStream inputStream = fs.open(path);
+				BufferedImage image = ImageIO.read(inputStream);
+				int imageWidth = image.getWidth();
+				int imageHeight = image.getHeight();
+				inputStream.close();
+				fs.close();
+				
+				int mapNumber = 1;
+				String str = job.getConfiguration().get(MAP_NUMBER);
+				if(str!=null){
+					mapNumber = Integer.parseInt(str);
+					LOG.debug("setup the number of map tasks:" + str);
+				}else
+					LOG.debug("didn't setup the number of map tasks, use default number 1.");
+				
+				int height = Math.round((float)imageHeight/mapNumber)+1;
+				
+				for(int i = 0; i < mapNumber; i++){
+					int y = i*height;
+					splits.add(makeSplit(path, length, blkLocations[0].getHosts()
+						, imageWidth, imageHeight
+						, new RectangleWritableComparable( 0, y, imageWidth, height)));
+				}
+			} else {
+				//Create empty hosts array for zero length files
+				splits.add(this.makeSplit(path, length, new String[0], 0, 0, new RectangleWritableComparable()));
+			}
+		}
+		// Save the number of input files for metrics/loadgen
+		job.getConfiguration().setLong(NUM_INPUT_FILES, files.size());
+		LOG.debug("Total # of splits: " + splits.size());
+		return splits;
+	}
+
+	@Override
+	public RecordReader<LongWritable, Text> createRecordReader(
+			InputSplit split, TaskAttemptContext context) {
+		// TODO Auto-generated method stub
+		return super.createRecordReader(split, context);
+	}
+
+	
+	/**
+	 * Sets the path as the input 
+	 * for the map-reduce job.
+	 * 
+	 * @param job the job
+	 * @param onlyPath only one path to be set as 
+	 *        the input for the map-reduce job.
+	 */
+	public static void setInputPaths(Job job, 
+			String onlyPath) throws IOException {
+		setInputPaths(job, new Path(onlyPath));
+	}
+	
+	/**
+	 * Set the array of {@link Path}s as the list of inputs
+	 * for the map-reduce job.
+	 * 
+	 * @param job The job to modify 
+	 * @param inputPaths the {@link Path}s of the input directories/files 
+	 * for the map-reduce job.
+	 */ 
+	public static void setInputPaths(Job job, Path inputPath) throws IOException {
+		Configuration conf = job.getConfiguration();
+		Path path = inputPath.getFileSystem(conf).makeQualified(inputPath);
+		StringBuffer str = new StringBuffer(StringUtils.escapeString(path.toString()));
+		conf.set(INPUT_DIR, str.toString());
+	}
+	
+	/**
+	 * Set the number of map tasks.
+	 * 
+	 * @param job The job to modify.
+	 * @param mapNumber the number of map task.
+	 */
+	public static void setMapTaskNumber(Job job, int mapNumber){
+		Configuration conf = job.getConfiguration();
+		conf.setInt(MAP_NUMBER, mapNumber);
+	}
 
 }

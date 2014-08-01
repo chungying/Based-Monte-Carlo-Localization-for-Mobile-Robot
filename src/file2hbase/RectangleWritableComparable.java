@@ -25,44 +25,24 @@ public class RectangleWritableComparable implements WritableComparable<Rectangle
 	public IntWritable height;
 	
 	public RectangleWritableComparable(){
-		set(new IntWritable(),new IntWritable(),new IntWritable(),new IntWritable());
+		this(new IntWritable(),new IntWritable(),new IntWritable(),new IntWritable());
 		
 	}
 	
 	public RectangleWritableComparable(IntWritable x, IntWritable y,
 			IntWritable width, IntWritable height) {
-		this.set(x, y, width, height);
-	}
-	
-	public RectangleWritableComparable(int x, int y,
-			int width, int height) {
-		this.set(new IntWritable(x), new IntWritable(y), new IntWritable(width), new IntWritable(height));
-	}
-
-	public void set(IntWritable x, IntWritable y, IntWritable width, IntWritable height){
 		this.x = x;
 		this.y = y;
 		this.width = width;
 		this.height = height;
-		
 	}
 	
-	@Override
-	public void readFields(DataInput in) throws IOException {
-		x.readFields(in);
-		y.readFields(in);
-		width.readFields(in);
-		height.readFields(in);
+	public RectangleWritableComparable(int x, int y,
+			int width, int height) {
+		this(new IntWritable(x), new IntWritable(y), new IntWritable(width), new IntWritable(height));
 	}
 
-	@Override
-	public void write(DataOutput out) throws IOException {
-		x.write(out);
-		y.write(out);
-		width.write(out);
-		height.write(out);
-	}
-
+	
 	public int compareTo(RectangleWritableComparable rect) {
 		int cmp = x.compareTo(rect.x);
 		if(cmp != 0){
@@ -98,7 +78,29 @@ public class RectangleWritableComparable implements WritableComparable<Rectangle
 
 	@Override
 	public String toString() {
-		return x.toString()+"\t"+y.toString()+"\t"+width.toString()+"\t"+height.toString();
+		return "Rectangle area: ("+x+","+y+"),width: "+width+", height: "+height;
+	}
+	
+	@Override
+	public void readFields(DataInput in) throws IOException {
+		x.readFields(in);
+		y.readFields(in);
+		width.readFields(in);
+		height.readFields(in);
+	}
+
+	@Override
+	public void write(DataOutput out) throws IOException {
+		x.write(out);
+		y.write(out);
+		width.write(out);
+		height.write(out);
+	}
+	
+	public static RectangleWritableComparable read(DataInput in){
+		RectangleWritableComparable result = new RectangleWritableComparable();
+		result.read(in);
+		return result;
 	}
 
 }
