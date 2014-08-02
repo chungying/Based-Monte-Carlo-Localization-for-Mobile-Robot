@@ -14,6 +14,9 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
 
+import file2hbase.input.ImageSpliterInputFormat;
+import file2hbase.type.RectangleWritableComparable;
+
 public class File2Hfile {
 	
 	public static void main(String[] args) throws Exception {
@@ -40,40 +43,32 @@ public class File2Hfile {
 		
 		// ImportFromFile-8-JobDef Define the job with the required classes.
 		@SuppressWarnings("deprecation")
-		Job job = new Job(conf, "Import from file " + input + "through " + reducers + "reducer(s)" + " into table " + table);
+		Job job = new Job(conf, "Import from file " + input + "through " + reducers + "mapper(s)" + " into table " + table);
 		// ((JobConf)job.getConfiguration()).setJar("/home/w514/iff.jar");
 		job.setJarByClass(File2Hbase.class);
 		
-		FileInputFormat.addInputPath(job, new Path(input));
 		job.getConfiguration().set("conf.input", input);
-		job.setInputFormatClass(WholeFileInputFormat.class);
-		
-		job.setMapperClass(File2Mapper.class);
-		
-		job.setMapOutputKeyClass(IntWritable.class);
-		job.setMapOutputValueClass(RectangleWritableComparable.class);
-		
-		job.setPartitionerClass(CustomePartitioner.class);
 		job.getConfiguration().set("conf.orientation", orientation);
-		job.setNumReduceTasks(Integer.parseInt(reducers));
-		
 		job.getConfiguration().set("conf.table", table);
 		job.getConfiguration().set("conf.family.distance", "distance");
 		job.getConfiguration().set("conf.family.energy", "energy");
 		job.getConfiguration().set("conf.family.laserpoint.x", "laserpoint.x");
 		job.getConfiguration().set("conf.family.laserpoint.y", "laserpoint.y");
+		job.getConfiguration().set(ImageSpliterInputFormat.MAP_NUMBER, reducers);
+		job.setInputFormatClass(ImageSpliterInputFormat.class);
 		
-		job.setReducerClass(Reducer2Hfile.class);
+		ImageSpliterInputFormat.addInputPath(job, new Path(input));
+		//TODOdone mapper 
+		job.setMapperClass(Image2Mapper.class);
+		job.setMapOutputKeyClass(ImmutableBytesWritable.class);
+		job.setMapOutputValueClass(Put.class);
 		
 		job.setOutputFormatClass(HFileOutputFormat.class);
+		//TODO modify the output path
 		FileOutputFormat.setOutputPath(job, new Path("/user/w514/hfileTableTest"));
 		HTable hTable = new HTable(conf, table);
 		HFileOutputFormat.configureIncrementalLoad(job, hTable);
 		
-		
-		System.out.println("mapreduce.job.reduces = "+
-				job.getConfiguration().get("mapreduce.job.reduces", "null"));
-
 		System.exit(job.waitForCompletion(true) ? 0 : 1);
 	}
 }

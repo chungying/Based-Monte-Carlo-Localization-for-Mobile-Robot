@@ -12,6 +12,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.*;
 import org.apache.hadoop.mapreduce.Mapper;
 
+import file2hbase.type.RectangleWritableComparable;
+
 // ^^ ImportFromFile
 /**
  * Implements the <code>Mapper</code> that takes the lines from the input

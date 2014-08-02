@@ -1,4 +1,4 @@
-package file2hbase;
+package file2hbase.type;
 
 import java.io.*;
 

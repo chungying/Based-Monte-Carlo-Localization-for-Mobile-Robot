@@ -18,6 +18,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.io.*;
 import org.apache.hadoop.mapreduce.Reducer;
 
+import file2hbase.type.RectangleWritableComparable;
 import samcl.*;
 import util.metrics.Transformer;
 

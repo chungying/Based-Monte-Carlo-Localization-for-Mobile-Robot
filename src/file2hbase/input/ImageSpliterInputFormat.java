@@ -16,6 +16,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -23,12 +24,13 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.util.StringUtils;
 
-import file2hbase.RectangleWritableComparable;
+import file2hbase.type.RectangleWritableComparable;
 
-public class ImageSpliterInputFormat extends TextInputFormat{
+public class ImageSpliterInputFormat extends FileInputFormat<Text, RectangleSplit>{
 	public static void main(String[] args){
 		Path path = new Path("/home/w514/jpg/test6.jpg,/home/w514/jpg/map.jpg");
 		System.out.println(path);
@@ -80,13 +82,13 @@ public class ImageSpliterInputFormat extends TextInputFormat{
 				}else
 					LOG.debug("didn't setup the number of map tasks, use default number 1.");
 				
-				int height = Math.round((float)imageHeight/mapNumber)+1;
+				int rectangleHeight = Math.round((float)imageHeight/mapNumber)+1;
 				
 				for(int i = 0; i < mapNumber; i++){
-					int y = i*height;
+					int y = i*rectangleHeight;
 					splits.add(makeSplit(path, length, blkLocations[0].getHosts()
 						, imageWidth, imageHeight
-						, new RectangleWritableComparable( 0, y, imageWidth, height)));
+						, new RectangleWritableComparable( 0, y, imageWidth, rectangleHeight)));
 				}
 			} else {
 				//Create empty hosts array for zero length files
@@ -100,10 +102,9 @@ public class ImageSpliterInputFormat extends TextInputFormat{
 	}
 
 	@Override
-	public RecordReader<LongWritable, Text> createRecordReader(
+	public RecordReader<Text, RectangleSplit> createRecordReader(
 			InputSplit split, TaskAttemptContext context) {
-		// TODO Auto-generated method stub
-		return super.createRecordReader(split, context);
+		return new RectangleRecordReader();
 	}
 
 	

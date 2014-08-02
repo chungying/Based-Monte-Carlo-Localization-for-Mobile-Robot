@@ -9,7 +9,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.InputSplit;
 
-import file2hbase.RectangleWritableComparable;
+import file2hbase.type.RectangleWritableComparable;
 
 public class RectangleSplit extends InputSplit implements Writable{
 
@@ -53,6 +53,10 @@ public class RectangleSplit extends InputSplit implements Writable{
 
 	public int getImageHeight() {
 		return imageHeight;
+	}
+
+	public RectangleWritableComparable getRectangle() {
+		return rectangle;
 	}
 
 	@Override

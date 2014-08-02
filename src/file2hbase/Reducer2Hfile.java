@@ -19,6 +19,7 @@ import org.apache.hadoop.mapreduce.Reducer;
 import samcl.Grid;
 import util.metrics.Transformer;
 import file2hbase.Reducer2Hbase.Counters;
+import file2hbase.type.RectangleWritableComparable;
 
 public class Reducer2Hfile 
 extends Reducer<IntWritable, RectangleWritableComparable, ImmutableBytesWritable, KeyValue>{
@@ -38,6 +39,7 @@ extends Reducer<IntWritable, RectangleWritableComparable, ImmutableBytesWritable
 		Family_Y = Bytes.toBytes(context.getConfiguration().get("conf.family.laserpoint.y","laserpoint.y"));
 		
 	}
+	
 	@Override
 	protected void reduce(
 			IntWritable key,
