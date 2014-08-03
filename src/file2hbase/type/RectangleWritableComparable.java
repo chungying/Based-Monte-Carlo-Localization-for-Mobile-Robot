@@ -97,9 +97,9 @@ public class RectangleWritableComparable implements WritableComparable<Rectangle
 		height.write(out);
 	}
 	
-	public static RectangleWritableComparable read(DataInput in){
+	public static RectangleWritableComparable read(DataInput in) throws IOException{
 		RectangleWritableComparable result = new RectangleWritableComparable();
-		result.read(in);
+		result.readFields(in);
 		return result;
 	}
 

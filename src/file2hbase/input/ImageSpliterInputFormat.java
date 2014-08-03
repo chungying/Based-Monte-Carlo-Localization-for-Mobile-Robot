@@ -72,7 +72,7 @@ public class ImageSpliterInputFormat extends FileInputFormat<Text, RectangleSpli
 				int imageWidth = image.getWidth();
 				int imageHeight = image.getHeight();
 				inputStream.close();
-				fs.close();
+				//fs.close();
 				
 				int mapNumber = 1;
 				String str = job.getConfiguration().get(MAP_NUMBER);

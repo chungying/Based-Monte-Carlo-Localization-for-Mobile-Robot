@@ -21,6 +21,10 @@ public class RectangleSplit extends InputSplit implements Writable{
 	private int imageHeight;
 	private RectangleWritableComparable rectangle;
 	
+	public RectangleSplit(){
+		
+	}
+	
 	public RectangleSplit(Path filePath, long length, String[] hosts, 
 			int imageWidth,	int imageHeight, RectangleWritableComparable rectangle) {
 		this.filePath = filePath;
