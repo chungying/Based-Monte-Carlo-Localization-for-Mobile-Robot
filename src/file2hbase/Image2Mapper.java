@@ -15,6 +15,10 @@ import util.metrics.Transformer;
 import file2hbase.input.RectangleSplit;
 
 public class Image2Mapper extends Mapper< Text, RectangleSplit, ImmutableBytesWritable, Put>{
+	private enum Counters {
+		MAP,
+		PUT
+	}
 	private byte[] Family_Distance = null;
 	private byte[] Family_Energy = null;
 	private byte[] Family_X = null; 
@@ -32,7 +36,7 @@ public class Image2Mapper extends Mapper< Text, RectangleSplit, ImmutableBytesWr
 	@Override
 	protected void map(Text key, RectangleSplit value, Context context)
 			throws IOException, InterruptedException {
-		
+		context.getCounter(Counters.MAP).increment(1);
 		System.out.println("server name: " + java.net.InetAddress.getLocalHost().getHostName());
 		System.out.println(key.toString());
 		
@@ -66,6 +70,7 @@ public class Image2Mapper extends Mapper< Text, RectangleSplit, ImmutableBytesWr
 					rowkeyStr = Transformer.xy2RowkeyString(i, j, random);
 					
 					for(int k = 0; j < orientation; k++){
+						context.getCounter(Counters.PUT).increment(1);
 						String measurements = String.valueOf(gridmap.G[i][j].circle_measurements[k]);
 						Put putDistance = new Put(Bytes.toBytes(rowkeyStr));
 						putDistance.setDurability(Durability.SKIP_WAL);
