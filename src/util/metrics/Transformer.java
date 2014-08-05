@@ -21,7 +21,7 @@ public class Transformer {
 	static public double checkHeadRange(double h){
 		return (h%360+360)%360;
 	}
-
+	
 	public static float[] drawMeasurements(Float[] circles, int z) {
 		int sensor_number = (circles.length/2) +1;
 		float[] measurements = new float[sensor_number];
@@ -44,6 +44,16 @@ public class Transformer {
 			measurements[i] = circles[index];
 		}
 		return measurements;	
+	}
+	
+	
+	public static float CalculateEnergy(float[] measurements){
+		float energy = 0.0f;
+		for(float m: measurements){
+			energy+=m;
+		}
+		energy = energy/measurements.length;
+		return energy;
 	}
 
 	public static float WeightFloat(float[] a, float[] b){

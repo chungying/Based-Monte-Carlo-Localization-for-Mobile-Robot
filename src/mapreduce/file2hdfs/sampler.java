@@ -1,57 +1,135 @@
 package mapreduce.file2hdfs;
 
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+
+import javax.swing.JFrame;
+
 import java.io.IOException;
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NavigableMap;
+import java.util.Random;
 import java.util.TreeMap;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.io.IOUtils;
-import org.apache.hadoop.io.SequenceFile;
+import samcl.Grid;
+import util.gui.Panel;
+import util.metrics.Transformer;
 
 public class sampler {
 	public static void main(String[] args) throws IOException{
+		int distribution = 10;
+		int samples = 10000;
 		
-		NavigableMap<Integer, Integer> map = createMap(1000);
+		int statisticsRange = 100;
+		int imageHeight = 300;
+		int bandWidth = 3;
 		
+		int orientation  = 36;
+		int sensorNumber = 19;
+		String imagePath = "file:///Users/ihsumlee/Jolly/jpg/map.jpg";
 		
-		List<Float> list = new ArrayList<Float>();
+		int columnWidth = Math.round(samples/distribution);
+		NavigableMap<Float, Integer> map = new TreeMap<Float, Integer>();
+		int[] list = new int[statisticsRange];
+		List<Float> splitKeys = new ArrayList<Float>();
 		
-		for(Float f: list){
-			
-			int value = Math.round(f*1000);
-			addOne(map, value);
+		sampling(map, new Grid(orientation, sensorNumber, imagePath), samples);
+		
+		statistic(splitKeys, list, map, columnWidth, statisticsRange);
+		
+		int counter =0;
+		for(Float key: splitKeys){
+			System.out.println(key);
 		}
 		
-		
-		
+		drawImage(list, statisticsRange, imageHeight, bandWidth);
 		
 	}
 	
+	public static void statistic(List<Float> splitKeys, int[] list, NavigableMap<Float,Integer> map, int columnWidth, int statisticsRange){
+		int i  = 1;
+		Float lastKey = 0.0f;
+		Integer lastValue = 0;
+		for(Entry<Float,Integer> e: map.entrySet()){
+			Float currentKey = e.getKey();
+			Integer currentValue = e.getValue() + lastValue;
+			
+			if(lastValue<(i*columnWidth) && currentValue>=(i*columnWidth)){
+				Float deltaKey = currentKey - lastKey;
+				Integer deltaValue = currentValue - lastValue;
+				Integer diff = i*columnWidth - lastValue;
+				Float splitKey = lastKey + (diff/deltaValue) * deltaKey;
+				splitKeys.add(splitKey);
+				i++;
+			}
+			
+			lastKey = currentKey;
+			lastValue = currentValue;
+			/*****/
+			int value = Math.round(e.getKey()*(statisticsRange-1));
+			list[value] = list[value]+e.getValue();
+		}
+	}
+	
+	public static void drawImage(int[] list, int statisticsRange, int imageHeight, int bandWidth){
+		BufferedImage image = new BufferedImage(statisticsRange*bandWidth, imageHeight, BufferedImage.TYPE_INT_BGR);
+		Graphics2D graph = (Graphics2D) image.getGraphics();
+		
+		int maxHeight = 0;
+		for(int value:list){
+			if(value > maxHeight)
+				maxHeight = value;
+		}
+		
+		for(int j = 0; j < list.length; j++){
+			int h = (int) Math.round( ( (double)list[j] / (double)maxHeight ) * imageHeight);
+			int y = imageHeight-h;
+			int x = j*bandWidth;
+			graph.drawRect(x, y, bandWidth, h);
+		}
+		
+		JFrame frame = new JFrame("distergram");
+		frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+		Panel panel = new Panel(image);
+		frame.add(panel);
+		frame.setSize(statisticsRange*bandWidth, imageHeight);
+		frame.setVisible(true);
+	}
+	
+	private static void sampling(NavigableMap<Float, Integer> map, Grid grid, int samples) throws IOException {
+		grid.readmap();
+		int width = grid.width;
+		int height = grid.height;
+		Random random = new Random();
+		for(int i = 0; i < samples; i++){
+			int x = random.nextInt(width);
+			int y = random.nextInt(height);
+			while(grid.map_array(x, y)==Grid.GRID_OCCUPIED){
+				x = random.nextInt(width);
+				y = random.nextInt(height);
+			}
+			int z = random.nextInt(grid.orientation);
+			List<Float> circle = grid.getLaserDist(x, y).getKey();
+			float[] measurements = Transformer.drawMeasurements(circle.toArray(new Float[circle.size()]), z);
+			float energy = Transformer.CalculateEnergy(measurements);
+			
+			addOne(map,energy);
+		}		
+	}
+
 	public static boolean checkOut(float value){
 		if(value<0.0f && value>1.0f)
 			return false;
 		return true;
 	}
 	
-	public static void addOne(NavigableMap<Integer, Integer> map, int key){
-		map.put(key, (map.get(key)+1));
+	public static void addOne(NavigableMap<Float, Integer> map, Float key){
+		if(map.get(key)!=null)
+			map.put(key, (map.get(key)+1));
+		else
+			map.put(key, 1);
 	}
 	
-	public static NavigableMap<Integer, Integer> createMap(int range){
-		NavigableMap<Integer, Integer> map = new TreeMap<Integer, Integer>();
-		for(int i = 0 ; i < range; i++){
-			map.put(i, 0);
-		}
-		return map;
-	}
 }
