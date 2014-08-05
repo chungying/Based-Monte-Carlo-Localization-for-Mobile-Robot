@@ -18,17 +18,19 @@ import util.gui.Panel;
 import util.metrics.Transformer;
 
 public class sampler {
+		private static int distribution = 10;
+		private static int samples = 10000;
+		
+		private static int statisticsRange = 100;
+		private static int imageHeight = 300;
+		private static int bandWidth = 3;
+		
+		private static int orientation  = 36;
+		private static int sensorNumber = 19;
+		private static String imagePath = "file:///Users/ihsumlee/Jolly/jpg/map.jpg";
+		
 	public static void main(String[] args) throws IOException{
-		int distribution = 10;
-		int samples = 10000;
 		
-		int statisticsRange = 100;
-		int imageHeight = 300;
-		int bandWidth = 3;
-		
-		int orientation  = 36;
-		int sensorNumber = 19;
-		String imagePath = "file:///Users/ihsumlee/Jolly/jpg/map.jpg";
 		
 		int columnWidth = Math.round(samples/distribution);
 		NavigableMap<Float, Integer> map = new TreeMap<Float, Integer>();
