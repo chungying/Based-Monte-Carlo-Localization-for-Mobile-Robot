@@ -67,7 +67,6 @@ public class File2Hfile {
 		job.setMapOutputValueClass(Put.class);
 		job.setReducerClass(HfileReducer.class);
 		job.setOutputFormatClass(HFileOutputFormat.class);
-		//TODO modify the output path
 		String userName = System.getProperty("user.name");
 		String outputStr = "/user/"+userName+"/hfiles/"+tableName+"/"+System.currentTimeMillis();
 		FileOutputFormat.setOutputPath(job, new Path(outputStr));

@@ -1,4 +1,4 @@
-package mapreduce;
+package mapreduce.file2hdfs;
 
 import java.io.IOException;
 
@@ -17,6 +17,7 @@ import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
 import org.apache.hadoop.hbase.mapreduce.HFileOutputFormat;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
 
 public class File2Hdfs {
@@ -61,23 +62,20 @@ public class File2Hdfs {
 		job.setInputFormatClass(ImageSpliterInputFormat.class);
 		
 		ImageSpliterInputFormat.addInputPath(job, new Path(input));
-		//TODOdone mapper 
+		//TODO mapper 
 		job.setMapperClass(Image2Mapper.class);
 		job.setMapOutputKeyClass(ImmutableBytesWritable.class);
 		job.setMapOutputValueClass(Put.class);
-		job.setOutputFormatClass(HFileOutputFormat.class);
-		//TODO modify the output path
+		job.setOutputFormatClass(TextOutputFormat.class);
 		String userName = System.getProperty("user.name");
-		String outputStr = "/user/"+userName+"/hfiles/"+tableName+"/"+System.currentTimeMillis();
+		String outputStr = "/user/"+userName+"/precache/"+tableName+"/"+System.currentTimeMillis();
 		FileOutputFormat.setOutputPath(job, new Path(outputStr));
-		HTable hTable = new HTable(conf, tableName);
-		HFileOutputFormat.configureIncrementalLoad(job, hTable);
+		
 		
 		if(!job.waitForCompletion(true)){
 			System.out.println("job failed");
 			System.exit(1);
 		}
-		hTable.close();
 		totalTime = System.currentTimeMillis() - totalTime;
 		System.out.println("total time:" + (totalTime) + " ms");
 		System.exit(1);
