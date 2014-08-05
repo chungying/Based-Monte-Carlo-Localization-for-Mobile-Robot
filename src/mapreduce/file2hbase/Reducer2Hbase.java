@@ -1,4 +1,4 @@
-package file2hbase;
+package mapreduce.file2hbase;
 
 import java.io.IOException;
 //import java.util.Vector;
@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import mapreduce.type.RectangleWritableComparable;
+
 import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.client.HTable;
 //import org.apache.hadoop.hbase.client.HTable;
@@ -18,7 +20,6 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.io.*;
 import org.apache.hadoop.mapreduce.Reducer;
 
-import file2hbase.type.RectangleWritableComparable;
 import samcl.*;
 import util.metrics.Transformer;
 

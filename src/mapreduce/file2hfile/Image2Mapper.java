@@ -1,7 +1,9 @@
-package file2hbase;
+package mapreduce.file2hfile;
 
 import java.io.IOException;
 import java.util.Random;
+
+import mapreduce.input.RectangleSplit;
 
 import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.client.Put;
@@ -12,7 +14,6 @@ import org.apache.hadoop.mapreduce.Mapper;
 
 import samcl.Grid;
 import util.metrics.Transformer;
-import file2hbase.input.RectangleSplit;
 
 public class Image2Mapper extends Mapper< Text, RectangleSplit, ImmutableBytesWritable, Put>{
 	private enum Counters {

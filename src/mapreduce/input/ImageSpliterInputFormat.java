@@ -1,4 +1,4 @@
-package file2hbase.input;
+package mapreduce.input;
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.imageio.ImageIO;
+
+import mapreduce.type.RectangleWritableComparable;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -27,8 +29,6 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.util.StringUtils;
-
-import file2hbase.type.RectangleWritableComparable;
 
 public class ImageSpliterInputFormat extends FileInputFormat<Text, RectangleSplit>{
 	public static void main(String[] args){

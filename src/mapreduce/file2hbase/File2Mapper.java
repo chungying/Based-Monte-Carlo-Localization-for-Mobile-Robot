@@ -1,4 +1,4 @@
-package file2hbase;
+package mapreduce.file2hbase;
 
 import java.awt.image.BufferedImage;
 import java.io.*;
@@ -6,13 +6,13 @@ import java.net.URI;
 
 import javax.imageio.ImageIO;
 
+import mapreduce.type.RectangleWritableComparable;
+
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.*;
 import org.apache.hadoop.mapreduce.Mapper;
-
-import file2hbase.type.RectangleWritableComparable;
 
 // ^^ ImportFromFile
 /**

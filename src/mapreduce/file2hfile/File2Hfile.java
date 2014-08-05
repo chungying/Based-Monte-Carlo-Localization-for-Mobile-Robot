@@ -1,6 +1,9 @@
-package file2hbase;
+package mapreduce.file2hfile;
 
 import java.util.Date;
+
+import mapreduce.file2hbase.File2Hbase;
+import mapreduce.input.ImageSpliterInputFormat;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.hadoop.conf.Configuration;
@@ -15,8 +18,6 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.hadoop.util.ToolRunner;
-
-import file2hbase.input.ImageSpliterInputFormat;
 
 public class File2Hfile {
 	

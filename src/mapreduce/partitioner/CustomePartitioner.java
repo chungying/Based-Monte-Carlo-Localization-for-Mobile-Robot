@@ -1,9 +1,9 @@
-package file2hbase.partitioner;
+package mapreduce.partitioner;
+
+import mapreduce.type.RectangleWritableComparable;
 
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.mapreduce.Partitioner;
-
-import file2hbase.type.RectangleWritableComparable;
 
 
 public class CustomePartitioner extends Partitioner<IntWritable, RectangleWritableComparable> {

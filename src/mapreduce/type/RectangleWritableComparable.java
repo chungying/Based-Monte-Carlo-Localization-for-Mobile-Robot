@@ -1,4 +1,4 @@
-package file2hbase.type;
+package mapreduce.type;
 
 import java.io.*;
 

@@ -1,6 +1,10 @@
-package file2hbase;
+package mapreduce.file2hbase;
 
 // cc ImportFromFile MapReduce job that reads from a file and writes into a table.
+import mapreduce.input.WholeFileInputFormat;
+import mapreduce.partitioner.CustomePartitioner;
+import mapreduce.type.RectangleWritableComparable;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.HelpFormatter;
@@ -24,10 +28,6 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-
-import file2hbase.input.WholeFileInputFormat;
-import file2hbase.partitioner.CustomePartitioner;
-import file2hbase.type.RectangleWritableComparable;
 
 // vv ImportFromFile
 public class File2Hbase {

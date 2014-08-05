@@ -1,4 +1,4 @@
-package file2hbase.input;
+package mapreduce.input;
 
 import java.io.IOException;
 
