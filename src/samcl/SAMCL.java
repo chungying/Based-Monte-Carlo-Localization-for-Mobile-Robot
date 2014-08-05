@@ -150,7 +150,7 @@ public class SAMCL implements Closeable{
 			 * is succeeded?
 			 * */
 			//log()
-			Transformer.log("counter:", counter, "time:", time, maxPose, robot.getPose(), averagePose);
+			
 			//Transformer.log(this.isTerminated());
 //			System.out.print("Best position:"+maxPose.toString());
 //			System.out.println("Robot position:\t"+robot.getPose().toString());
@@ -175,6 +175,14 @@ public class SAMCL implements Closeable{
 			//update image
 			image_panel.repaint();
 			duration = System.currentTimeMillis() - time;
+			Transformer.log(
+					"counter:", counter,
+					"time", time,
+					"duration:", duration,
+					"SER duration", serTime,
+					maxPose, 
+					robot.getPose(), 
+					averagePose);
 		}
 	}
 	

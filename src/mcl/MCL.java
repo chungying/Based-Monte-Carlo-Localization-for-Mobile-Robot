@@ -35,7 +35,14 @@ public class MCL extends SAMCL{
 			args = targs;
 		}
 		//TODO finish the main function,1:add robot controller
-		final MCL mcl = new MCL(false, 18, "file:///home/w514/jpg/test6.jpg", 0.001f, 100, 0.01f, 0.3f, 10);
+		final MCL mcl = new MCL(false,
+				18,
+				"file:///home/w514/jpg/test6.jpg", 
+				0.001f, 
+				100, 
+				0.01f, 
+				0.3f, 
+				10);
 		JCommander jc = new JCommander();
 		jc.setAcceptUnknownOptions(true);
 		jc.addObject(mcl);

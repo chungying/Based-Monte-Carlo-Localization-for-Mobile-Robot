@@ -1,4 +1,4 @@
-package file2hbase;
+package file2hbase.partitioner;
 
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.mapreduce.Partitioner;

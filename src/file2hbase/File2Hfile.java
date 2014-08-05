@@ -1,5 +1,7 @@
 package file2hbase;
 
+import java.util.Date;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -8,19 +10,18 @@ import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
 import org.apache.hadoop.hbase.mapreduce.HFileOutputFormat;
-import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.hbase.mapreduce.LoadIncrementalHFiles;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
+import org.apache.hadoop.util.ToolRunner;
 
 import file2hbase.input.ImageSpliterInputFormat;
-import file2hbase.type.RectangleWritableComparable;
 
 public class File2Hfile {
 	
 	public static void main(String[] args) throws Exception {
-
+		long totalTime = System.currentTimeMillis();
 		Configuration conf = HBaseConfiguration.create();
 
 		// ImportFromFile-7-Args Give the command line arguments to the
@@ -35,7 +36,7 @@ public class File2Hfile {
 		// get details
 		// vv ImportFromFile
 
-		String table = cmd.getOptionValue("t");
+		String tableName = cmd.getOptionValue("t");
 		String input = cmd.getOptionValue("i");
 		String reducers = cmd.getOptionValue("r");
 		String orientation = cmd.getOptionValue("o");
@@ -43,13 +44,14 @@ public class File2Hfile {
 		
 		// ImportFromFile-8-JobDef Define the job with the required classes.
 		@SuppressWarnings("deprecation")
-		Job job = new Job(conf, "Import from file " + input + "through " + reducers + "mapper(s)" + " into table " + table);
+		Job job = new Job(conf, "Import from file " + input + "through " + reducers + "mapper(s)" 
+		+ " into table " + tableName + " with " + orientation + " orientation.");
 		// ((JobConf)job.getConfiguration()).setJar("/home/w514/iff.jar");
 		job.setJarByClass(File2Hbase.class);
 		
 		job.getConfiguration().set("conf.input", input);
 		job.getConfiguration().set("conf.orientation", orientation);
-		job.getConfiguration().set("conf.table", table);
+		job.getConfiguration().set("conf.table", tableName);
 		job.getConfiguration().set("conf.family.distance", "distance");
 		job.getConfiguration().set("conf.family.energy", "energy");
 		job.getConfiguration().set("conf.family.laserpoint.x", "laserpoint.x");
@@ -65,10 +67,23 @@ public class File2Hfile {
 		job.setReducerClass(HfileReducer.class);
 		job.setOutputFormatClass(HFileOutputFormat.class);
 		//TODO modify the output path
-		FileOutputFormat.setOutputPath(job, new Path("/user/w514/hfileTableTest"));
-		HTable hTable = new HTable(conf, table);
+		String userName = System.getProperty("user.name");
+		String outputStr = "/user/"+userName+"/hfiles/"+tableName+"/"+System.currentTimeMillis();
+		FileOutputFormat.setOutputPath(job, new Path(outputStr));
+		HTable hTable = new HTable(conf, tableName);
 		HFileOutputFormat.configureIncrementalLoad(job, hTable);
 		
-		System.exit(job.waitForCompletion(true) ? 0 : 1);
+		if(!job.waitForCompletion(true)){
+			System.out.println("job failed");
+			System.exit(1);
+		}
+		hTable.close();
+//		long jobTime = System.currentTimeMillis() - totalTime;
+//		String[] arg = {outputStr, tableName};
+//		int exit = ToolRunner.run(new LoadIncrementalHFiles(conf), arg);
+		totalTime = System.currentTimeMillis() - totalTime;
+//		System.out.println("job time: "+ jobTime + " ms");
+		System.out.println("total time:" + (totalTime) + " ms");
+		System.exit(1);
 	}
 }

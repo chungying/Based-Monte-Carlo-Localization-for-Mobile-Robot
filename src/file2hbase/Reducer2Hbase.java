@@ -93,7 +93,6 @@ public class Reducer2Hbase
 				int translateX = value.x.get();
 				int translateY = value.y.get();
 				for (int i = 0; i < value.width.get(); i++) {
-					
 					for (int j = 0; j < value.height.get(); j++) {
 						
 						// transform to absolute type

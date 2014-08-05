@@ -37,7 +37,7 @@ public class ImageSpliterInputFormat extends FileInputFormat<Text, RectangleSpli
 		System.out.println(path.getParent());
 	}
 
-	 private static final Log LOG = LogFactory.getLog(ImageSpliterInputFormat.class);
+	 private static final Log LOG1 = LogFactory.getLog(ImageSpliterInputFormat.class);
 
 	 public static final String MAP_NUMBER = 
 			    "mapreduce.input.imagespliterinputformat.map.number";
@@ -52,11 +52,13 @@ public class ImageSpliterInputFormat extends FileInputFormat<Text, RectangleSpli
 		// generate splits
 		List<InputSplit> splits = new ArrayList<InputSplit>();
 		List<FileStatus> files = listStatus(job);
+		System.out.println("go into the getSplits function!!!!!!");
 		for (FileStatus file: files) {
+			System.out.println("get the file:" + file.toString());
 			Path path = file.getPath();
 			long length = file.getLen();
 			if (length != 0) {
-				
+				System.out.println("the file length:" + length);
 				FileSystem fs = path.getFileSystem(job.getConfiguration());
 				
 				BlockLocation[] blkLocations;
@@ -78,9 +80,9 @@ public class ImageSpliterInputFormat extends FileInputFormat<Text, RectangleSpli
 				String str = job.getConfiguration().get(MAP_NUMBER);
 				if(str!=null){
 					mapNumber = Integer.parseInt(str);
-					LOG.debug("setup the number of map tasks:" + str);
+					System.out.println("setup the number of map tasks:" + str);
 				}else
-					LOG.debug("didn't setup the number of map tasks, use default number 1.");
+					System.out.println("didn't setup the number of map tasks, use default number 1.");
 				
 				int rectangleHeight = Math.round((float)imageHeight/mapNumber)+1;
 				
@@ -91,13 +93,14 @@ public class ImageSpliterInputFormat extends FileInputFormat<Text, RectangleSpli
 						, new RectangleWritableComparable( 0, y, imageWidth, rectangleHeight)));
 				}
 			} else {
+				System.out.println("the file is empty");
 				//Create empty hosts array for zero length files
 				splits.add(this.makeSplit(path, length, new String[0], 0, 0, new RectangleWritableComparable()));
 			}
 		}
 		// Save the number of input files for metrics/loadgen
 		job.getConfiguration().setLong(NUM_INPUT_FILES, files.size());
-		LOG.debug("Total # of splits: " + splits.size());
+		System.out.println("Total # of splits: " + splits.size());
 		return splits;
 	}
 

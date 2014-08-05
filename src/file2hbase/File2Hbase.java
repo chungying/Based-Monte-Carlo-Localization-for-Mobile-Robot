@@ -25,6 +25,8 @@ import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
+import file2hbase.input.WholeFileInputFormat;
+import file2hbase.partitioner.CustomePartitioner;
 import file2hbase.type.RectangleWritableComparable;
 
 // vv ImportFromFile

@@ -11,6 +11,7 @@ public class RectangleRecordReader extends RecordReader< Text, RectangleSplit>{
 	
 	private Text key;
 	private RectangleSplit value;
+	private boolean hadRead = false;
 
 	@Override
 	public void initialize(InputSplit split, TaskAttemptContext context)
@@ -21,7 +22,12 @@ public class RectangleRecordReader extends RecordReader< Text, RectangleSplit>{
 
 	@Override
 	public boolean nextKeyValue() throws IOException, InterruptedException {
-		return false;
+		if(!this.hadRead){
+			this.hadRead = true;
+			return true;
+		}else
+			return false;
+		
 	}
 
 	@Override
