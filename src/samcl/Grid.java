@@ -248,7 +248,7 @@ public class Grid extends MouseAdapter {
 	/**
 	 * 
 	 */
-	public position[][] G;
+	public position[][] G = null;
 
 	/**
 	 * 1 q`
@@ -446,8 +446,23 @@ public class Grid extends MouseAdapter {
 			return measurements;
 		}
 	}
-
 	
+	public float[] getMeasurementsAnyway(HTable table, boolean onCloud, double x, double y, double head)
+			throws IOException{
+		if(this.G!=null){
+			return this.getMeasurements(table, onCloud, x, y, head);
+		}else{
+			return this.getMeasurementsOnTime(
+					(int)Math.round(x), 
+					(int)Math.round(y), 
+					Transformer.th2Z(head, orientation, orientation_delta_degree));
+		}
+	}
+
+	public float[] getMeasurementsOnTime(int x, int y, int z){
+		List<Float> M = this.getLaserDist(x, y).getKey();
+		return Transformer.drawMeasurements(M.toArray(new Float[M.size()]), z);
+	}
 	
 	/**
 	 * @param table if onCloud is true , read table from table.
@@ -465,6 +480,23 @@ public class Grid extends MouseAdapter {
 		return this.getMeasurements(table, onCloud, x, y, Transformer.th2Z(head,
 				this.orientation, this.orientation_delta_degree));
 
+	}
+	
+	/**
+	 * @param table if onCloud is true , read table from table.
+	 * @param onCloud if onCloud is true , read table from table.
+	 * @param x the pose where to read.
+	 * @param y the pose where to read.
+	 * @param head the orientation where to read.
+	 * @return <pre>
+	 * if onCloud is true , read table from table.
+	 * <pre>
+	 * @throws IOException
+	 */
+	public float[] getMeasurements(HTable table, boolean onCloud, double x, double y, double head)
+			throws IOException {
+		return this.getMeasurements(table, onCloud, (int)Math.round(x), (int)Math.round(y), Transformer.th2Z(head,
+				this.orientation, this.orientation_delta_degree));
 	}
 
 	/**	 
@@ -565,9 +597,6 @@ public class Grid extends MouseAdapter {
 	public void pre_compute() {
 		this.G = new position[this.width][this.height];
 		for (int x = 1; x < this.width - 1; x++) {
-			// System.out.println( Math.round( ( x / (double) this.width )*100 )
-			// );
-
 			for (int y = 1; y < this.height - 1; y++) {
 				if (x == 0) {
 					this.G[x][y] = new position();
@@ -579,8 +608,6 @@ public class Grid extends MouseAdapter {
 					this.G[x][y] = new position(temp, measurement_points);
 				}
 			}
-			// System.out.print("\n");
-			// System.out.println("("+x+","+(this.height-100)+","+(0)+")"+(G[x][this.height-100].toString()));
 		}
 	}
 

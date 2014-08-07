@@ -174,7 +174,7 @@ public class RobotState implements Runnable,Closeable{
 	}
 
 	private void updateSensor() throws IOException {
-		this.setMeasurements(this.grid.getMeasurements(this.table , onCloud, getX(), getY(), getHead()));
+		this.setMeasurements(this.grid.getMeasurementsAnyway(this.table , onCloud, this.x, this.y, this.head));
 	}
 
 	private void updateVelocityModel(Pose current, Pose goal) {

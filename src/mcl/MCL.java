@@ -95,9 +95,8 @@ public class MCL extends SAMCL{
 	public void batchWeight(List<Particle> src, float[] robotMeasurements)
 			throws IOException, ServiceException {
 		for(Particle p : src){
-			List<Float> M = this.precomputed_grid.getLaserDist(p.getX(), p.getY()).getKey();
-			Float[] m = M.toArray(new Float[M.size()]);
-			p.setMeasurements(Transformer.drawMeasurements(m, p.getZ()));
+			float[] m = this.precomputed_grid.getMeasurementsOnTime(p.getX(), p.getY(), p.getZ());
+			p.setMeasurements(m);
 			this.WeightParticle(p, robotMeasurements);
 		}
 	}
