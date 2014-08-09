@@ -83,7 +83,7 @@ public class SAMCL implements Closeable{
 		
 		//get the robot's range finder
 		//robot.unlock();
-		robot.goStraight();
+		//robot.goStraight();
 		float[] Zt = robot.getMeasurements();
 		
 		int counter = 0;

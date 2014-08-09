@@ -18,7 +18,7 @@ import util.gui.Panel;
 import util.metrics.Transformer;
 
 public class sampler {
-		private static int distribution = 10;
+		private static int distribution = 20;
 		private static int samples = 10000;
 		
 		private static int statisticsRange = 100;
@@ -27,7 +27,7 @@ public class sampler {
 		
 		private static int orientation  = 36;
 		private static int sensorNumber = 19;
-		private static String imagePath = "file:///Users/ihsumlee/Jolly/jpg/map.jpg";
+		private static String imagePath = "file:///home/w514/jpg/map.jpg";
 		
 	public static void main(String[] args) throws IOException{
 		

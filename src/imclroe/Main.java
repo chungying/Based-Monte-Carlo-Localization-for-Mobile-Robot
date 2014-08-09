@@ -31,7 +31,7 @@ public class Main {
 				 * to create the localization algorithm
 				 * and setup the listener for SAMCL
 				 */
-				final IMCLROE samcl = new IMCLROE(false,
+				final IMCLROE imclroe = new IMCLROE(false,
 						18, //orientation
 						//"file:///home/w514/map.jpg",//map image file
 						"hdfs:///user/eeuser/map1024.jpeg",
@@ -42,12 +42,12 @@ public class Main {
 						10);//competitive strength
 				JCommander jc = new JCommander();
 				jc.setAcceptUnknownOptions(true);
-				jc.addObject(samcl);
+				jc.addObject(imclroe);
 				jc.parse(args);
-				samcl.setup();
-				if(!samcl.onCloud){
+				imclroe.setup();
+				if(!imclroe.onCloud){
 					System.out.println("start to pre-caching");
-					samcl.Pre_caching();
+					imclroe.Pre_caching();
 				}	
 				
 				/**
@@ -55,7 +55,7 @@ public class Main {
 				 * to create a robot
 				 * setup the listener of Robot
 				 * */
-				RobotState robot = new RobotState(100, 100, 0, /*null*/samcl.precomputed_grid, /*null*/"map.512.4.split", null);
+				RobotState robot = new RobotState(100, 100, 0, /*null*/imclroe.precomputed_grid, /*null*/"map.512.4.split", null);
 				jc = new JCommander();
 				jc.setAcceptUnknownOptions(true);
 				jc.addObject(robot);
@@ -66,7 +66,7 @@ public class Main {
 				robot.setWt(0);
 				robot.setInitModel(robot.getUt());
 				robot.setInitPose(robot.getPose());
-				RobotController robotController = new RobotController("robot controller", robot,samcl);
+				RobotController robotController = new RobotController("robot controller", robot,imclroe);
 				Thread t = new Thread(robot);
 				t.start();
 				/**
@@ -74,12 +74,12 @@ public class Main {
 				 * start to run samcl
 				 */
 				//TODO WINDOW
-				Window samcl_window = new Window("samcl image", samcl,robot);
+				Window window = new Window("samcl image", imclroe,robot);
 				
 				//TODO test 2014/06/19
 				for(int i = 0; i < 10; i ++){
-					samcl_window.setTitle("samcl image:"+String.valueOf(i));
-					samcl.run(robot, samcl_window);
+					window.setTitle("samcl image:"+String.valueOf(i));
+					imclroe.run(robot, window);
 					robot.lock();
 					robot.initRobot();
 					robot.unlock();
