@@ -64,7 +64,7 @@ public class JFrameListener extends JFrame implements ActionListener, Adjustment
 		this(title);
 		this.robot = robot;
 		this.samcl = samcl;
-		this.delta_energy = samcl.delta_energy;
+		this.delta_energy = samcl.deltaEnergy;
 	}
 	
 
@@ -106,7 +106,7 @@ public class JFrameListener extends JFrame implements ActionListener, Adjustment
 		int value = scrollbar.getValue();
 		System.out.println(value);
 		float tune = converter(value);
-		this.samcl.delta_energy = this.delta_energy + (tune-0.5f)*0.01f;
+		this.samcl.deltaEnergy = this.delta_energy + (tune-0.5f)*0.01f;
 		//System.out.println("max:"+this.scrollbar.getMaximum()+",min:"+this.scrollbar.getMinimum());
 		//System.out.println(converter(value)*0.01);
 	}

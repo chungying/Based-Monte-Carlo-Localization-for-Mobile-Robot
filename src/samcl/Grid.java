@@ -359,7 +359,7 @@ public class Grid extends MouseAdapter {
 		List<Get> gets = new ArrayList<Get>();
 		byte[] fam = Bytes.toBytes("distance");
 		for (Particle p : src) {
-			String str = Transformer.xy2RowkeyString(p.getX(), p.getY());
+			String str = Transformer.xy2RowkeyString((int)Math.round(p.getX()), (int)Math.round(p.getY()));
 			Get get = new Get(Bytes.toBytes(str));
 			get.addFamily(fam);
 			gets.add(get);
@@ -378,7 +378,9 @@ public class Grid extends MouseAdapter {
 					float[] measurements = new float[this.sensor_number];
 					int bias = (this.sensor_number - 1) / 2;
 					for (int j = 0; j < this.sensor_number; j++) {
-						index = (p.getZ() - bias + j + this.orientation) % this.orientation;
+						index = (/*p.getZ()*/Transformer.th2Z(p.getTh(), this.orientation) 
+								- bias + j + this.orientation) 
+								% this.orientation;
 						value = results[i].getValue(fam,Bytes.toBytes(String.valueOf(index)));
 						//System.out.println(Bytes.toString(value));
 						measurements[j] = Float.valueOf(Bytes.toString(value));
@@ -455,7 +457,7 @@ public class Grid extends MouseAdapter {
 			return this.getMeasurementsOnTime(
 					(int)Math.round(x), 
 					(int)Math.round(y), 
-					Transformer.th2Z(head, orientation, orientation_delta_degree));
+					Transformer.th2Z(head, orientation));
 		}
 	}
 
@@ -477,8 +479,7 @@ public class Grid extends MouseAdapter {
 	 */
 	public float[] getMeasurements(HTable table, boolean onCloud, int x, int y, double head)
 			throws IOException {
-		return this.getMeasurements(table, onCloud, x, y, Transformer.th2Z(head,
-				this.orientation, this.orientation_delta_degree));
+		return this.getMeasurements(table, onCloud, x, y, Transformer.th2Z(head, this.orientation));
 
 	}
 	
@@ -496,7 +497,7 @@ public class Grid extends MouseAdapter {
 	public float[] getMeasurements(HTable table, boolean onCloud, double x, double y, double head)
 			throws IOException {
 		return this.getMeasurements(table, onCloud, (int)Math.round(x), (int)Math.round(y), Transformer.th2Z(head,
-				this.orientation, this.orientation_delta_degree));
+				this.orientation));
 	}
 
 	/**	 

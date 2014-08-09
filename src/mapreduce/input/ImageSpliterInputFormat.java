@@ -9,8 +9,6 @@ import javax.imageio.ImageIO;
 
 import mapreduce.type.RectangleWritableComparable;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -18,8 +16,6 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
@@ -27,7 +23,6 @@ import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.util.StringUtils;
 
 public class ImageSpliterInputFormat extends FileInputFormat<Text, RectangleSplit>{
@@ -37,7 +32,7 @@ public class ImageSpliterInputFormat extends FileInputFormat<Text, RectangleSpli
 		System.out.println(path.getParent());
 	}
 
-	 private static final Log LOG1 = LogFactory.getLog(ImageSpliterInputFormat.class);
+//	 private static final Log LOG1 = LogFactory.getLog(ImageSpliterInputFormat.class);
 
 	 public static final String MAP_NUMBER = 
 			    "mapreduce.input.imagespliterinputformat.map.number";

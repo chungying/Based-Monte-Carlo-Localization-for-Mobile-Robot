@@ -14,7 +14,6 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorException;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import com.google.protobuf.RpcCallback;
@@ -109,6 +108,7 @@ implements Coprocessor, CoprocessorService{
 			get.addFamily(family);
 			result = this.env.getRegion().get(get);
 			NavigableMap<byte[], byte[]> circleMap = new TreeMap<byte[], byte[]>(new BytesValueComparator());
+			//getFamilyMap returns a Map of the form: Map<qualifier,value>
 			circleMap.putAll(result.getFamilyMap(family));
 			List<Float> circleMeasurements = new ArrayList<Float>();
 			for(byte[] B: circleMap.values()){

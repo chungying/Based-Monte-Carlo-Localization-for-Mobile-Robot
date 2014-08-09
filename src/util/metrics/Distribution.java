@@ -75,7 +75,7 @@ public class Distribution {
 		
 		temp = p.getTh();
 		noise = Wcup*deltaT + Rcup*deltaT;
-		p.setZ(Transformer.th2Z(temp + noise, orientation, 360/orientation));
+		p.setTh(Transformer.th2Z(temp + noise, orientation));
 	}
 	
 }

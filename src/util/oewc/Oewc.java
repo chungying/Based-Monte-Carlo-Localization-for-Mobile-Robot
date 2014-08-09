@@ -1,21 +1,29 @@
 package util.oewc;
 
-import util.metrics.Particle;
+import java.util.AbstractMap;
+import java.util.Map.Entry;
+
 import util.metrics.Transformer;
 
 public class Oewc {
 		
-	static public void singleParticle(float[] Zt, Particle particle, float[] circles){
+	static public Entry<Integer, Float> singleParticle(float[] Zt/*, Particle particle*/, float[] circles, int orientation){
 		float weight = 1;
-		particle.setWeight(1.0f);
-		for(int z = 0; z < particle.orientation; z++){
+		int bestZ = 0;
+		float bestWeight = 1;
+//		particle.setWeight(1.0f);
+		for(int z = 0; z < orientation; z++){
 			//calculate the weight between Zt and the Sensor data with the orientation.
 			weight = Transformer.WeightFloat(Zt, Transformer.drawMeasurements(circles, z));
 			//if the weight is better, keep it.
-			if(particle.getWeight()>weight){
-				particle.setWeight(weight);
-				particle.setZ(z);
+			if(bestWeight > weight){
+				bestWeight = weight;
+				bestZ = z;
+//				particle.setWeight(weight);
+//				particle.setTh(z);
 			}
 		}
+		
+		return new AbstractMap.SimpleEntry<Integer, Float>(bestZ, bestWeight);
 	}
 }

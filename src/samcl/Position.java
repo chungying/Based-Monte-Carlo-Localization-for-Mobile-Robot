@@ -4,12 +4,12 @@ import java.awt.Point;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map.Entry;
 
 import com.beust.jcommander.JCommander;
 
 public class Position {
 
+	@SuppressWarnings("unused")
 	static public void main(String[] args) throws IOException{
 		//for debug mode
 				if(args.length==0){

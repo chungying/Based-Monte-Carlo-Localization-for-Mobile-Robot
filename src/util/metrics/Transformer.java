@@ -14,9 +14,10 @@ public class Transformer {
 		System.out.println();
 	}
 	
-	static public int th2Z(double head, int orientation, double orientation_delta_degree){
-		return ((int) Math.round( head/orientation_delta_degree ) )% orientation;
+	static public int th2Z(double head, int orientation){
+		return ((int) Math.round( head/(360/orientation) ) )% orientation;
 	}
+	
 	
 	static public double checkHeadRange(double h){
 		return (h%360+360)%360;
@@ -46,6 +47,16 @@ public class Transformer {
 		return measurements;	
 	}
 	
+
+	/*public float Caculate_energy(float[] Zt){//TODO static?
+		float energy = 0;
+		for (int i = 0; i < Zt.length; i++) {
+			
+			energy = energy + Zt[i];
+		}
+		energy = energy / ((float)Zt.length);
+		return energy;
+	}*/
 	
 	public static float CalculateEnergy(float[] measurements){
 		float energy = 0.0f;
@@ -192,6 +203,10 @@ public class Transformer {
 //		System.out.println(str.replaceAll("...."+separator, ""));
 //		System.out.println(str2.replaceAll("...."+separator, ""));
 		
+	}
+
+	public static double Z2Th(int z, int orientation) {
+		return checkHeadRange(z*360/orientation);
 	}
 	
 }

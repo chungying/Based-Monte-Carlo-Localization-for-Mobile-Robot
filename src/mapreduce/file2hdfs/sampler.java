@@ -17,21 +17,32 @@ import samcl.Grid;
 import util.gui.Panel;
 import util.metrics.Transformer;
 
-public class sampler {
-		private static int distribution = 10;
-		private static int samples = 10000;
-		
-		private static int statisticsRange = 100;
-		private static int imageHeight = 300;
-		private static int bandWidth = 3;
-		
-		private static int orientation  = 36;
-		private static int sensorNumber = 19;
-		private static String imagePath = "file:///Users/ihsumlee/Jolly/jpg/map.jpg";
-		
+public class Sampler {
+	private static int distribution = 10;
+	private static int samples = 1000;
+	
+	private static int statisticsRange = 100;
+	private static int imageHeight = 300;
+	private static int bandWidth = 3;
+	
+	private static int orientation  = 72;
+	private static int sensorNumber = 19;
+	private static String imagePath = "file:///Users/ihsumlee/Jolly/jpg/map.jpg";
+	
+	
 	public static void main(String[] args) throws IOException{
-		
-		
+		for(int i = 0 ; i < 10; i ++){
+			long time = System.currentTimeMillis();
+			sampler(imagePath, distribution, samples, orientation, orientation/2+1);
+			time = System.currentTimeMillis() - time;
+			System.out.println("time: "+ time +" ms");
+		}
+	}
+
+	public static List<Float> sampler(String imagePath, int distribution, int samples, 
+			int orientation, int sensorNumber, int statisticsRange, int imageHeight, int bandWidth
+			) throws IOException{
+
 		int columnWidth = Math.round(samples/distribution);
 		NavigableMap<Float, Integer> map = new TreeMap<Float, Integer>();
 		int[] list = new int[statisticsRange];
@@ -41,13 +52,21 @@ public class sampler {
 		
 		statistic(splitKeys, list, map, columnWidth, statisticsRange);
 		
-		int counter =0;
 		for(Float key: splitKeys){
 			System.out.println(key);
 		}
 		
 		drawImage(list, statisticsRange, imageHeight, bandWidth);
 		
+		return splitKeys;
+	}
+	
+	public static List<Float> sampler(String imagePath, int distribution, int samples) throws IOException {
+		return sampler(imagePath, distribution, samples, orientation, sensorNumber, statisticsRange, imageHeight, bandWidth);
+	}
+	
+	public static List<Float> sampler(String imagePath, int distribution, int samples, int orientation, int sensorNumber) throws IOException {
+		return sampler(imagePath, distribution, samples, orientation, sensorNumber, statisticsRange, imageHeight, bandWidth);
 	}
 	
 	public static void statistic(List<Float> splitKeys, int[] list, NavigableMap<Float,Integer> map, int columnWidth, int statisticsRange){
@@ -119,12 +138,6 @@ public class sampler {
 			
 			addOne(map,energy);
 		}		
-	}
-
-	public static boolean checkOut(float value){
-		if(value<0.0f && value>1.0f)
-			return false;
-		return true;
 	}
 	
 	public static void addOne(NavigableMap<Float, Integer> map, Float key){

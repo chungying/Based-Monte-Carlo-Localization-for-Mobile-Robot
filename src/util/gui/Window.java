@@ -2,7 +2,6 @@ package util.gui;
 
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.io.IOException;
 
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
@@ -11,13 +10,17 @@ import robot.RobotState;
 import samcl.SAMCL;
 
 public class Window extends JFrame{
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 	public SAMCL samcl = null;
 	public RobotState robot = null;
 	public Window(String name, SAMCL samcl, RobotState robot){
 		super(name);
 		this.samcl = samcl;
 		this.robot = robot;
-		this.setSize(samcl.precomputed_grid.width, samcl.precomputed_grid.height);
+		this.setSize(samcl.grid.width, samcl.grid.height);
 		this.addWindowListener(new CustomAdapter());
 	}
 	

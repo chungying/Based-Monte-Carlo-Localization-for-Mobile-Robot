@@ -1,29 +1,20 @@
 package mcl;
 
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 import java.io.IOException;
 import java.util.List;
 
-import javax.swing.JFrame;
-import javax.swing.JOptionPane;
-
-import com.beust.jcommander.JCommander;
 import com.google.protobuf.ServiceException;
 
-import robot.RobotState;
 import samcl.SAMCL;
-import util.gui.RobotController;
-import util.gui.Window;
 import util.metrics.Particle;
 import util.metrics.Transformer;
 
 public class MCL extends SAMCL{
-	
+	/*
 	public static void main(String[] args) throws ServiceException, Throwable{
 		//for debug mode
 		if(args.length==0){
-			String[] targs = {/*"-cl",*/
+			String[] targs = {"-cl",
 					//"-i","file:///Users/ihsumlee/Jolly/jpg/white.jpg"
 					"-i","file:///home/w514/jpg/test6.jpg"
 					,"-o","4"
@@ -75,7 +66,7 @@ public class MCL extends SAMCL{
 		mcl.close();
 
 	}
-	
+	*/
 	@Override
 	public Particle Determining_size(List<Particle> src) {
 		this.Nl = this.Nt;
@@ -89,23 +80,21 @@ public class MCL extends SAMCL{
 		//super.Global_drawing(src, dst);
 	}
 
-
-
 	@Override
 	public void batchWeight(List<Particle> src, float[] robotMeasurements)
 			throws IOException, ServiceException {
 		for(Particle p : src){
-			float[] m = this.precomputed_grid.getMeasurementsOnTime(p.getX(), p.getY(), p.getZ());
+			float[] m = this.grid.getMeasurementsOnTime(p.getX(), p.getY(), Transformer.th2Z(p.getTh(), this.orientation));
 			p.setMeasurements(m);
 			this.WeightParticle(p, robotMeasurements);
 		}
 	}
 
-	public MCL(boolean cloud, int orientation, String map_filename,
-			float delta_energy, int nt, float xI, float aLPHA,
-			int tournament_presure) throws IOException {
-		super(cloud, orientation, map_filename, delta_energy, nt, xI, aLPHA,
-				tournament_presure);
+	public MCL(boolean cloud, int orientation, String mapFilename,
+			float deltaEnergy, int nt, float xI, float aLPHA,
+			int tournamentPresure) throws IOException {
+		super(cloud, orientation, mapFilename, deltaEnergy, nt, xI, aLPHA,
+				tournamentPresure);
 	}
 
 }

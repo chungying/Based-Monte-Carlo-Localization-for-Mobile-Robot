@@ -6,29 +6,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import mcl.MCL;
-
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
-import org.apache.hadoop.hbase.util.Bytes;
-
-import com.beust.jcommander.JCommander;
 import com.google.protobuf.RpcController;
 
-import coprocessor.services.OewcEndpoint;
 import coprocessor.services.generated.OewcProtos;
 import coprocessor.services.generated.OewcProtos.OewcRequest;
 import coprocessor.services.generated.OewcProtos.OewcResponse;
 import coprocessor.services.generated.OewcProtos.OewcService;
-import robot.RobotState;
 import samcl.SAMCL;
-import util.gui.RobotController;
-import util.gui.Window;
 import util.metrics.Particle;
+import util.metrics.Transformer;
 
 public class IMCLROE extends SAMCL{
-	
+	/*
 	public static void main(String[] args) throws Throwable{
 		//for debug mode
 		if(args.length==0){
@@ -54,7 +46,7 @@ public class IMCLROE extends SAMCL{
 		imclroe.setup();
 		if(!imclroe.onCloud)	imclroe.Pre_caching();
 		
-		RobotState robot = new RobotState(19,19, 0, imclroe.precomputed_grid, null, null); 
+		RobotState robot = new RobotState(19,19, 0, imclroe.grid, null, null); 
 		jc = new JCommander();
 		jc.setAcceptUnknownOptions(true);
 		jc.addObject(robot);
@@ -78,12 +70,12 @@ public class IMCLROE extends SAMCL{
 		imclroe.close();
 
 	}
-	
+	*/
 	@Override
 	public void batchWeight(List<Particle> src, float[] robotMeasurements)
 			throws Throwable {
 		
-		Batch.Call<OewcService,OewcResponse> b = new OewcCall(src,robotMeasurements);
+		Batch.Call<OewcService,OewcResponse> b = new OewcCall( src, robotMeasurements, this.orientation);
 		Map<byte[],OewcResponse> results = this.table.coprocessorService(OewcService.class, null, null, b);
 		//setup weight and orientatin to the particles(src)
 		Long sum = 0l;
@@ -92,7 +84,7 @@ public class IMCLROE extends SAMCL{
 			sum = sum + entry.getValue().getCount();
 //			System.out.println(Bytes.toString(entry.getKey())+":"+entry.getValue().getStr());
 			for(OewcProtos.Particle op : entry.getValue().getParticlesList()){
-				result.add(IMCLROE.ParticleFromO(op));
+				result.add(IMCLROE.ParticleFromO(op, this.orientation));
 			}
 		}
 		
@@ -101,56 +93,62 @@ public class IMCLROE extends SAMCL{
 		src.addAll(result);
 	}
 
-	public IMCLROE(boolean cloud, int orientation, String map_filename,
-			float delta_energy, int nt, float xI, float aLPHA,
-			int tournament_presure) throws IOException {
-		super(cloud, orientation, map_filename, delta_energy, nt, xI, aLPHA,
-				tournament_presure);
+	public IMCLROE(boolean cloud, int orientation, String mapFilename,
+			float deltaEnergy, int nt, float xI, float aLPHA,
+			int tournamentPresure) throws IOException {
+		super(cloud, orientation, mapFilename, deltaEnergy, nt, xI, aLPHA,
+				tournamentPresure);
 	}
+	
 	public static Particle ParticleFromO(
-			coprocessor.services.generated.OewcProtos.Particle op) {
-		Particle p = new Particle(op.getX(), op.getY(), op.getZ());
+			coprocessor.services.generated.OewcProtos.Particle op, int orientation) {
+		Particle p = new Particle(op.getX(), op.getY(), Transformer.Z2Th(op.getZ(), orientation));
 		p.setWeight(op.getW());
 		return p;
 	}
 
-	public static OewcProtos.Particle particleFromS(Particle p){
+	public static OewcProtos.Particle particleFromS(Particle p, int orientation){
 		OewcProtos.Particle.Builder builder = OewcProtos.Particle.newBuilder();
-		builder.setX(p.getX()).setY(p.getY()).setZ(p.getZ());
+		builder.setX(p.getX()).setY(p.getY()).setZ(Transformer.th2Z(p.getTh(), orientation));
 		return builder.build();
 	}
-	public static OewcRequest setupRequest(List<Particle> src, float[] measurements){
+	
+	public static OewcRequest setupRequest(List<Particle> src, float[] measurements, int orientation){
 		OewcRequest.Builder builder = OewcRequest.newBuilder();
 		//build src
 		ArrayList<OewcProtos.Particle> ps = new ArrayList<OewcProtos.Particle>();
 		for(Particle p : src){
-			ps.add(IMCLROE.particleFromS(p));
+			ps.add(IMCLROE.particleFromS(p, orientation));
 		}
 		builder.addAllParticles(ps);
-		//build measurements TODO will modify all of type to class from primitive type, ex: int->Integer, float-> Float
-		List<Float> Zt = new ArrayList();
+		List<Float> Zt = new ArrayList<Float>();
 		for(float f: measurements){
 			Zt.add(new Float(f));
 		}
 		builder.addAllMeasurements(Zt);
 		return builder.build();
 	}
+	
 	public class OewcCall implements Batch.Call<OewcService, OewcResponse>{
+		
 		List<Particle> particles = null;
 		float[] robotMeasurements = null;
-		public OewcCall(List<Particle> particles, float[] robotMeasurements){
+		int orientation;
+		
+		public OewcCall(List<Particle> particles, float[] robotMeasurements, int orientation){
 			this.particles = particles;
 			this.robotMeasurements = robotMeasurements;
+			this.orientation = orientation;
 		}
 		
 		@Override
 		public OewcResponse call(OewcService endpoint) throws IOException {
-			// TODO IMCLROE
 			BlockingRpcCallback<OewcResponse> done = new BlockingRpcCallback<OewcResponse>();
 			RpcController controller = new ServerRpcController();
-			OewcRequest request = IMCLROE.setupRequest(particles, robotMeasurements);
+			OewcRequest request = IMCLROE.setupRequest(this.particles, this.robotMeasurements, this.orientation);
 			endpoint.getRowCount(controller, request, done);
 			return done.get();
 		}	
 	}
+	
 }

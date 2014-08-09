@@ -1,9 +1,6 @@
 package mcl;
 
-import java.io.IOException;
-
 import robot.RobotState;
-import samcl.SAMCL;
 import util.gui.RobotController;
 import util.gui.Window;
 
@@ -56,7 +53,7 @@ public class Main {
 				 * to create a robot
 				 * setup the listener of Robot
 				 * */
-				RobotState robot = new RobotState(100, 100, 0, /*null*/mcl.precomputed_grid, /*null*/"map.512.4.split", null);
+				RobotState robot = new RobotState(100, 100, 0, /*null*/mcl.grid, /*null*/"map.512.4.split", null);
 				jc = new JCommander();
 				jc.setAcceptUnknownOptions(true);
 				jc.addObject(robot);
@@ -64,6 +61,7 @@ public class Main {
 				//TODO setup robot
 				robot.setInitModel(robot.getUt());
 				robot.setInitPose(robot.getPose());
+				@SuppressWarnings("unused")
 				RobotController robotController = new RobotController("robot controller", robot,mcl);
 				Thread t = new Thread(robot);
 				t.start();

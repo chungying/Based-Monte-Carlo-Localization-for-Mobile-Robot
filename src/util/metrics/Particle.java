@@ -4,20 +4,14 @@ public class Particle implements Cloneable{
 	/**
 	 * constructor
 	*/
-	private int x;
-	private int y;
-	private int z;
-	//TODO is particle need the degree??
-	@SuppressWarnings("unused")
+	private double x;
+	private double y;
 	private double th;
 	
 	/**
 	 * be initialized outside
 	*/
 	private float weight;
-	public int orientation;
-	public float delta_degree;
-	//private float th;
 	
 	/**
 	 * assgned from outside
@@ -28,11 +22,11 @@ public class Particle implements Cloneable{
 	/**
 	 * 
 	 */
-	public Particle(int x, int y, int z) {
+	public Particle(double x, double y, double th) {
 		super();
 		this.x = x;
 		this.y = y;
-		this.z = z;
+		this.th = th;
 	}
 	
 	/**
@@ -40,87 +34,38 @@ public class Particle implements Cloneable{
 	 * @param y
 	 * @param z
 	 */
-	public Particle(int x, int y, int z, int orientation2) {
-		super();
-		this.x = x;
-		this.y = y;
-		this.z = z;
-		this.orientation = orientation2;
-		this.delta_degree = 360/this.orientation;
+	public Particle(double x, double y, double th, int orientation2) {
+		this(x, y, th);
 	}
 
 	public Particle(Particle particle) {
-		this(particle.getX(), particle.getY(), particle.getZ(), particle.orientation);
+		this(particle.getX(), particle.getY(), particle.getTh());
 	}
 
 	public int getX() {
-		return x;
+		return (int)Math.round(x);
 	}
 
-	public void setX(int x) {
-		this.x = x;
-	}
-	
 	public void setX(double x) {
-		this.x = (int)Math.round(x);
-	}
-	
-	public void setX(float x) {
-		this.x = (int)Math.round(x);
+		this.x = x;
 	}
 
 	public int getY() {
-		return y;
+		return (int)Math.round(y);
 	}
 
-	public void setY(int y) {
+	public void setY(double y) {
 		this.y = y;
 	}
-	
-	public void setY(float y) {
-		this.y = (int)Math.round(y);
-	}
-	
-	public void setY(double y) {
-		this.y = (int)Math.round(y);
+
+	public double getTh() {
+		return this.th;
 	}
 
-	public int getZ() {
-		return z;
-	}
-
-	public void setZ(int z) {
-		this.z = z;
-	}
-
-	public float getTh() {
-		return this.z * this.delta_degree;
-	}
-	
-	public void setTh(float th) {
-		this.z = Math.round((th%360)/this.delta_degree)%this.orientation;
-	}
-	
 	public void setTh(double th) {
-		this.setTh((float)th);
+		this.th = th;
 	}
-
-	public int getOrientation() {
-		return orientation;
-	}
-
-	public void setOrientation(int orientation) {
-		this.orientation = orientation;
-	}
-
-	public float getDelta_degree() {
-		return delta_degree;
-	}
-
-	public void setDelta_degree(float delta_degree) {
-		this.delta_degree = delta_degree;
-	}
-	
+		
 	public float getWeight() {
 		return weight;
 	}
@@ -131,7 +76,7 @@ public class Particle implements Cloneable{
 
 	@Override
 	public String toString() {
-		return "Particle [\t" + x + "\t" + y + "\t" + z + "\t]\tweight:\t"+this.weight;
+		return "Particle [\t" + x + "\t" + y + "\t" + th + "\t]\tweight:\t"+this.weight;
 	}
 
 	@Override
@@ -149,7 +94,7 @@ public class Particle implements Cloneable{
 		return Particle.underSafeEdge(x, y, width, height, safeEdge);
 	}
 	
-	static public boolean underSafeEdge(int x, int y, int width, int height, int safeEdge){
+	static public boolean underSafeEdge(double x, double y, int width, int height, int safeEdge){
 		//check out all of the input are positive
 		if(x<0 || y<0 || width<0 || height<0 || safeEdge<0)
 			return false;
@@ -179,8 +124,5 @@ public class Particle implements Cloneable{
 	public boolean isIfmeasurements() {
 		return ifmeasurements;
 	}
-	
-	
-
 	
 }

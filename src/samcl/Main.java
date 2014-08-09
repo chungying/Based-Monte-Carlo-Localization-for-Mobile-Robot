@@ -1,32 +1,13 @@
 package samcl;
 
-
-import java.awt.Color;
-import java.awt.Graphics2D;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
-import java.awt.image.BufferedImage;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
-import javax.swing.JFrame;
-import javax.swing.JOptionPane;
-
 import robot.RobotState;
-import util.gui.Panel;
 import util.gui.RobotController;
-import util.gui.Tools;
 import util.gui.Window;
-import util.metrics.Distribution;
-import util.metrics.Particle;
-
 import com.beust.jcommander.JCommander;
 import com.google.protobuf.ServiceException;
 
 public class Main {
 	
-	@SuppressWarnings("unused")
 	public static void main(String[] args) throws ServiceException, Throwable {
 		//for debug mode
 		if(args.length==0){
@@ -72,7 +53,7 @@ public class Main {
 		 * to create a robot
 		 * setup the listener of Robot
 		 * */
-		RobotState robot = new RobotState(100, 100, 0, /*null*/samcl.precomputed_grid, /*null*/"map.512.4.split", null);
+		RobotState robot = new RobotState(100, 100, 0, /*null*/samcl.grid, /*null*/"map.512.4.split", null);
 		jc = new JCommander();
 		jc.setAcceptUnknownOptions(true);
 		jc.addObject(robot);
@@ -83,6 +64,8 @@ public class Main {
 		robot.setWt(0);
 		robot.setInitModel(robot.getUt());
 		robot.setInitPose(robot.getPose());
+		
+		@SuppressWarnings("unused")
 		RobotController robotController = new RobotController("robot controller", robot,samcl);
 		Thread t = new Thread(robot);
 		t.start();
@@ -102,8 +85,9 @@ public class Main {
 			robot.unlock();
 		}
 		
+		/*
 		//below is for test.
-		Panel panel = new Panel(new BufferedImage(samcl.precomputed_grid.width,samcl.precomputed_grid.height, BufferedImage.TYPE_INT_ARGB));
+		Panel panel = new Panel(new BufferedImage(samcl.grid.width,samcl.grid.height, BufferedImage.TYPE_INT_ARGB));
 		samcl_window.add(panel);
 		samcl_window.setVisible(true);
 		Graphics2D grap = panel.img.createGraphics();
@@ -120,7 +104,7 @@ public class Main {
 		while(true){
 			i++;
 			Thread.sleep(33);
-			grap.drawImage(samcl.precomputed_grid.map_image, null, 0, 0);
+			grap.drawImage(samcl.grid.map_image, null, 0, 0);
 			//System.out.println(robot.toString());
 //			px = robot.getX();
 //			py = robot.getY();
@@ -144,28 +128,11 @@ public class Main {
 			
 			Tools.drawRobot(grap,  robot.getX(),  robot.getY(), robot.getHead(), 20, Color.ORANGE);
 			
-//			Tools.drawRobot(grap, 250/*robot.getX()*/, 250/*robot.getY()*/, robot.getHead(), 10, Color.RED);
+//			Tools.drawRobot(grap, 250, 250, robot.getHead(), 10, Color.RED);
 			panel.repaint();
 			//System.out.println(robot.toString());
 			
-		}
+		}*/
 	}
-	
-	
-	/*public class WindowAdpter extends WindowAdapter{
-		@Override
-		public void windowClosing(WindowEvent e) {
-			System.out.println("close table!!!!!!!!!!!!!!!!!!!!!!!");
-			if (JOptionPane.showConfirmDialog(samcl_window,
-					"Are you sure to close this window?", "Really Closing?", 
-		            JOptionPane.YES_NO_OPTION,
-		            JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION){
-				//samcl.precomputed_grid.closeTable();
-				System.exit(0);
-			}
-		}
-	
-	}*/
-	
 	
 }

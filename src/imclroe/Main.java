@@ -1,7 +1,5 @@
 package imclroe;
 
-import java.io.IOException;
-
 import robot.RobotState;
 import util.gui.RobotController;
 import util.gui.Window;
@@ -55,7 +53,7 @@ public class Main {
 				 * to create a robot
 				 * setup the listener of Robot
 				 * */
-				RobotState robot = new RobotState(100, 100, 0, /*null*/samcl.precomputed_grid, /*null*/"map.512.4.split", null);
+				RobotState robot = new RobotState(100, 100, 0, /*null*/samcl.grid, /*null*/"map.512.4.split", null);
 				jc = new JCommander();
 				jc.setAcceptUnknownOptions(true);
 				jc.addObject(robot);
@@ -66,6 +64,7 @@ public class Main {
 				robot.setWt(0);
 				robot.setInitModel(robot.getUt());
 				robot.setInitPose(robot.getPose());
+				@SuppressWarnings("unused")
 				RobotController robotController = new RobotController("robot controller", robot,samcl);
 				Thread t = new Thread(robot);
 				t.start();

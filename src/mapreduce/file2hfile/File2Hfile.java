@@ -1,7 +1,5 @@
 package mapreduce.file2hfile;
 
-import java.util.Date;
-
 import mapreduce.file2hbase.File2Hbase;
 import mapreduce.input.ImageSpliterInputFormat;
 
@@ -13,11 +11,9 @@ import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
 import org.apache.hadoop.hbase.mapreduce.HFileOutputFormat;
-import org.apache.hadoop.hbase.mapreduce.LoadIncrementalHFiles;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
-import org.apache.hadoop.util.ToolRunner;
 
 public class File2Hfile {
 	
@@ -65,7 +61,7 @@ public class File2Hfile {
 		job.setMapperClass(Image2Mapper.class);
 		job.setMapOutputKeyClass(ImmutableBytesWritable.class);
 		job.setMapOutputValueClass(Put.class);
-		job.setReducerClass(HfileReducer.class);
+		//job.setReducerClass(HfileReducer.class);
 		job.setOutputFormatClass(HFileOutputFormat.class);
 		String userName = System.getProperty("user.name");
 		String outputStr = "/user/"+userName+"/hfiles/"+tableName+"/"+System.currentTimeMillis();
