@@ -15,15 +15,16 @@ public class Main {
 	public static void main(String[] args) throws Throwable {
 		//for debug mode
 		if(args.length==0){
-			String[] targs = {/*"-cl",*/
+			String[] targs = {
 					//"-i","file:///Users/ihsumlee/Jolly/jpg/white.jpg"
-					"-i","file:///home/w514/jpg/sim_map.jpg"
-					,"-o","36"
+					"-i","file:///home/w514/jpg/map.jpg"
+					,"-o","18"
 					,"-rl","true"
-//							,"-rx","30"
-//							,"-ry","30"
+					,"-rx","100"
+					,"-ry","100"
 					,"-p","10"
-//							,"-cl"
+					,"-cl"
+					,"-t", "map.512.4.split"
 					};
 			args = targs;
 		}
