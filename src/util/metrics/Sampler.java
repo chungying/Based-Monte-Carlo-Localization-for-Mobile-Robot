@@ -31,12 +31,23 @@ public class Sampler {
 	private static String imagePath = "file:///Users/ihsumlee/Jolly/jpg/map.jpg";
 	
 	public static void main(String[] args) throws IOException{
-		for(int i = 0 ; i < 10; i ++){
-			long time = System.currentTimeMillis();
-			sampler(imagePath, distribution, samples, orientation, orientation/2+1);
-			time = System.currentTimeMillis() - time;
-			System.out.println("time: "+ time +" ms");
+		if(args.length<4){
+			System.exit(-1);
 		}
+		String imagePath = args[0];
+		int distribution = Integer.parseInt(args[1]);
+		int samples = Integer.parseInt(args[2]);
+		int orientation = Integer.parseInt(args[3]);
+		
+
+		long time = System.currentTimeMillis();
+		List<Float> result = sampler(imagePath, distribution, samples, orientation, orientation/2+1);
+		time = System.currentTimeMillis() - time;
+		for(Float f: result){
+			System.out.println(f);
+		}
+		System.out.println("time: "+ time +" ms");
+		
 	}
 
 	public static List<Float> sampler(String imagePath, int distribution, int samples, 

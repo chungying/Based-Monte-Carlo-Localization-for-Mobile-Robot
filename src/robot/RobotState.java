@@ -19,7 +19,7 @@ import util.metrics.Transformer;
 public class RobotState implements Runnable,Closeable{
 	
 	public static final double standardAngularVelocity = 15;// degree/second
-	public static final double standardVelocity = 20;// pixel/second
+	public static final double standardVelocity = 10;// pixel/second
 	
 	public static void main(String[] args) throws IOException{
 		List<Pose> path = new ArrayList<Pose>();
