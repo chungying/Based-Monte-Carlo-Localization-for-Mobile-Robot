@@ -29,8 +29,6 @@ public class Reducer2Hbase
 	//private Vector<Put> Puts = null;
 	private byte[] Family_Distance = null;
 	private byte[] Family_Energy = null;
-	private byte[] Family_X = null; 
-	private byte[] Family_Y = null;
 	
 	public enum Counters {
 		A,
@@ -55,8 +53,8 @@ public class Reducer2Hbase
 		//Puts = new Vector<Put>();
 		Family_Distance = Bytes.toBytes(context.getConfiguration().get("conf.family.distance","distance"));
 		Family_Energy = Bytes.toBytes(context.getConfiguration().get("conf.family.energy","energy"));
-		Family_X = Bytes.toBytes(context.getConfiguration().get("conf.family.laserpoint.x","laserpoint.x"));
-		Family_Y = Bytes.toBytes(context.getConfiguration().get("conf.family.laserpoint.y","laserpoint.y"));
+//		Family_X = Bytes.toBytes(context.getConfiguration().get("conf.family.laserpoint.x","laserpoint.x"));
+//		Family_Y = Bytes.toBytes(context.getConfiguration().get("conf.family.laserpoint.y","laserpoint.y"));
 		
 		
 	}

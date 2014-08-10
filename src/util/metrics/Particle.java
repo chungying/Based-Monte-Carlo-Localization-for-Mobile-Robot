@@ -34,10 +34,6 @@ public class Particle implements Cloneable{
 	 * @param y
 	 * @param z
 	 */
-	public Particle(double x, double y, double th, int orientation2) {
-		this(x, y, th);
-	}
-
 	public Particle(Particle particle) {
 		this(particle.getX(), particle.getY(), particle.getTh());
 	}
@@ -63,7 +59,7 @@ public class Particle implements Cloneable{
 	}
 
 	public void setTh(double th) {
-		this.th = th;
+		this.th = Transformer.checkHeadRange(th);
 	}
 		
 	public float getWeight() {

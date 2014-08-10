@@ -70,15 +70,18 @@ public class Pose {
 	}
 
 	public static void main(String[] args){
-		Transformer.log(
-		Pose.compareToOrientation(	new Pose(0,0,0), new Pose(0,-1,359)),"\n",
-		Pose.compareToOrientation( new Pose(0,0,90), new Pose(0,1,270)),"\n",
-		Pose.compareToOrientation( new Pose(0,0,90), new Pose(1,0,180)),"\n",
-		Pose.compareToOrientation( new Pose(0,0,90), new Pose(-1,0,90)),"\n",
-		Pose.compareToOrientation(	new Pose(0,0,1), new Pose(1,1,1)),"\n",
-		Pose.compareToOrientation( new Pose(0,0,271), new Pose(1,-1,1)),"\n",
-		Pose.compareToOrientation( new Pose(0,0,181), new Pose(-1,1,1)),"\n",
-		Pose.compareToOrientation( new Pose(0,0,91), new Pose(-1,-1,1)));
+		System.out.println(System.getProperty("user.name"));
+		System.setProperty("user.name", "hbase");
+		System.out.println(System.getProperty("user.name"));
+//		Transformer.log(
+//		Pose.compareToOrientation(	new Pose(0,0,0), new Pose(0,-1,359)),"\n",
+//		Pose.compareToOrientation( new Pose(0,0,90), new Pose(0,1,270)),"\n",
+//		Pose.compareToOrientation( new Pose(0,0,90), new Pose(1,0,180)),"\n",
+//		Pose.compareToOrientation( new Pose(0,0,90), new Pose(-1,0,90)),"\n",
+//		Pose.compareToOrientation(	new Pose(0,0,1), new Pose(1,1,1)),"\n",
+//		Pose.compareToOrientation( new Pose(0,0,271), new Pose(1,-1,1)),"\n",
+//		Pose.compareToOrientation( new Pose(0,0,181), new Pose(-1,1,1)),"\n",
+//		Pose.compareToOrientation( new Pose(0,0,91), new Pose(-1,-1,1)));
 		
 	}
 }

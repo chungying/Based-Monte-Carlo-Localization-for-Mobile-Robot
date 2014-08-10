@@ -23,18 +23,23 @@ public class RobotState implements Runnable,Closeable{
 	
 	public static void main(String[] args) throws IOException{
 		List<Pose> path = new ArrayList<Pose>();
-		path.add(new Pose(440,60,0));
-		path.add(new Pose(440,60,90));
-		path.add(new Pose(440,320,90));
-		path.add(new Pose(440,320,180));
-		path.add(new Pose(220,320,180));
-		path.add(new Pose(220,320,270));
-		path.add(new Pose(220,60,270));
+		path.add(new Pose(400,150,0));
+		path.add(new Pose(400,150,90));
+		path.add(new Pose(400,400,90));
+		path.add(new Pose(400,400,180));
+		path.add(new Pose(350,400,180));
+		path.add(new Pose(350,400,90));
+		path.add(new Pose(350,550,90));
+		path.add(new Pose(350,550,180));
+		path.add(new Pose(150,550,180));
+		path.add(new Pose(150,550,270));
+		path.add(new Pose(150,150,270));
+		path.add(new Pose(150,150,0));
 		//test
-		RobotState robot = new RobotState(220,60,0,path);
+		RobotState robot = new RobotState(150,150,0,path);
 		String[] sts = {
-				"-rx","400.0"
-				,"-rl","false"
+//				"-rx","400.0",
+				"-rl","false"
 		};
 		new JCommander(robot,sts);
 		robot.setInitPose(robot.getPose());
@@ -61,7 +66,7 @@ public class RobotState implements Runnable,Closeable{
 		//robot.unlock();
 		while(true){
 			try {
-				Thread.sleep(33);
+				Thread.sleep(3);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
@@ -212,7 +217,7 @@ public class RobotState implements Runnable,Closeable{
 		if(Pose.compareToDistance(current, goal)>Pose.ERROR)
 			return false;
 		//degree error
-		if(Pose.compareToHead(current, goal)>Pose.ERROR)
+		if(Math.abs( Pose.compareToHead(current, goal) )>Pose.ERROR)
 			return false;
 		return true;
 	}

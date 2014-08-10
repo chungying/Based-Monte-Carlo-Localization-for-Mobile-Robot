@@ -29,7 +29,7 @@ public class Distribution {
 	public static double[] al = {
 		0.0001,0.0001,
 		0.1,0.1,
-		0.001,0.001
+		0.01,0.01
 		};
 	/**
 	 * @param p ready to use motion sampling
@@ -75,7 +75,10 @@ public class Distribution {
 		
 		temp = p.getTh();
 		noise = Wcup*deltaT + Rcup*deltaT;
-		p.setTh(Transformer.th2Z(temp + noise, orientation));
+		if(noise==0.0){
+			noise = Distribution.sample_normal_distribution(5);
+		}
+		p.setTh(temp+noise);
 	}
 	
 }

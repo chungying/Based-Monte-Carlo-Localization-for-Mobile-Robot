@@ -532,7 +532,7 @@ public class SAMCL implements Closeable{
 				//Particle particleC = src.get(rand).clone();
 				Particle particle = new Particle(src.get(rand).getX(), src
 						.get(rand).getY(),
-						src.get(rand).getTh(), this.orientation);
+						src.get(rand).getTh());
 				dst.add(particle);
 				src.remove(rand);
 				//System.out.println("SER particle "+i +":"+particle.toString() );

@@ -93,18 +93,18 @@ public class Transformer {
 	
 	/**
 	 * 
-	 * @param tournament_presure2	greater presure, less diversity
-	 * @param last_set2		the group ready to be picked up
+	 * @param tournamentPresure	greater presure, less diversity
+	 * @param srcSet		the group ready to be picked up
 	 * @return		a picked particle at this time.
 	 */
-	public static Particle tournament(int tournament_presure2, List<Particle> last_set2) {
+	public static Particle tournament(int tournamentPresure, List<Particle> srcSet) {
 		List<Particle> temp_set = new ArrayList<Particle>();
 		temp_set.clear();
 		int random ;
 		Random r = new Random();
-		for(int j = 0;j<tournament_presure2;j++){
-			random = r.nextInt(last_set2.size());
-			temp_set.add(last_set2.get(random));
+		for(int j = 0;j<tournamentPresure;j++){
+			random = r.nextInt(srcSet.size());
+			temp_set.add(srcSet.get(random));
 		}
 		Particle tempp = minParticle(temp_set);		
 		return tempp;
@@ -122,12 +122,12 @@ public class Transformer {
 		return max_particle;
 	}
 	
-	public static Particle minParticle( List<Particle> last_set2 ){
-		Particle min_particle = last_set2.get(0);
+	public static Particle minParticle( List<Particle> srcSet ){
+		Particle min_particle = srcSet.get(0);
 		float min_weight = min_particle.getWeight();
-		for (int i = 1; i < last_set2.size(); i++) {
-			if (min_weight > last_set2.get(i).getWeight()) {
-				min_particle = last_set2.get(i);
+		for (int i = 1; i < srcSet.size(); i++) {
+			if (min_weight > srcSet.get(i).getWeight()) {
+				min_particle = srcSet.get(i);
 				min_weight = min_particle.getWeight();
 			}
 		}

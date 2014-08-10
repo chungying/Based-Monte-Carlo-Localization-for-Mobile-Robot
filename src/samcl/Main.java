@@ -1,8 +1,13 @@
 package samcl;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import robot.Pose;
 import robot.RobotState;
 import util.gui.RobotController;
 import util.gui.Window;
+
 import com.beust.jcommander.JCommander;
 import com.google.protobuf.ServiceException;
 
@@ -12,9 +17,9 @@ public class Main {
 		//for debug mode
 		if(args.length==0){
 			String[] targs = {/*"-cl",*/
-					//"-i","file:///Users/ihsumlee/Jolly/jpg/white.jpg"
-					"-i","file:///home/w514/jpg/map.jpg"
-					,"-o","4"
+					"-i","file:///Users/ihsumlee/Jolly/jpg/sim_map.jpg"
+					//"-i","file:///home/w514/jpg/map.jpg"
+					,"-o","18"
 					,"-rl","true"
 //					,"-rx","30"
 //					,"-ry","30"
@@ -53,18 +58,27 @@ public class Main {
 		 * to create a robot
 		 * setup the listener of Robot
 		 * */
-		RobotState robot = new RobotState(100, 100, 0, /*null*/samcl.grid, /*null*/"map.512.4.split", null);
+		List<Pose> path = new ArrayList<Pose>();
+		path.add(new Pose(400,150,0));
+		path.add(new Pose(400,150,90));
+		path.add(new Pose(400,400,90));
+		path.add(new Pose(400,400,180));
+		path.add(new Pose(350,400,180));
+		path.add(new Pose(350,400,90));
+		path.add(new Pose(350,550,90));
+		path.add(new Pose(350,550,180));
+		path.add(new Pose(150,550,180));
+		path.add(new Pose(150,550,270));
+		path.add(new Pose(150,150,270));
+		path.add(new Pose(150,150,0));
+		RobotState robot = new RobotState(150, 150, 0, /*null*/samcl.grid, /*null*/"map.512.4.split", path);
 		jc = new JCommander();
 		jc.setAcceptUnknownOptions(true);
 		jc.addObject(robot);
 		jc.parse(args);
 		//TODO setup robot
-		
-		robot.setVt(0);
-		robot.setWt(0);
 		robot.setInitModel(robot.getUt());
 		robot.setInitPose(robot.getPose());
-		
 		@SuppressWarnings("unused")
 		RobotController robotController = new RobotController("robot controller", robot,samcl);
 		Thread t = new Thread(robot);
@@ -74,12 +88,13 @@ public class Main {
 		 * start to run samcl
 		 */
 		//TODO WINDOW
-		Window samcl_window = new Window("samcl image", samcl,robot);
+		Window window = new Window("samcl image", samcl,robot);
 		
 		//TODO test 2014/06/19
 		for(int i = 0; i < 10; i ++){
-			samcl_window.setTitle("samcl image:"+String.valueOf(i));
-			samcl.run(robot, samcl_window);
+			window.setTitle("samcl image:"+String.valueOf(i));
+			robot.goStraight();
+			samcl.run(robot, window);
 			robot.lock();
 			robot.initRobot();
 			robot.unlock();
