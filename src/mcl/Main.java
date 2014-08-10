@@ -1,5 +1,10 @@
 package mcl;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import robot.Pose;
+
 import robot.RobotState;
 import util.gui.RobotController;
 import util.gui.Window;
@@ -12,8 +17,8 @@ public class Main {
 				if(args.length==0){
 					String[] targs = {/*"-cl",*/
 							//"-i","file:///Users/ihsumlee/Jolly/jpg/white.jpg"
-							"-i","file:///home/w514/jpg/map.jpg"
-							,"-o","4"
+							"-i","file:///home/w514/jpg/sim_map.jpg"
+							,"-o","36"
 							,"-rl","true"
 //							,"-rx","30"
 //							,"-ry","30"
@@ -43,17 +48,31 @@ public class Main {
 				jc.addObject(mcl);
 				jc.parse(args);
 				mcl.setup();
-				if(!mcl.onCloud){
-					System.out.println("start to pre-caching");
-					mcl.Pre_caching();
-				}	
+//				if(!mcl.onCloud){
+//					System.out.println("start to pre-caching");
+//					mcl.Pre_caching();
+//				}	
 				
 				/**
 				 * Second step:
 				 * to create a robot
 				 * setup the listener of Robot
 				 * */
-				RobotState robot = new RobotState(100, 100, 0, /*null*/mcl.grid, /*null*/"map.512.4.split", null);
+
+				List<Pose> path = new ArrayList<Pose>();
+				path.add(new Pose(400,150,0));
+				path.add(new Pose(400,150,90));
+				path.add(new Pose(400,400,90));
+				path.add(new Pose(400,400,180));
+				path.add(new Pose(350,400,180));
+				path.add(new Pose(350,400,90));
+				path.add(new Pose(350,550,90));
+				path.add(new Pose(350,550,180));
+				path.add(new Pose(150,550,180));
+				path.add(new Pose(150,550,270));
+				path.add(new Pose(150,150,270));
+				path.add(new Pose(150,150,0));
+				RobotState robot = new RobotState(150, 150, 100, /*null*/mcl.grid, /*null*/"map.512.4.split", path);
 				jc = new JCommander();
 				jc.setAcceptUnknownOptions(true);
 				jc.addObject(robot);

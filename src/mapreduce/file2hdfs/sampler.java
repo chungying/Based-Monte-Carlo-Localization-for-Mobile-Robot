@@ -17,6 +17,7 @@ import samcl.Grid;
 import util.gui.Panel;
 import util.metrics.Transformer;
 
+
 public class Sampler {
 	private static int distribution = 10;
 	private static int samples = 1000;
@@ -28,7 +29,6 @@ public class Sampler {
 	private static int orientation  = 72;
 	private static int sensorNumber = 19;
 	private static String imagePath = "file:///Users/ihsumlee/Jolly/jpg/map.jpg";
-	
 	
 	public static void main(String[] args) throws IOException{
 		for(int i = 0 ; i < 10; i ++){

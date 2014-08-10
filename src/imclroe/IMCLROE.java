@@ -20,8 +20,9 @@ import util.metrics.Particle;
 import util.metrics.Transformer;
 
 public class IMCLROE extends SAMCL{
-	/*
-	public static void main(String[] args) throws Throwable{
+
+	
+	/*public static void main(String[] args) throws Throwable{
 		//for debug mode
 		if(args.length==0){
 			String[] targs = {"-cl"
@@ -69,8 +70,8 @@ public class IMCLROE extends SAMCL{
 		
 		imclroe.close();
 
-	}
-	*/
+	}*/
+	
 	@Override
 	public void batchWeight(List<Particle> src, float[] robotMeasurements)
 			throws Throwable {

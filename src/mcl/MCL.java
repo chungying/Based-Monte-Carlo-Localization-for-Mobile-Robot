@@ -81,6 +81,13 @@ public class MCL extends SAMCL{
 	}
 
 	@Override
+	public void Caculating_SER(float weight, float[] Zt, List<Particle> SER_set)
+			throws IOException {
+//		// TODO Auto-generated method stub
+//		super.Caculating_SER(weight, Zt, SER_set);
+	}
+
+	@Override
 	public void batchWeight(List<Particle> src, float[] robotMeasurements)
 			throws IOException, ServiceException {
 		for(Particle p : src){
