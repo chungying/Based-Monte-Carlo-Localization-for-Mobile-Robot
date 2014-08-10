@@ -1,72 +1,57 @@
 package mcl;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.List;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.mapreduce.LoadIncrementalHFiles;
+import org.apache.hadoop.util.ToolRunner;
 
 import com.google.protobuf.ServiceException;
 
 import samcl.SAMCL;
+import util.metrics.Command;
 import util.metrics.Particle;
 import util.metrics.Transformer;
 
 public class MCL extends SAMCL{
-	/*
-	public static void main(String[] args) throws ServiceException, Throwable{
-		//for debug mode
-		if(args.length==0){
-			String[] targs = {"-cl",
-					//"-i","file:///Users/ihsumlee/Jolly/jpg/white.jpg"
-					"-i","file:///home/w514/jpg/test6.jpg"
-					,"-o","4"
-					,"-rl","true"
-					,"-rx","30"
-					,"-ry","30"
-					,"-p","10"
-					};
-			args = targs;
+	
+	public static void main(String[] args) throws IOException, InterruptedException{
+		String timeStamp = "1407497724272";
+		String path = "/user/"+System.getProperty("user.name")+"/hfiles/";
+		String bulkLoad = "hbase org.apache.hadoop.hbase.mapreduce.LoadIncrementalHFiles";
+		String tableName = "map.512.4.split";
+//		System.setProperty("user.name", "hbase");
+//		System.out.println(Command.excuteCommand(
+//				bulkLoad+" "
+//				+path+tableName+"/"+timeStamp+" "
+//				+tableName
+//				));
+		Configuration conf = HBaseConfiguration.create();
+		String[] arg = {path+tableName+"/"+timeStamp, tableName};
+		long time = System.currentTimeMillis();
+		try {
+			int exit = ToolRunner.run(new LoadIncrementalHFiles(conf), arg);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
-		//TODO finish the main function,1:add robot controller
-		final MCL mcl = new MCL(false,
-				18,
-				"file:///home/w514/jpg/test6.jpg", 
-				0.001f, 
-				100, 
-				0.01f, 
-				0.3f, 
-				10);
-		JCommander jc = new JCommander();
-		jc.setAcceptUnknownOptions(true);
-		jc.addObject(mcl);
-		jc.parse(args);
-		
-		mcl.setup();
-		mcl.Pre_caching();
-		
-		RobotState robot = new RobotState(19,19, 0, mcl.precomputed_grid, null, null); 
-		jc = new JCommander();
-		jc.setAcceptUnknownOptions(true);
-		jc.addObject(robot);
-		jc.parse(args);
-		robot.setInitModel(robot.getUt());
-		robot.setInitPose(robot.getPose());
-		Thread t = new Thread(robot);
-		t.start();
-		
-		RobotController robotController = new RobotController("robot controller", robot, mcl);
-		Window window = new Window("mcl image", mcl,robot);
-		
-		for(int i = 0; i < 10; i ++){
-			window.setTitle("mcl image:"+String.valueOf(i));
-			mcl.run(robot, window);
-			robot.lock();
-			robot.initRobot();
-			robot.unlock();
-		}
-		
-		mcl.close();
-
+		System.out.println("time: "+ (System.currentTimeMillis()-time) + " ms");
+		/*System.out.println(Command.excuteCommand(
+				"sudo -u hdfs hadoop fs -ls "+
+		"/user/w514/hfiles/map.512.4.split/1407497724272"));
+		System.out.println(Command.excuteCommand(
+				"sudo -u hdfs hadoop fs -chown -R hbase:hadoop "+
+		"/user/w514/hfiles/map.512.4.split/1407497724272"));
+		System.out.println(Command.excuteCommand(
+				"sudo -u hdfs hadoop fs -ls "+
+		"/user/w514/hfiles/map.512.4.split/1407497724272"));*/
 	}
-	*/
+	
 	@Override
 	public Particle Determining_size(List<Particle> src) {
 		this.Nl = this.Nt;
