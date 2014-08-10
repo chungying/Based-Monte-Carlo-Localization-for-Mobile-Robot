@@ -17,6 +17,8 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.hadoop.util.ToolRunner;
 
+import util.metrics.Command;
+
 public class File2Hfile {
 	
 	public static void main(String[] args) throws Exception {
@@ -24,12 +26,17 @@ public class File2Hfile {
 		String[] arg = run(args);
 		jobTime = System.currentTimeMillis() - jobTime;
 		
+		String command = "sudo -u hdfs hadoop fs -chown -R hbase ";
+		String output = Command.excuteCommand(command+arg[0]);
+		System.out.println(output);
+		
 		long loadTime = System.currentTimeMillis();
 		int exit = ToolRunner.run(new LoadIncrementalHFiles(HBaseConfiguration.create()), arg);
 		loadTime = System.currentTimeMillis() - loadTime;
+		
 		System.out.println("job time: "+ jobTime + " ms");
 		System.out.println("total time:" + (loadTime) + " ms");
-		System.exit(1);
+		System.exit(exit);
 	}
 
 	public static String[] run(String[] args) throws Exception {

@@ -10,11 +10,7 @@ import util.metrics.Particle;
 import util.metrics.Transformer;
 
 public class MCL extends SAMCL{
-	/*
-	public static void main(String[] args) throws ServiceException, Throwable{
-		
-	}
-	*/
+	
 	@Override
 	public Particle Determining_size(List<Particle> src) {
 		this.Nl = this.Nt;
