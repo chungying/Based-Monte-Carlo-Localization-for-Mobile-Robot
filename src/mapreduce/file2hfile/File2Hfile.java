@@ -11,14 +11,29 @@ import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
 import org.apache.hadoop.hbase.mapreduce.HFileOutputFormat;
+import org.apache.hadoop.hbase.mapreduce.LoadIncrementalHFiles;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
+import org.apache.hadoop.util.ToolRunner;
 
 public class File2Hfile {
 	
 	public static void main(String[] args) throws Exception {
-		long totalTime = System.currentTimeMillis();
+		long jobTime = System.currentTimeMillis();
+		String[] arg = run(args);
+		jobTime = System.currentTimeMillis() - jobTime;
+		
+		long loadTime = System.currentTimeMillis();
+		int exit = ToolRunner.run(new LoadIncrementalHFiles(HBaseConfiguration.create()), arg);
+		loadTime = System.currentTimeMillis() - loadTime;
+		System.out.println("job time: "+ jobTime + " ms");
+		System.out.println("total time:" + (loadTime) + " ms");
+		System.exit(1);
+	}
+
+	public static String[] run(String[] args) throws Exception {
+		
 		Configuration conf = HBaseConfiguration.create();
 
 		// ImportFromFile-7-Args Give the command line arguments to the
@@ -74,12 +89,7 @@ public class File2Hfile {
 			System.exit(1);
 		}
 		hTable.close();
-//		long jobTime = System.currentTimeMillis() - totalTime;
-//		String[] arg = {outputStr, tableName};
-//		int exit = ToolRunner.run(new LoadIncrementalHFiles(conf), arg);
-		totalTime = System.currentTimeMillis() - totalTime;
-//		System.out.println("job time: "+ jobTime + " ms");
-		System.out.println("total time:" + (totalTime) + " ms");
-		System.exit(1);
+		
+		return new String[]{outputStr, tableName};
 	}
 }
