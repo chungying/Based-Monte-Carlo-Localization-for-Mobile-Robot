@@ -98,7 +98,7 @@ public class Main {
 			mcl.run(robot, window);
 			robot.lock();
 			robot.initRobot();
-			robot.unlock();
+//			robot.unlock();
 		}	
 	}
 	

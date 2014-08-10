@@ -97,7 +97,7 @@ public class Main {
 			samcl.run(robot, window);
 			robot.lock();
 			robot.initRobot();
-			robot.unlock();
+//			robot.unlock();
 		}
 		
 		/*

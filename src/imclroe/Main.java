@@ -98,7 +98,7 @@ public class Main {
 			imclroe.run(robot, window);
 			robot.lock();
 			robot.initRobot();
-			robot.unlock();
+//			robot.unlock();
 		}		
 	}
 	

@@ -332,17 +332,17 @@ public class Grid extends MouseAdapter {
 				//improved 0723
 				for (Cell cell : result.rawCells()) {
 					String XYstr = Bytes.toString(CellUtil.cloneQualifier(cell));
-					System.out.println("rowkey: "+XYstr);
+//					System.out.println("rowkey: "+XYstr);
 					//convert Cell to Particle
 					//improved 0723
 					int x = Transformer.rowkeyString2X(XYstr);
 					int y = Transformer.rowkeyString2Y(XYstr);
 					int z = Integer.parseInt( Bytes.toString(CellUtil.cloneValue(cell) ) );
-					System.out.println("(x, y, z)=("+x+","+y+","+z+")");
-					Particle p = new Particle(x, y, z);
-					System.out.println(p.toString());
-					Transformer.rowkeyString2xy(XYstr, p);
-					System.out.println("second "+p.toString());
+//					System.out.println("(x, y, z)=("+x+","+y+","+z+")");
+					Particle p = new Particle(x, y, Transformer.Z2Th(z, this.orientation));
+//					System.out.println(p.toString());
+//					Transformer.rowkeyString2xy(XYstr, p);
+//					System.out.println("second "+p.toString());
 					if (p.underSafeEdge(width, height, safe_edge))
 						ser_set.add(p);
 					// System.out.println(p.toString());
