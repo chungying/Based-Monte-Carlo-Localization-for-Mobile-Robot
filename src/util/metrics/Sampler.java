@@ -20,24 +20,24 @@ import util.metrics.Transformer;
 
 public class Sampler {
 	private static int distribution = 10;
-	private static int samples = 1000;
+	private static int samples = 10000;
 	
 	private static int statisticsRange = 100;
 	private static int imageHeight = 300;
 	private static int bandWidth = 3;
 	
-	private static int orientation  = 72;
+	private static int orientation  = 36;
 	private static int sensorNumber = 19;
-	private static String imagePath = "file:///Users/ihsumlee/Jolly/jpg/map.jpg";
+	private static String imagePath = "file:///home/w514/jpg/sim_map.jpg";
 	
 	public static void main(String[] args) throws IOException{
-		if(args.length<4){
-			System.exit(-1);
-		}
-		String imagePath = args[0];
-		int distribution = Integer.parseInt(args[1]);
-		int samples = Integer.parseInt(args[2]);
-		int orientation = Integer.parseInt(args[3]);
+//		if(args.length<4){
+//			System.exit(-1);
+//		}
+//		String imagePath = args[0];
+//		int distribution = Integer.parseInt(args[1]);
+//		int samples = Integer.parseInt(args[2]);
+//		int orientation = Integer.parseInt(args[3]);
 		
 
 		long time = System.currentTimeMillis();

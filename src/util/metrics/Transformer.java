@@ -35,6 +35,18 @@ public class Transformer {
 		return measurements;
 	}
 
+	public static float[] drawMeasurements(List<Float> circles, int z) {
+		int sensor_number = (circles.size()/2) +1;
+		float[] measurements = new float[sensor_number];
+		int bias = (sensor_number - 1) / 2;
+		int index;
+		for (int i = 0; i < sensor_number; i++) {
+			index = ( (z - bias + i + circles.size()) % circles.size() );
+			measurements[i] = circles.get(index);
+		}
+		return measurements;
+	}
+
 	public static float[] drawMeasurements(float[] circles, int z) {		
 		int sensor_number = (circles.length/2) +1;
 		float[] measurements = new float[sensor_number];
@@ -91,6 +103,39 @@ public class Transformer {
 		return 1;
 	}
 	
+	public static float WeightFloat(List<Float> Mt, List<Float> Zt) {
+		float w = 0.0f;
+		for(int i = 0; i < Zt.size(); i++){
+			w = w + Math.abs(Mt.get(i)- Zt.get(i));
+		}
+		w = w / Zt.size();
+		return w;
+	}
+	
+	public static float WeightFloat(List<Float> a, float[] b) {
+		try {
+			//check if length is equal
+			if(a.size()!=b.length)
+				throw new Exception("The lengh of a is different from b."); 
+			//start to calculate the weight, importance factor
+			float weight = 0;
+			for( int i = 0 ; i < a.size() ; i++ ){
+
+				if(a.get(i)>1.0f || b[i]>1.0f)
+					throw new Exception("the value is not normalized.");
+				//calculating
+				weight = weight + Math.abs(b[i]-a.get(i));
+			}
+			weight = weight / a.size();
+			return weight;
+		} catch (Exception e) {
+			
+			e.printStackTrace();
+		}
+		// return the worst weight
+		return 1;
+	}
+
 	/**
 	 * 
 	 * @param tournamentPresure	greater presure, less diversity

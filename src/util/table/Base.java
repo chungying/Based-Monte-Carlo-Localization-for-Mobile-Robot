@@ -17,12 +17,12 @@ abstract public class Base implements Closeable, Runnable{
 	public String tableName = "map.512.4.split";
 	
 	protected HTable table = null;
-	
+	protected Configuration conf = null;
 	public HConnection connection = null;
 	
 	public void setup() throws IOException{
 		System.out.println("getting the connection manager.....");
-		Configuration conf = HBaseConfiguration.create();
+		conf = HBaseConfiguration.create();
 		this.connection = HConnectionManager.createConnection(conf);
 		
 		if(this.tableName!=null){

@@ -9,6 +9,8 @@ import java.util.Map.Entry;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
+import org.apache.hadoop.hbase.util.Bytes;
+
 import com.google.protobuf.RpcController;
 
 import coprocessor.services.generated.OewcProtos;
@@ -22,76 +24,36 @@ import util.metrics.Transformer;
 public class IMCLROE extends SAMCL{
 
 	
-	/*public static void main(String[] args) throws Throwable{
-		//for debug mode
-		if(args.length==0){
-			String[] targs = {"-cl"
-					,"-t","map.512.4.split"
-					//,"-i","file:///Users/ihsumlee/Jolly/jpg/white.jpg"
-					,"-i","file:///home/w514/jpg/map.jpg"
-					,"-o","4"
-					,"-rl","true"
-					,"-rx","100"
-					,"-ry","100"
-					,"-p","10"
-					};
-			args = targs;
-		}
-		//TODO finish the main function,1:add robot controller
-		final IMCLROE imclroe = new IMCLROE(false, 18, "file:///home/w514/jpg/test6.jpg", 0.001f, 100, 0.01f, 0.3f, 10);
-		JCommander jc = new JCommander();
-		jc.setAcceptUnknownOptions(true);
-		jc.addObject(imclroe);
-		jc.parse(args);
-		
-		imclroe.setup();
-		if(!imclroe.onCloud)	imclroe.Pre_caching();
-		
-		RobotState robot = new RobotState(19,19, 0, imclroe.grid, null, null); 
-		jc = new JCommander();
-		jc.setAcceptUnknownOptions(true);
-		jc.addObject(robot);
-		jc.parse(args);
-		robot.setInitModel(robot.getUt());
-		robot.setInitPose(robot.getPose());
-		Thread t = new Thread(robot);
-		t.start();
-		
-		RobotController robotController = new RobotController("robot controller", robot, imclroe);
-		Window window = new Window("mcl image", imclroe,robot);
-		
-		for(int i = 0; i < 10; i ++){
-			window.setTitle("mcl image:"+String.valueOf(i));
-			imclroe.run(robot, window);
-			robot.lock();
-			robot.initRobot();
-			robot.unlock();
-		}
-		
-		imclroe.close();
-
-	}*/
-	
 	@Override
 	public void batchWeight(List<Particle> src, float[] robotMeasurements)
 			throws Throwable {
-		
+//		List<Long> times = new ArrayList<Long>();
+//		times.add(System.currentTimeMillis());
 		Batch.Call<OewcService,OewcResponse> b = new OewcCall( src, robotMeasurements, this.orientation);
-		Map<byte[],OewcResponse> results = this.table.coprocessorService(OewcService.class, null, null, b);
+//		times.add(System.currentTimeMillis());
+		Map<byte[],OewcResponse> results = this.table.coprocessorService(OewcService.class, "0000".getBytes(), "1000".getBytes(), b);
 		//setup weight and orientatin to the particles(src)
+//		times.add(System.currentTimeMillis());
 		Long sum = 0l;
 		List<Particle> result = new ArrayList<Particle>();
 		for(Entry<byte[], OewcResponse> entry:results.entrySet()){
 			sum = sum + entry.getValue().getCount();
-//			System.out.println(Bytes.toString(entry.getKey())+":"+entry.getValue().getStr());
+			//System.out.println(Bytes.toString(entry.getKey())+"\n"+entry.getValue().getStr());
 			for(OewcProtos.Particle op : entry.getValue().getParticlesList()){
 				result.add(IMCLROE.ParticleFromO(op, this.orientation));
 			}
 		}
-		
+//		times.add(System.currentTimeMillis());
 		//change the result to src 
 		src.clear();
 		src.addAll(result);
+//		times.add(System.currentTimeMillis());
+		/*int counter = 0;
+		System.out.println("-----------------------------");
+		for(Long time: times){
+			counter++;
+			System.out.println("\t"+counter + "\t:"+ time);
+		}*/
 	}
 
 	public IMCLROE(boolean cloud, int orientation, String mapFilename,

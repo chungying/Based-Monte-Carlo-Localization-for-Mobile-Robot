@@ -83,6 +83,7 @@ public class File2Hfile {
 		job.setMapperClass(Image2Mapper.class);
 		job.setMapOutputKeyClass(ImmutableBytesWritable.class);
 		job.setMapOutputValueClass(Put.class);
+		job.setCombinerClass(HfileCombiner.class);
 		//job.setReducerClass(HfileReducer.class);
 		job.setOutputFormatClass(HFileOutputFormat.class);
 		String userName = System.getProperty("user.name");

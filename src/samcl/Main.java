@@ -91,13 +91,13 @@ public class Main {
 		Window window = new Window("samcl image", samcl,robot);
 		
 		//TODO test 2014/06/19
-		for(int i = 0; i < 10; i ++){
-			window.setTitle("samcl image:"+String.valueOf(i));
+		int counter = 0;
+		while(true){
+			window.setTitle("samcl image:"+String.valueOf(counter));
 			robot.goStraight();
 			samcl.run(robot, window);
 			robot.lock();
 			robot.initRobot();
-//			robot.unlock();
 		}
 		
 		/*

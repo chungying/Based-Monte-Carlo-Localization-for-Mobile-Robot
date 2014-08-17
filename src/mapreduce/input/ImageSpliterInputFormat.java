@@ -83,7 +83,7 @@ public class ImageSpliterInputFormat extends FileInputFormat<Text, RectangleSpli
 				
 				for(int i = 0; i < mapNumber; i++){
 					int y = i*rectangleHeight;
-					splits.add(makeSplit(path, length, blkLocations[0].getHosts()
+					splits.add(makeSplit(path, length, new String[0]
 						, imageWidth, imageHeight
 						, new RectangleWritableComparable( 0, y, imageWidth, rectangleHeight)));
 				}

@@ -175,10 +175,15 @@ public class SAMCL implements Closeable{
 					"counter:", counter,
 					"time", time,
 					"duration:", duration,
+					"batch weight time: ", weightTime,
 					"SER duration", serTime,
 					maxPose, 
 					robot.getPose(), 
 					averagePose);
+			
+//			Transformer.log(
+//					"batch weight time: " + weightTime
+//					);
 		}
 	}
 	

@@ -1,17 +1,14 @@
 package mapreduce.file2hfile;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.Map.Entry;
 
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
 import org.apache.hadoop.mapreduce.Reducer;
 
 
-public class HfileReducer 
-extends Reducer<ImmutableBytesWritable, Put, ImmutableBytesWritable, KeyValue>{
+public class HfileCombiner 
+extends Reducer<ImmutableBytesWritable, Put, ImmutableBytesWritable, Put>{
 	private enum Counters {
 		REDUCE,
 		PUT,
@@ -25,13 +22,7 @@ extends Reducer<ImmutableBytesWritable, Put, ImmutableBytesWritable, KeyValue>{
 		context.getCounter(Counters.REDUCE).increment(1);
 		for(Put put: value){
 			context.getCounter(Counters.PUT).increment(1);
-			for(Entry<byte[], List<KeyValue>> e:put.getFamilyMap().entrySet()){
-				context.getCounter(Counters.FAMILY).increment(1);
-				for(KeyValue kv: e.getValue()){
-					context.getCounter(Counters.KEYVALUE).increment(1);
-					context.write(key, kv);
-				}
-			}
+			context.write(key, put);
 		}
 	}
 

@@ -1,30 +1,31 @@
-package mcl;
+package samclroe;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import robot.Pose;
-
 import robot.RobotState;
 import util.gui.RobotController;
 import util.gui.Window;
 
 import com.beust.jcommander.JCommander;
+import com.google.protobuf.ServiceException;
 
 public class Main {
-	
-	public static void main(String[] args) throws Throwable{
+
+	public static void main(String[] args) throws ServiceException, Throwable {
 		//for debug mode
 		if(args.length==0){
 			String[] targs = {/*"-cl",*/
-					"-i","file:///Users/ihsumlee/Jolly/jpg/sim_map.jpg"
-					//"-i","file:///home/w514/jpg/sim_map.jpg"
+					//"-i","file:///Users/ihsumlee/Jolly/jpg/sim_map.jpg"
+					"-i","file:///home/w514/jpg/sim_map.jpg"
 					,"-o","36"
 					,"-rl","true"
-//							,"-rx","30"
-//							,"-ry","30"
+//					,"-rx","30"
+//					,"-ry","30"
 					,"-p","10"
-//							,"-cl"
+//					,"-cl"
+					,"-d 0.0001 -x 0.05"
 					};
 			args = targs;
 		}
@@ -34,8 +35,7 @@ public class Main {
 		 * to create the localization algorithm
 		 * and setup the listener for SAMCL
 		 */
-		//TODO parameter 
-		final MCL mcl = new MCL(false,
+		final SAMCLROE samclroe = new SAMCLROE(
 				18, //orientation
 				//"file:///home/w514/map.jpg",//map image file
 				"hdfs:///user/eeuser/map1024.jpeg",
@@ -46,13 +46,13 @@ public class Main {
 				10);//competitive strength
 		JCommander jc = new JCommander();
 		jc.setAcceptUnknownOptions(true);
-		jc.addObject(mcl);
+		jc.addObject(samclroe);
 		jc.parse(args);
-		mcl.setup();
-//				if(!mcl.onCloud){
-//					System.out.println("start to pre-caching");
-//					mcl.Pre_caching();
-//				}	
+		samclroe.setup();
+		if(!samclroe.onCloud){
+			System.out.println("start to pre-caching");
+			samclroe.Pre_caching();
+		}	
 		
 		/**
 		 * Second step:
@@ -72,7 +72,7 @@ public class Main {
 		path.add(new Pose(150,550,270));
 		path.add(new Pose(150,150,270));
 		path.add(new Pose(150,150,0));
-		RobotState robot = new RobotState(150, 150, 0, /*null*/mcl.grid, /*null*/"map.512.4.split", path);
+		RobotState robot = new RobotState(150, 150, 0, /*null*/samclroe.grid, /*null*/"map.512.4.split", path);
 		jc = new JCommander();
 		jc.setAcceptUnknownOptions(true);
 		jc.addObject(robot);
@@ -81,7 +81,7 @@ public class Main {
 		robot.setInitModel(robot.getUt());
 		robot.setInitPose(robot.getPose());
 		@SuppressWarnings("unused")
-		RobotController robotController = new RobotController("robot controller", robot,mcl);
+		RobotController robotController = new RobotController("robot controller", robot,samclroe);
 		Thread t = new Thread(robot);
 		t.start();
 		/**
@@ -89,18 +89,18 @@ public class Main {
 		 * start to run samcl
 		 */
 		//TODO WINDOW
-		Window window = new Window("mcl image", mcl,robot);
+		Window window = new Window("samcl image", samclroe,robot);
 		
 		//TODO test 2014/06/19
 		int counter = 0;
 		while(true){
 			counter++;
-			window.setTitle("mcl image:"+String.valueOf(counter));
+			window.setTitle("samcl image:"+String.valueOf(counter));
 			robot.goStraight();
-			mcl.run(robot, window);
+			samclroe.run(robot, window);
 			robot.lock();
 			robot.initRobot();
-		}	
+		}
 	}
-	
 }
+
