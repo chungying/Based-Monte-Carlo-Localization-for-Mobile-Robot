@@ -17,14 +17,15 @@ public class Main {
 		//for debug mode
 		if(args.length==0){
 			String[] targs = {/*"-cl",*/
-					"-i","file:///Users/ihsumlee/Jolly/jpg/sim_map.jpg"
-					//"-i","file:///home/w514/jpg/map.jpg"
-					,"-o","18"
-					,"-rl","true"
-//					,"-rx","30"
-//					,"-ry","30"
-					,"-p","10"
-//					,"-cl"
+//					"-i","file:///Users/ihsumlee/Jolly/jpg/sim_map.jpg"
+					"-i","file:///home/w514/jpg/map.jpg"
+					,"-o","4"
+//					,"-rl","true"
+					,"-rx","100"
+					,"-ry","100"
+//					,"-p","10"
+					,"-cl"
+					,"-t map.512.4.split"
 					};
 			args = targs;
 		}

@@ -18,13 +18,15 @@ public class Main {
 			String[] targs = {
 					//"-i","file:///Users/ihsumlee/Jolly/jpg/white.jpg"
 					"-i","file:///home/w514/jpg/map.jpg"
-					,"-o","18"
+					,"-o","4"
 					,"-rl","true"
 					,"-rx","100"
 					,"-ry","100"
-					,"-p","10"
+//					,"-p","10"
 					,"-cl"
 					,"-t", "map.512.4.split"
+					,"-d","0.0001"
+					,"-x","0.03"
 					};
 			args = targs;
 		}

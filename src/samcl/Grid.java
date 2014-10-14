@@ -352,6 +352,50 @@ public class Grid extends MouseAdapter {
 		}
 	}
 
+	public void getBatchFromCloud2(HTable table, List<Particle> src) throws IOException{
+		// first step: setup List<Get>
+		// HTable, Particles
+		List<Get> gets = new ArrayList<Get>();
+		byte[] fam = Bytes.toBytes("distance");
+		for (Particle p : src) {
+			String str = Transformer.xy2RowkeyString((int)Math.round(p.getX()), (int)Math.round(p.getY()));
+			Get get = new Get(Bytes.toBytes(str));
+			get.addFamily(fam);
+			gets.add(get);
+		}
+		
+		// second: fetch from the Results to the List<Particles>
+		// Particles(X, Y, Z), Results
+		Result[] results = table.get(gets);
+		if (results.length == src.size()) {
+			for (int i = 0; i < results.length; i++) {
+				//convertResultToParticle(src.get(i), results[i], fam);
+				Particle p = src.get(i);
+				byte[] value = null;
+				int index;
+				float[] measurements = new float[this.sensor_number];
+				int bias = (this.sensor_number - 1) / 2;
+				for (int j = 0; j < this.sensor_number; j++) {
+					index = (/*p.getZ()*/Transformer.th2Z(p.getTh(), this.orientation) 
+							- bias + j + this.orientation) 
+							% this.orientation;
+					value = Transformer.getBA(
+								index, 
+								results[i].getValue(
+										fam,
+										Bytes.toBytes("data")
+										)
+								);
+					//System.out.println(Bytes.toString(value));
+					measurements[j] = Bytes.toFloat(value);
+				}
+				p.setMeasurements(measurements);
+			}
+		}else
+			throw new IOException("the length is different.");
+	}
+	
+	@Deprecated
 	public void getBatchFromCloud(HTable table, List<Particle> src)
 			throws IOException {
 		// first step: setup List<Get>
@@ -394,23 +438,33 @@ public class Grid extends MouseAdapter {
 
 	}
 
-/*	private void convertResultToParticle(Particle particle, Result result,
-			byte[] fam) throws IOException {
-		if (!result.isEmpty()) {
+	private float[] getFromCloud2(HTable table, int X, int Y, int Z) throws IOException {
+		this.RPCcount++;
+		
+		String rowkey = Transformer.xy2RowkeyString(X, Y);
+		Get get = new Get(Bytes.toBytes(rowkey));
+		get.addColumn(this.family, Bytes.toBytes("data"));
+		Result result = table.get(get);
+		byte[] BA = result.getValue(this.family, Bytes.toBytes(String.valueOf(this.orientation)));
+		if(Z>=0){
 			float[] measurements = new float[this.sensor_number];
 			int bias = (this.sensor_number - 1) / 2;
 			int index;
 			for (int i = 0; i < this.sensor_number; i++) {
-				index = ((particle.getZ() - bias + i + this.orientation) % this.orientation);
-				measurements[i] = Float.valueOf(Bytes.toString(result.getValue(
-						fam, Bytes.toBytes(String.valueOf(index)))));
+				index = ((Z - bias + i + this.orientation) % this.orientation);
+				measurements[i] = Bytes.toFloat(Transformer.getBA(index, BA));
 			}
-			particle.setMeasurements(measurements);
-		}else
-			throw new IOException("There is no result!!");
+			return measurements;
+		}else{
+			float[] measurements = new float[this.orientation];
+			for (int i = 0; i < this.orientation; i++) {
+				measurements[i] = Bytes.toFloat(Transformer.getBA(i, BA));
+			}
+			return measurements;
+		}
+	}
 
-	}*/
-
+	@Deprecated
 	private float[] getFromCloud(HTable table, int X, int Y, int Z) throws IOException {
 		// TODOdone count RPC times
 		this.RPCcount++;
@@ -519,7 +573,8 @@ public class Grid extends MouseAdapter {
 		if (oncloud) {
 			// System.out.println("get from CLOUD!!!!!");
 			// System.out.println("(X,Y,Z) = ("+X+","+Y+","+Z+")");
-			return this.getFromCloud(table, x, y, z);
+			//return this.getFromCloud(table, x, y, z);
+			return this.getFromCloud2(table, x, y, z);
 		} else {
 			// System.out.println("get from local!!!!!");
 			// System.out.println("(X,Y,Z) = ("+X+","+Y+","+Z+")");

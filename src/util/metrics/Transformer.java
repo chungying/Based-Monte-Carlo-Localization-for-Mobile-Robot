@@ -2,10 +2,42 @@ package util.metrics;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
+import org.apache.hadoop.hbase.client.Durability;
+import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.util.Bytes;
+
 public class Transformer {
+	
+	public static byte[] FA2BA(List<Float> FA){
+		byte[] BA = new byte[0];
+		for(float f: FA){
+			BA = Bytes.add(BA, Bytes.toBytes(f));
+		}
+		return BA;
+	}
+	
+	public static byte[] FA2BA(float[] FA){
+		byte[] BA = new byte[0];
+		for(float f: FA){
+			BA = Bytes.add(BA, Bytes.toBytes(f));
+		}
+		return BA;
+	}
+	
+	public static byte[] getBA(int i, byte[] BA){
+		return Arrays.copyOfRange(BA, i*4, i*4+4);
+	}
+	
+	static public Put createPut(byte[] row, byte[] family, byte[] qualifier, byte[] value){
+		Put put = new Put(row);
+		put.setDurability(Durability.SKIP_WAL);
+		put.add(family, qualifier, value);
+		return put;
+	}
 	
 	static public void log(Object... obs){
 		for(Object ob: obs){

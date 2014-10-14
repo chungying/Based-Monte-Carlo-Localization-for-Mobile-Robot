@@ -2,6 +2,7 @@ package imclroe;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -27,33 +28,40 @@ public class IMCLROE extends SAMCL{
 	@Override
 	public void batchWeight(List<Particle> src, float[] robotMeasurements)
 			throws Throwable {
-//		List<Long> times = new ArrayList<Long>();
-//		times.add(System.currentTimeMillis());
+		List<Long> times = new ArrayList<Long>();
+		times.add(System.currentTimeMillis());
 		Batch.Call<OewcService,OewcResponse> b = new OewcCall( src, robotMeasurements, this.orientation);
-//		times.add(System.currentTimeMillis());
+		times.add(System.currentTimeMillis());
+//		System.out.println("service.....");
+//		System.out.println("src size:"+ src.size());
+//		System.out.println(Arrays.toString(robotMeasurements));
+//		System.out.println("orientation: "+this.orientation);
 		Map<byte[],OewcResponse> results = this.table.coprocessorService(OewcService.class, "0000".getBytes(), "1000".getBytes(), b);
+//		System.out.println("service done.");
 		//setup weight and orientatin to the particles(src)
-//		times.add(System.currentTimeMillis());
+		times.add(System.currentTimeMillis());
 		Long sum = 0l;
 		List<Particle> result = new ArrayList<Particle>();
+//		System.out.println("results....");
 		for(Entry<byte[], OewcResponse> entry:results.entrySet()){
 			sum = sum + entry.getValue().getCount();
-			//System.out.println(Bytes.toString(entry.getKey())+"\n"+entry.getValue().getStr());
+			System.out.println(/*Bytes.toString(entry.getKey())+"\n"+*/entry.getValue().getStr());
 			for(OewcProtos.Particle op : entry.getValue().getParticlesList()){
 				result.add(IMCLROE.ParticleFromO(op, this.orientation));
 			}
 		}
-//		times.add(System.currentTimeMillis());
+		times.add(System.currentTimeMillis());
 		//change the result to src 
+//		System.out.println("store..");
 		src.clear();
 		src.addAll(result);
-//		times.add(System.currentTimeMillis());
-		/*int counter = 0;
+		times.add(System.currentTimeMillis());
+		int counter = 0;
 		System.out.println("-----------------------------");
 		for(Long time: times){
 			counter++;
 			System.out.println("\t"+counter + "\t:"+ time);
-		}*/
+		}
 	}
 
 	public IMCLROE(boolean cloud, int orientation, String mapFilename,

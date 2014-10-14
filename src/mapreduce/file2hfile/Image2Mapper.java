@@ -74,31 +74,43 @@ public class Image2Mapper extends Mapper< Text, RectangleSplit, ImmutableBytesWr
 				for(int j = 0; j < recHeight; j++){
 					rowkeyStr = Transformer.xy2RowkeyString(i+x, j+y, random);
 					
+					//new Rowkey design
+					context.getCounter(Counters.PUT).increment(1);
+					context.write(
+							new ImmutableBytesWritable(Bytes.toBytes(rowkeyStr)),
+							Transformer.createPut(
+									Bytes.toBytes(rowkeyStr),
+									Family_Distance,
+									Bytes.toBytes("data"),
+									Transformer.FA2BA(gridmap.G[i][j].circle_measurements)
+									)
+							);
+					
 					for(int k = 0; k < orientation; k++){
-						float measurementsF = gridmap.G[i][j].circle_measurements[k];
-						if (measurementsF!=0.0f && measurementsF!=1.0f) {
-							String measurements = String.valueOf(measurementsF);
-							Put putDistance = new Put(Bytes.toBytes(rowkeyStr));
-							putDistance.setDurability(Durability.SKIP_WAL);
-							putDistance.add(Family_Distance,
-									Bytes.toBytes(String.valueOf(k)),
-									Bytes.toBytes(measurements));
-							context.getCounter(Counters.PUT).increment(1);
-							context.write(new ImmutableBytesWritable(Bytes.toBytes(rowkeyStr)),
-									putDistance);
-						}
+						//old row key dwsign
+						/*context.getCounter(Counters.PUT).increment(1);
+						context.write(
+								new ImmutableBytesWritable(Bytes.toBytes(rowkeyStr)),
+								Transformer.createPut(
+										Bytes.toBytes(rowkeyStr),
+										Family_Distance,
+										Bytes.toBytes(String.valueOf(k)),
+										Bytes.toBytes(String.valueOf(gridmap.G[i][j].circle_measurements[k]))
+										)
+								);*/
+						
 						float energyF = gridmap.G[i][j].getEnergy(k);
 						if (energyF!=0.0f && energyF!=1.0) {
-							String energy = String.valueOf(energyF);
-							Put putEnergy = new Put(Bytes.toBytes(energy));
-							putEnergy.setDurability(Durability.SKIP_WAL);
-							putEnergy.add(Family_Energy,
-									Bytes.toBytes(rowkeyStr),
-									Bytes.toBytes(String.valueOf(k)));
 							context.getCounter(Counters.PUT).increment(1);
 							context.write(
-									new ImmutableBytesWritable(Bytes.toBytes(energy)), 
-									putEnergy);
+									new ImmutableBytesWritable(Bytes.toBytes(String.valueOf(energyF))), 
+									Transformer.createPut(
+											Bytes.toBytes(String.valueOf(energyF)),
+											Family_Energy,
+											Bytes.toBytes(rowkeyStr),
+											Bytes.toBytes(String.valueOf(k))
+											)
+									);
 						}
 					}
 				}

@@ -24,6 +24,9 @@ import org.apache.hadoop.hbase.filter.CompareFilter;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.filter.RowFilter;
+import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.InternalScanner;
+import org.apache.hadoop.hbase.regionserver.MultiVersionConsistencyControl;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 
@@ -71,7 +74,7 @@ implements Coprocessor, CoprocessorService{
 	public void getRowCount(RpcController controller, OewcRequest request,
 			RpcCallback<OewcResponse> done) {
 		//initial and get the data from client
-		String message = "";
+		String message = "start, ";
 		OewcResponse.Builder responseBuilder = OewcResponse.newBuilder();
 		long start = System.currentTimeMillis();
 		long initial=0, step1=0, step2=0, step3=0, end=0;
@@ -89,11 +92,11 @@ implements Coprocessor, CoprocessorService{
 			if(exsitRow(requsetParts, existParticles)){
 				step1 = System.currentTimeMillis();
 				//Step 2: Orientation Estimation and setup response
-				orientationEstimate(responseBuilder, existParticles, Zt);
+				message = message+orientationEstimate(responseBuilder, existParticles, Zt);
 				step2 = System.currentTimeMillis();
 				//Step 3: Send back the response
 				responseBuilder.setCount(1).setWeight(1.0f);
-				message = "Particle number: "+String.valueOf(existParticles.size());
+				message = message+"Particle number: "+String.valueOf(existParticles.size());
 				step3 = System.currentTimeMillis();
 			}else{
 				step1 = System.currentTimeMillis();
@@ -108,39 +111,12 @@ implements Coprocessor, CoprocessorService{
 			
 			e.printStackTrace();
 		}finally{
-			Scan scan = createScan(existParticles);
-			scan.setCaching(1000);
-			RegionScanner scanner = null;
-			List<Cell> cells = new ArrayList<Cell>();
-			/*try {
-				scanner = this.env.getRegion().getScanner(scan);
-				scanner.nextRaw(cells);
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}finally{
-				try {
-					scanner.close();
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			}*/
-			
-			Map<byte[], Integer> rowMap = new TreeMap<byte[], Integer>(Bytes.BYTES_COMPARATOR);
-			for(Cell c: cells){
-				if(rowMap.get(c.getRowArray()) != null){
-					rowMap.put(c.getRowArray(), rowMap.get(c.getRowArray())+1);
-				}else{
-					rowMap.put(c.getRowArray(), 1);
-				}
-			}
 			responseBuilder.setStr(
-					"start k:"+Bytes.toString(scan.getStartRow())+"\n"+
-					"stop k :"+Bytes.toString(scan.getStopRow())+"\n"+
-					"cells  :"+cells.size()+"\n"+
-					"rows   :"+rowMap.size()+"\n"+
-					"rowkey1:"+Bytes.toString(rowMap.keySet().iterator().next())+"\n"+
+//					"start k:"+Bytes.toString(scan.getStartRow())+"\n"+
+//					"stop k :"+Bytes.toString(scan.getStopRow())+"\n"+
+//					"cells  :"+cells.size()+"\n"+
+//					"rows   :"+rowMap.size()+"\n"+
+//					"rowkey1:"+Bytes.toString(rowMap.keySet().iterator().next())+"\n"+
 					"start  :"+String.valueOf(start)+"\n"+
 					"initial:"+String.valueOf(initial)+"\n"+
 					"step1  :"+String.valueOf(step1)+"\n"+
@@ -152,7 +128,7 @@ implements Coprocessor, CoprocessorService{
 		}
 	}
 
-	private Scan createScan(List<Particle> existParticles){
+	private FilterList createFilter(List<Particle> existParticles){
 		List<Filter> filters = new ArrayList<Filter>();
 		Random random = new Random();
 		for(Particle p : existParticles){
@@ -163,38 +139,135 @@ implements Coprocessor, CoprocessorService{
 									Transformer.xy2RowkeyString(p.getX(), p.getY(), random)))));
 		}
 		FilterList filterList = new FilterList(FilterList.Operator.MUST_PASS_ONE, filters);
-		Scan scan = new Scan(this.env.getRegion().getStartKey(), this.env.getRegion().getEndKey());
-		scan.setFilter(filterList);
-		return scan;
+//		Scan scan = new Scan(this.env.getRegion().getStartKey(), this.env.getRegion().getEndKey());
+//		scan.setFilter(filterList);
+		return filterList;
 	}
 	
-
-	private void orientationEstimate(Builder responseBuilder, List<Particle> existParticles, List<Float> zt) throws IOException {
-		Result result = null;
-		byte[] family = Bytes.toBytes("distance");
-		
-		for(Particle p : existParticles){
-			//get the round measurements to circleMeasure
-			Get get = new Get(Bytes.toBytes(p.toRowKeyString()));
-			get.addFamily(family);
-			result = this.env.getRegion().get(get);
-			NavigableMap<byte[], byte[]> circleMap = new TreeMap<byte[], byte[]>(new BytesValueComparator());
-			//getFamilyMap returns a Map of the form: Map<qualifier,value>
-			circleMap.putAll(result.getFamilyMap(family));
-			List<Float> circleMeasurements = new ArrayList<Float>();
-			for(byte[] B: circleMap.values()){
-				circleMeasurements.add(
-						Float.parseFloat(
-								Bytes.toString(B)));
-			}
-			//OE of a particle
-			Entry<Integer, Float> entry = Oewc.singleParticle(zt, circleMeasurements);
-			//output the best weight
-			OewcProtos.Particle.Builder outputP = OewcProtos.Particle.newBuilder().
-			setX(p.getX()).setY(p.getY()).setZ(entry.getKey()).setW(entry.getValue());
-			responseBuilder.addParticles(outputP);
+	private String drawMeasurements2(Result result, List<Float> FA){
+		String message = "";
+		if(!FA.isEmpty()){
+			return "input of drawMeasurements2() is not empty";
 		}
+		try{
+			byte[] BA = result.getValue(family, Bytes.toBytes("data"));
+			message = message + "BA.length="+String.valueOf(BA.length)+", ";
+			for(int i = 0 ; i*4 < BA.length; i++){
+				FA.add(Bytes.toFloat(
+						Transformer.getBA(i, BA)));
+			}
+			message = message + "drawMeasurements2() succeed";
+		}catch(Exception e){
+			message = message + "drawMeasurements2() failed" + e.toString();
+		}
+		return message;
 		
+	}
+	
+	@Deprecated
+	private List<Float> drawMeasurements(Result result){
+		NavigableMap<byte[], byte[]> circleMap = new TreeMap<byte[], byte[]>(new BytesValueComparator());
+		//getFamilyMap returns a Map of the form: Map<qualifier,value>
+		circleMap.putAll(result.getFamilyMap(family));
+		List<Float> circleMeasurements = new ArrayList<Float>();
+		for(byte[] B: circleMap.values()){
+			circleMeasurements.add(
+					Float.parseFloat(
+							Bytes.toString(B)));
+		}
+		return circleMeasurements;
+	}
+	
+	static byte[] family = Bytes.toBytes("distance");
+	
+	
+	private String orientationEstimate(
+			Builder responseBuilder, 
+			List<Particle> existParticles, 
+			List<Float> zt) throws IOException {
+		String message = "OEWC203 start, ";
+		try{
+		/**
+		 * the bug of scanner need to be figureout
+		 * */
+		/*
+			message = message+ "(0)start!";
+			HRegion region = this.env.getRegion();
+			Scan scan = new Scan();
+			scan.setFilter(createFilter(existParticles));
+			
+			List<Cell> scanCells = new ArrayList<Cell>();
+			NavigableMap<String, List<Float>> mapee = new TreeMap<String, List<Float>>();
+			//MultiVersionConsistencyControl.setThreadReadPoint(scanner.getMvccReadPoint());
+			//region.startRegionOperation();
+			boolean hasMore = false;
+			int rowCount = 0;
+			InternalScanner scanner = null;
+			message = message+ "(1)initial";
+			try{
+				scanner = region.getScanner(scan);
+				message = message+ "(2)scanner";
+					do{
+						
+						//synchronized(scanner){
+							hasMore = scanner.next(scanCells);
+							//}
+							//if(scanCells.size()==0) break;
+						mapee.put(Bytes.toString(scanCells.get(0).getRowArray()), 
+								//drawMeasurements(Result.create(scanCells)));
+								drawMeasurements2(Result.create(scanCells)));
+						scanCells.clear();
+						rowCount++;
+						if(rowCount==existParticles.size()) break;
+					}while(hasMore);
+					message = message+ "(3)overWhile";
+			}finally{
+				scanner.close();
+				message = message+ "(4)closeScanner";
+				//region.closeRegionOperation();
+			}
+			
+			Random random = new Random();
+			for(Particle p : existParticles){
+				Entry<Integer, Float> ent = Oewc.singleParticle(zt, 
+						mapee.get(Transformer.xy2RowkeyString(p.getX(), p.getY(), random)));
+				OewcProtos.Particle.Builder outputP = OewcProtos.Particle.newBuilder().
+						setX(p.getX()).setY(p.getY()).setZ(ent.getKey()).setW(ent.getValue());
+				responseBuilder.addParticles(outputP);
+			}
+			message = message+ "(5)wighting";*/
+			
+			
+			Result result = null;
+			for(Particle p : existParticles){
+				//get the round measurements to circleMeasure
+				message = message +"1,";
+				Get get = new Get(Bytes.toBytes(p.toRowKeyString()));
+				message = message +"2,";
+				get.addColumn(family, "data".getBytes());
+				message = message +"3,";
+				result = this.env.getRegion().get(get);
+				message = message +"4,";
+				//List<Float> circleMeasurements = drawMeasurements(result);
+				List<Float> circleMeasurements = new ArrayList<Float>();
+				message = message + drawMeasurements2(result, circleMeasurements);
+				message = message +"5,";
+				if(circleMeasurements.size()==0){
+					throw new Exception("there is no circle measurements! ");
+				}
+				//OE of a particle
+				Entry<Integer, Float> entry = Oewc.singleParticle(zt, circleMeasurements);
+				message = message +"6,";
+				//output the best weight
+				OewcProtos.Particle.Builder outputP = OewcProtos.Particle.newBuilder().
+				setX(p.getX()).setY(p.getY()).setZ(entry.getKey()).setW(entry.getValue());
+				message = message +"7,";
+				responseBuilder.addParticles(outputP);
+			}
+		}catch(Exception e){
+			message = message+"OEWC failed, "+e.toString();
+		}
+		return message;
 	}
 	
 	public List<Float> getMeasurements(int z, List<Float> circleMeasurements){
@@ -210,7 +283,7 @@ implements Coprocessor, CoprocessorService{
 		
 	}
 	
-	class BytesValueComparator implements Comparator<byte[]> {
+	public class BytesValueComparator implements Comparator<byte[]> {
 		@Override
 		public int compare(byte[] o1, byte[] o2) {
 			if(o1==o2){

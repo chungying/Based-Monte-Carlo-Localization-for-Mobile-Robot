@@ -470,7 +470,16 @@ public class SAMCL implements Closeable{
 			//get sensor data of all particles.
 			if (this.onCloud) {
 				//get measurements from cloud  and weight
-				this.grid.getBatchFromCloud(this.table, src);
+				try {
+					this.grid.getBatchFromCloud(this.table, src);
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+					for(Particle p: src){
+						System.out.println(Transformer.xy2RowkeyString(p.getX(), p.getY()));
+					}
+				}
+				//this.grid.getBatchFromCloud2(this.table, src);
 				for (Particle p : src) {
 					this.WeightParticle(p, robotMeasurements);
 				}
