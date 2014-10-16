@@ -12,6 +12,16 @@ import org.apache.hadoop.hbase.util.Bytes;
 
 public class Transformer {
 	
+	public static List<Float> BA2FA(int offset, byte[] BA){
+		List<Float> result = new ArrayList<Float>();
+		for(int i = offset ; i < BA.length ; i+=4){
+			result.add(
+					Bytes.toFloat(
+							Arrays.copyOfRange(BA, i, i+4)));
+		}
+		return result;
+	}
+	
 	public static byte[] FA2BA(List<Float> FA){
 		byte[] BA = new byte[0];
 		for(float f: FA){
