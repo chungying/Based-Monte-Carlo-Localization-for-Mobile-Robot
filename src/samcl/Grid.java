@@ -352,7 +352,7 @@ public class Grid extends MouseAdapter {
 		}
 	}
 
-	public void getBatchFromCloud2(HTable table, List<Particle> src) throws IOException{
+	public void getBatchFromCloud2(HTable table, List<Particle> src) throws Exception{
 		// first step: setup List<Get>
 		// HTable, Particles
 		List<Get> gets = new ArrayList<Get>();
@@ -375,19 +375,24 @@ public class Grid extends MouseAdapter {
 				int index;
 				float[] measurements = new float[this.sensor_number];
 				int bias = (this.sensor_number - 1) / 2;
-				for (int j = 0; j < this.sensor_number; j++) {
-					index = (/*p.getZ()*/Transformer.th2Z(p.getTh(), this.orientation) 
-							- bias + j + this.orientation) 
-							% this.orientation;
-					value = Transformer.getBA(
-								index, 
-								results[i].getValue(
-										fam,
-										Bytes.toBytes("data")
-										)
-								);
-					//System.out.println(Bytes.toString(value));
-					measurements[j] = Bytes.toFloat(value);
+				byte[] resultValue = results[i].getValue(
+						fam,
+						Bytes.toBytes("data")
+						);
+				if(resultValue!=null){
+					for (int j = 0; j < this.sensor_number; j++) {
+						index = (/*p.getZ()*/Transformer.th2Z(p.getTh(), this.orientation) 
+								- bias + j + this.orientation) 
+								% this.orientation;
+						value = Transformer.getBA(
+									index, 
+									resultValue
+									);
+						//System.out.println(Bytes.toString(value));
+						measurements[j] = Bytes.toFloat(value);
+					}
+				}else{
+					throw new NullPointerException("bad particle"+src.get(i)+"\nrowkey:"+Bytes.toString(results[i].getRow()));
 				}
 				p.setMeasurements(measurements);
 			}
@@ -438,7 +443,7 @@ public class Grid extends MouseAdapter {
 
 	}
 
-	private float[] getFromCloud2(HTable table, int X, int Y, int Z) throws IOException {
+	private float[] getFromCloud2(HTable table, int X, int Y, int Z) throws Exception {
 		this.RPCcount++;
 		
 		String rowkey = Transformer.xy2RowkeyString(X, Y);
@@ -504,7 +509,7 @@ public class Grid extends MouseAdapter {
 	}
 	
 	public float[] getMeasurementsAnyway(HTable table, boolean onCloud, double x, double y, double head)
-			throws IOException{
+			throws Exception{
 		if(this.G!=null){
 			return this.getMeasurements(table, onCloud, x, y, head);
 		}else{
@@ -532,7 +537,7 @@ public class Grid extends MouseAdapter {
 	 * @throws IOException
 	 */
 	public float[] getMeasurements(HTable table, boolean onCloud, int x, int y, double head)
-			throws IOException {
+			throws Exception {
 		return this.getMeasurements(table, onCloud, x, y, Transformer.th2Z(head, this.orientation));
 
 	}
@@ -549,7 +554,7 @@ public class Grid extends MouseAdapter {
 	 * @throws IOException
 	 */
 	public float[] getMeasurements(HTable table, boolean onCloud, double x, double y, double head)
-			throws IOException {
+			throws Exception {
 		return this.getMeasurements(table, onCloud, (int)Math.round(x), (int)Math.round(y), Transformer.th2Z(head,
 				this.orientation));
 	}
@@ -569,7 +574,7 @@ public class Grid extends MouseAdapter {
 	 * </pre>
 	 */
 	public float[] getMeasurements(HTable table, boolean oncloud, int x, int y, int z)
-			throws IOException {
+			throws Exception {
 		if (oncloud) {
 			// System.out.println("get from CLOUD!!!!!");
 			// System.out.println("(X,Y,Z) = ("+X+","+Y+","+Z+")");

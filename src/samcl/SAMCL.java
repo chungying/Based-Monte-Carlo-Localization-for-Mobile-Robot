@@ -53,6 +53,7 @@ public class SAMCL implements Closeable{
 	 */
 	public void run(RobotState robot, JFrame samcl_window) throws Throwable{
 		this.setTerminated(false);
+		boolean mode = true;
 		System.out.println("press enter to continue.");
 		System.in.read();
 		System.out.println("start!");
@@ -60,6 +61,7 @@ public class SAMCL implements Closeable{
 		List<Particle> local_set = new ArrayList<Particle>();
 		List<Particle> global_set = new ArrayList<Particle>();
 		//in order to be thread-safe, use CopyOnWriteArrayList.
+		List<Particle> current_set = new CopyOnWriteArrayList<Particle>();
 		List<Particle> last_set = new CopyOnWriteArrayList<Particle>();
 		List<Particle> SER_set = new CopyOnWriteArrayList<Particle>();		
 		
@@ -73,7 +75,6 @@ public class SAMCL implements Closeable{
 		samcl_window.setVisible(true);
 		
 		//Initial Particles and Painting
-		last_set.clear();
 		for (int i = 0; i < this.Nt; i++) {
 			last_set.add(this.global_sampling());
 		}
@@ -90,44 +91,44 @@ public class SAMCL implements Closeable{
 			
 			//Setp 1: Sampling
 //			System.out.println("(1)\tSampling\t");
+			Transformer.debugMode(mode, "(1)\tSampling");
 			long sampleTime = System.currentTimeMillis();
 			//TODO Particle
-			this.Prediction_total_particles(last_set, robot.getUt(), duration);
+			current_set.clear();
+			current_set.addAll(this.Prediction_total_particles(last_set, robot.getUt(), duration));
 			sampleTime = System.currentTimeMillis() - sampleTime;
 			
-			//Step 1-2: Weighting
-//			System.out.println("(1-2)\tWeighting\t");
+			//Step 2: Weighting
+//			System.out.println("(2)\tWeighting\t");
+			Transformer.debugMode(mode, "(2)\tWeighting");
 			long weightTime = System.currentTimeMillis();
 			//TODO Particle
-			this.batchWeight(last_set, Zt);
+			this.batchWeight(current_set, Zt);
 			weightTime = System.currentTimeMillis() - weightTime;
 			
-			//Step 2: Determining size
-//			System.out.println("(2)\tDetermining size\t");
+			//Step 3: Determining size
+//			System.out.println("(3)\tDetermining size\t");
+			Transformer.debugMode(mode, "(3)\tDetermining size");
 			long determiningTime = System.currentTimeMillis();
-			Particle maxPose = this.Determining_size(last_set);
+			Particle bestParticle = this.Determining_size(current_set);
 			determiningTime = System.currentTimeMillis() - determiningTime;
-			//Step 2-2: Calculating SER
+			//Step 3-1: Calculating SER
+			Transformer.debugMode(mode, "(3-1)\tCalculating SER");
 			long serTime = System.currentTimeMillis();
-			this.Caculating_SER(maxPose.getWeight(), Zt, SER_set);
+			this.Caculating_SER(bestParticle.getWeight(), Zt, SER_set, global_set);
 			serTime = System.currentTimeMillis() - serTime;
 			
-			//Step 3-1: Local resampling
-//			System.out.println("(3)\tLocal resampling\t");
+			//Step 4: Local resampling
+//			System.out.println("(4)\tLocal resampling\t");
+			Transformer.debugMode(mode, "(4)\tLocal resampling");
 			long localResamplingTime = System.currentTimeMillis();
-			this.Local_resampling(last_set, local_set);
+			this.Local_resampling(current_set, local_set, bestParticle);
 			localResamplingTime = System.currentTimeMillis() - localResamplingTime;
 //			System.out.println("\tlocal set size : \t" + local_set.size());
 			
-			//Step 3-2: Global resampling
-//			System.out.println("(4)\tGlobal resampling\t");
-			long globalResampleTime = System.currentTimeMillis();
-			this.Global_drawing(SER_set, global_set);
-			globalResampleTime = System.currentTimeMillis() - globalResampleTime;
-//			System.out.println("\tglobal set size: \t" + global_set.size());
-			
-			//Step 4: Combimining
+			//Step 5: Combimining
 //			System.out.println("(5)\tCombimining\t");
+			Transformer.debugMode(mode, "(5)\tCombimining");
 			long combiminingTime = System.currentTimeMillis();
 			last_set.clear();
 			last_set.addAll(this.Combining_sets(local_set, global_set));
@@ -135,7 +136,7 @@ public class SAMCL implements Closeable{
 //			System.out.println("\tnext set size: \t" + last_set.size());
 			
 			//TODO Particle
-			Particle averagePose = this.averagePose(last_set);
+			Particle averagePose = this.averagePose(current_set);
 			//show out the information
 			/**
 			 * best particle
@@ -166,7 +167,7 @@ public class SAMCL implements Closeable{
 			
 			//draw image 
 			//TODO Particle
-			this.Drawing(grap, samcl_window, robot, maxPose, last_set, SER_set);
+			this.Drawing(grap, samcl_window, robot, bestParticle, current_set, SER_set);
 			
 			//update image
 			image_panel.repaint();
@@ -177,7 +178,7 @@ public class SAMCL implements Closeable{
 					"duration:", duration,
 					"batch weight time: ", weightTime,
 					"SER duration", serTime,
-					maxPose, 
+					bestParticle, 
 					robot.getPose(), 
 					averagePose);
 			
@@ -420,7 +421,7 @@ public class SAMCL implements Closeable{
 	 * @param weight 
 	 * @throws IOException 
 	 */
-	public void Caculating_SER(float weight, float[] Zt, List<Particle> SER_set) throws IOException{
+	public void Caculating_SER(float weight, float[] Zt, List<Particle> SER_set, List<Particle> global_set) throws IOException{
 		if (weight>this.XI) {//if do calculate SER or not?
 			/*Get the reference energy*/
 			float energy = Transformer.CalculateEnergy(Zt);
@@ -436,6 +437,13 @@ public class SAMCL implements Closeable{
 			}else{
 				this.localCaculatingSER(SER_set, LowerBoundary,  UpperBoundary);
 			}
+			//Step 3-2: Global resampling
+//			System.out.println("(4)\tGlobal resampling\t");
+			long globalResampleTime = System.currentTimeMillis();
+			this.Global_drawing(SER_set, global_set);
+			globalResampleTime = System.currentTimeMillis() - globalResampleTime;
+//			System.out.println("\tglobal set size: \t" + global_set.size());
+			
 		}
 	}
 	
@@ -443,26 +451,35 @@ public class SAMCL implements Closeable{
 	 * input:last particles set(Xt-1),motion control(ut),3-Dimentional grid(G3D)
 	 * output:particles(xt),weight(wt)
 	 * @param duration 
+	 * @throws Exception 
 	 */
-	public void Prediction_total_particles(List<Particle> src, VelocityModel u, long duration){
-		//System.out.println("*********into Sample_total_particles");
-//		try {
-			if(!src.isEmpty()){
-//				Random random = new Random();
+	public List<Particle> Prediction_total_particles(
+			List<Particle> src, 
+			VelocityModel u, 
+			long duration) throws Exception{
+		List<Particle> result = new ArrayList<Particle>();
+		if(!src.isEmpty()){
+			Random random = new Random();
+			first:
 				for(Particle p : src){
-					Distribution.Motion_sampling(p,this.orientation, u, duration/1000); 
-					//System.out.println("sampling.... i :	" + i);
+					int i = 0;
+					do{
+						if(i>10)
+							continue first;
+						i++;
+						Distribution.Motion_sampling(p,this.orientation, u, duration/1000, random); 
+					}while(!Distribution.boundaryCheck(p, this.grid));
+					
+					result.add(p.clone());
+					
 					//this.pixel_sampling(p, 11, 7, random);
 				}
-			}
-			else{
-				System.out.println("*********the src_set is empty!!!!!!");
-//				throw new Exception("The set is empty!\n");
-			}
-//		} catch (Exception e) {
-//
-//			System.out.println(e.toString()+"\n there is no last set in elder set.");
-//		}		
+		}
+		else{
+			System.out.println("*********the src_set is empty!!!!!!");
+//			throw new Exception("The set is empty!\n");
+		}
+		return result;
 	}
 	
 	public void batchWeight(List<Particle> src, float[] robotMeasurements) throws IOException, ServiceException, Throwable {
@@ -471,13 +488,14 @@ public class SAMCL implements Closeable{
 			if (this.onCloud) {
 				//get measurements from cloud  and weight
 				try {
-					this.grid.getBatchFromCloud(this.table, src);
+					this.grid.getBatchFromCloud2(this.table, src);
 				} catch (Exception e) {
-					// TODO Auto-generated catch block
+					System.out.println(e.getMessage());
 					e.printStackTrace();
 					for(Particle p: src){
 						System.out.println(Transformer.xy2RowkeyString(p.getX(), p.getY()));
 					}
+					System.exit(1);
 				}
 				//this.grid.getBatchFromCloud2(this.table, src);
 				for (Particle p : src) {
@@ -519,9 +537,10 @@ public class SAMCL implements Closeable{
 	 * input:the number of local samples(NL),particles(xt),weight(wt)
 	 * output:XLt
 	 */
-	public void Local_resampling(List<Particle> src, List<Particle> dst){
+	public void Local_resampling(List<Particle> src, List<Particle> dst, Particle bestParticle){
 		dst.clear();
-		for (int i = 0; i < this.Nl; i++) {
+		dst.add(bestParticle);
+		for (int i = dst.size(); i < this.Nl; i++) {
 			//Roulette way
 			//Tournament way
 			Particle particle = Transformer.tournament(tournamentPresure, src);
@@ -616,7 +635,11 @@ public class SAMCL implements Closeable{
 	}
 	
 	@SuppressWarnings("unused")
-	private void pixel_sampling(Particle p, int radius, int angular, Random random){//TODO static?
+	private void pixel_sampling(
+			Particle p, 
+			int radius, 
+			int angular, 
+			Random random){//TODO static?
 
 		int r ;
 		r = random.nextInt(radius)-( radius - 1 )/2;
@@ -643,7 +666,7 @@ public class SAMCL implements Closeable{
 		p.setTh(Transformer.Z2Th(pz, this.orientation));
 	}
 	
-	public void WeightParticle(Particle p, float[] robotMeasurements) throws IOException{
+	public void WeightParticle(Particle p, float[] robotMeasurements) throws Exception{
 		//if the position is occupied.
 		if( this.grid.map_array(p.getX(), p.getY())==Grid.GRID_EMPTY ) {
 			//if the particle has got the measurements or would get measurements from Grid

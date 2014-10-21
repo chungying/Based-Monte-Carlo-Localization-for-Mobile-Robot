@@ -129,7 +129,12 @@ public class RobotState implements Runnable,Closeable{
 						Thread.sleep(10);
 						//update sensor data 
 						if(this.grid!=null){
-							this.updateSensor();
+							try {
+								this.updateSensor();
+							} catch (Exception e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
 						}
 
 					} catch (IOException e) {
@@ -178,7 +183,7 @@ public class RobotState implements Runnable,Closeable{
 		this.head = Transformer.checkHeadRange((ut.getAngular_velocity() * t) + this.head);
 	}
 
-	private void updateSensor() throws IOException {
+	private void updateSensor() throws Exception {
 		this.setMeasurements(this.grid.getMeasurementsAnyway(this.table , onCloud, this.x, this.y, this.head));
 	}
 

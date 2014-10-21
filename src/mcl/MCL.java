@@ -25,7 +25,7 @@ public class MCL extends SAMCL{
 	}
 
 	@Override
-	public void Caculating_SER(float weight, float[] Zt, List<Particle> SER_set)
+	public void Caculating_SER(float weight, float[] Zt, List<Particle> SER_set, List<Particle> global_set)
 			throws IOException {
 //		// TODO Auto-generated method stub
 //		super.Caculating_SER(weight, Zt, SER_set);
@@ -33,7 +33,7 @@ public class MCL extends SAMCL{
 
 	@Override
 	public void batchWeight(List<Particle> src, float[] robotMeasurements)
-			throws IOException, ServiceException {
+			throws Exception {
 		for(Particle p : src){
 			float[] m = this.grid.getMeasurementsOnTime(p.getX(), p.getY(), Transformer.th2Z(p.getTh(), this.orientation));
 			p.setMeasurements(m);

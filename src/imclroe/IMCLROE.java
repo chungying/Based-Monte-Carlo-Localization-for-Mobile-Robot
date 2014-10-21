@@ -1,16 +1,24 @@
 package imclroe;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PrintStream;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Random;
 
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.eclipse.jdt.core.dom.ThisExpression;
 
 import com.google.protobuf.RpcController;
 
@@ -23,10 +31,93 @@ import util.metrics.Particle;
 import util.metrics.Transformer;
 
 public class IMCLROE extends SAMCL{
-
+	//for test
+	public static void main(String[] args){
+		String str = "1:2:3:4:5:";
+		String[] strs = str.split(":");
+		System.out.println(str);
+		for(String s: strs){
+			System.out.println(s);
+		}
+		System.out.println("null pointer");
+		String strnull = null;
+		try{
+			strnull.split(":");
+		}catch(Exception e){
+			System.out.println(e.toString());
+			System.out.println(e.getMessage());
+		}
+	}
 	
 	@Override
 	public void batchWeight(List<Particle> src, float[] robotMeasurements)
+			throws Throwable {
+		//this.oewcEndpoint(src, robotMeasurements);
+		this.oewcObserver(src, robotMeasurements);
+	}
+	
+	private void oewcObserver(List<Particle> src, float[] robotMeasurements) throws IOException {
+		//create List<Get> gets from List<Particle src
+		List<Get> gets = createGetList(src, robotMeasurements);
+		//deal with the results
+		updateParticles(src, this.table.get(gets));
+		
+	}
+	
+	private void updateParticles(List<Particle> src, Result[] results) throws FileNotFoundException {
+		try {
+			if (src.size() == results.length) {
+				for (int i = 0; i < src.size(); i++) {
+					if(results[i].isEmpty()){
+						throw new Exception("there is no result from OewcObserver. Rowkey:\n"+Bytes.toString(results[i].getRow()));
+					}
+					//parse the results[i]
+					//rowkey type = HASH:XXXXXYYYYY:oewc:ORIENTATION:WEIGHTING
+					String str = Bytes.toString(results[i].getRow());
+					String[] strs = str.split(":");
+					if (strs[2].contains("oewc")) {
+						int best = Integer.parseInt(strs[3]);
+						float weight = Float.parseFloat(strs[4]);
+						//assign the best orientation and
+						src.get(i).setWeight(weight);
+						src.get(i).setTh(
+								Transformer.Z2Th(best, this.orientation));
+					}
+				}
+			}else{
+				throw new Exception("size is not match.\n"
+						+ "src.size()="+src.size()+",results.length="+results.length);
+			}
+				
+		} catch (Exception e) {
+			System.out.println(this.getClass().getName()+", update Particles");
+			System.out.println(e.toString());
+			System.out.println(e.getMessage());
+			StringWriter sw = new StringWriter();
+			e.printStackTrace(new PrintWriter(sw));
+			System.out.println(sw.toString());
+		}
+	}
+
+	private List<Get> createGetList(List<Particle> src,
+			float[] robotMeasurements) {
+		byte[] zt = Transformer.FA2BA(robotMeasurements);
+		byte[] family = "distance".getBytes();
+		byte[] qualifier = "data".getBytes();
+		List<Get> gets = new ArrayList<Get>();
+		Random random = new Random();
+		for(Particle p : src){
+			String str = Transformer.xy2RowkeyString(p.getX(), p.getY(), random) + ":oewc:";
+			Get get = new Get(Bytes.add(str.getBytes(), zt));
+			get.addColumn(family, qualifier);
+			gets.add(get);
+		}
+		return gets;
+	}
+
+	@SuppressWarnings("unused")
+	@Deprecated
+	private void oewcEndpoint(List<Particle> src, float[] robotMeasurements)
 			throws Throwable {
 		List<Long> times = new ArrayList<Long>();
 		times.add(System.currentTimeMillis());

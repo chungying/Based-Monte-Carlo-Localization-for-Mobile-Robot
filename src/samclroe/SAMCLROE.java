@@ -15,7 +15,7 @@ public class SAMCLROE extends SAMCL{
 
 	@Override
 	public void batchWeight(List<Particle> src, float[] robotMeasurements)
-			throws IOException {
+			throws Exception {
 		for(Particle p : src){
 			Entry<Integer, Float> entry = Oewc.singleParticle(robotMeasurements, 
 					this.grid.getMeasurements(this.table, onCloud, p.getX(), p.getY(), -1) , 

@@ -38,8 +38,23 @@ public class Transformer {
 		return BA;
 	}
 	
-	public static byte[] getBA(int i, byte[] BA){
-		return Arrays.copyOfRange(BA, i*4, i*4+4);
+	public static byte[] getBA(int i, byte[] BA) throws Exception{
+		byte[] result = null;
+		try {
+			if(BA==null){
+				System.out.println("BA is null!!");
+				throw new NullPointerException();
+			}
+			result = Arrays.copyOfRange(BA, i*4, i*4+4);
+		} catch (Exception e) {
+			System.out.println("i = "+i+",BA = ");
+			for(Float f: BA2FA(0,BA)){
+				System.out.print(f+",");
+			}
+			e.printStackTrace();
+			
+		}
+		return result;
 	}
 	
 	static public Put createPut(byte[] row, byte[] family, byte[] qualifier, byte[] value){
@@ -47,6 +62,15 @@ public class Transformer {
 		put.setDurability(Durability.SKIP_WAL);
 		put.add(family, qualifier, value);
 		return put;
+	}
+	
+	static public void debugMode(boolean mode,Object... obs){
+		if(mode){
+			for(Object ob: obs){
+				System.out.print(ob.toString()+"\t");
+			}
+			System.out.println();
+		}
 	}
 	
 	static public void log(Object... obs){
@@ -206,7 +230,7 @@ public class Transformer {
 				max_weight = max_particle.getWeight();
 			}
 		}
-		return max_particle;
+		return max_particle.clone();
 	}
 	
 	public static Particle minParticle( List<Particle> srcSet ){
@@ -219,7 +243,7 @@ public class Transformer {
 			}
 		}
 		
-		return min_particle;
+		return min_particle.clone();
 	}
 
 	static public String xy2String(int x, int y){
@@ -265,17 +289,29 @@ public class Transformer {
 	}
 	
 	public static void main(String[] args) throws IOException{
+		first:
+			for(int i = 0 ; i < 5; i++){
+				System.out.println("i:"+i);
+				int j = 0;
+				do{
+//					if(j>4)
+//						continue first;
+					j+=1;
+					System.out.println("\tj="+j);
+				}while(j<10);
+			}
+		
+		
+		/*
 		Random random = new Random();
 		int x = 1156;
 		int y = 5765;
-		
 		String str = xy2RowkeyString(x,y, random);
 		String str2 = xy2String(x+1,y+1);
 		System.out.println("str:"+str);
 		System.out.println("str2:"+str2);
 		Particle p = new Particle(0, 0, 0);
 		System.out.println("1\t"+p.toString());
-		
 		rowkeyString2xy(str, p);
 		System.out.println("str\t"+p.toString());
 		rowkeyString2xy(str2, p);
@@ -284,12 +320,11 @@ public class Transformer {
 		System.out.println(" str y:" + rowkeyString2Y(str));
 		System.out.println(" str2 x:" + rowkeyString2X(str2));
 		System.out.println(" str2 y:" + rowkeyString2Y(str2));
-		
-//		System.out.println(str);
-//		System.out.println(str2);
-//		System.out.println(str.replaceAll("...."+separator, ""));
-//		System.out.println(str2.replaceAll("...."+separator, ""));
-		
+		System.out.println(str);
+		System.out.println(str2);
+		System.out.println(str.replaceAll("...."+separator, ""));
+		System.out.println(str2.replaceAll("...."+separator, ""));
+		*/
 	}
 
 	public static double Z2Th(int z, int orientation) {

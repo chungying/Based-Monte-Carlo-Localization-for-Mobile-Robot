@@ -1,20 +1,26 @@
 package imclroe;
 
 import java.io.IOException;
+import java.io.PrintStream;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.NavigableSet;
 import java.util.Random;
+
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
+import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import util.metrics.Transformer;
@@ -26,50 +32,92 @@ import util.oewc.Oewc;
  */
 public class OewcObserver extends BaseRegionObserver{
 	public static String PASSWORD = "oewc"; 
+	private HRegion region = null;
+	@Override
+	public void start(CoprocessorEnvironment e) throws IOException {
+		this.region = ((ObserverContext<RegionCoprocessorEnvironment>) e).getEnvironment().getRegion();
+	}
+
 
 	@Override
 	public void preGetOp(ObserverContext<RegionCoprocessorEnvironment> arg0,
 			Get arg1, List<Cell> arg2) throws IOException {
 		
-		
-		if(isOewc(arg1)){//whether execute oewc or not.
-			//get the measurements from rowkey
-			List<Float> Zt = drawZtFromGet(arg1.getRow());
-			//get the simulations from region
-			List<Float> Circles = getFromRegion(arg0, arg1);
-			//start up OEWC
-			Entry<Integer,Float> oewc = Oewc.singleParticle(Zt,Circles);
-			//create a cell of results
-			Cell result = createCell(arg1, oewc);
-			//add it into the return
-			arg2.add(result);
-			//skip all further processing
+		try {
+			if(isOewc(arg1)){//whether execute oewc or not.
+				//create a cell of results
+				Cell result = null;
+				
+				//get the measurements from rowkey
+				List<Float> Zt = drawZtFromGet(arg1.getRow());
+				//get the simulations from region
+				List<Float> Circles = getFromRegion(arg0, arg1);
+				//start up OEWC
+				Entry<Integer, Float> oewc = Oewc.singleParticle(Zt, Circles);
+				result = createCell(arg1, oewc);
+			
+				//add it into the return
+				arg2.add(result);
+				//skip all further processing
+				arg0.bypass();
+			}
+		} catch (Exception e) {
+			//add exception message to cell and return it
+			StringWriter sw = new StringWriter();
+			e.printStackTrace(new PrintWriter(sw));
+			String str = e.toString()+"\nStack Trace:"+sw.toString();
+			Cell error = CellUtil.createCell(
+					str.getBytes(),
+					"err".getBytes(),
+					"err".getBytes(), 
+					System.currentTimeMillis(), 
+					KeyValue.Type.Put.getCode(),  
+					"err".getBytes()
+					);
+			arg2.add(error);
 			arg0.bypass();
 		}
 	}
 
 	
-	static boolean isOewc(Get get){
-		String keyword = Bytes.toString(Arrays.copyOfRange(get.getRow(), 0, 21));
-		System.out.println("keyword="+ keyword);
+	static boolean isOewc(Get get) throws Exception{
+		String keyword = null;
+		try {
+			keyword = Bytes.toString(Arrays.copyOfRange(get.getRow(), 0, 21));
+			System.out.println("keyword="+ keyword);
+		} catch (Exception e) {
+			throw e;
+		}
 		return keyword.contains(PASSWORD);
 	}
 	
-	static public List<Float> drawZtFromGet(byte[] BA){
-		return Transformer.BA2FA(21, BA);
+	static public List<Float> drawZtFromGet(byte[] BA) throws Exception{
+		List<Float> result = null;
+		try{
+			result = Transformer.BA2FA(21, BA);
+		}catch(Exception e){
+			throw e;
+		}
+		return result;
 	}
 	
 	public List<Float> getFromRegion(ObserverContext<RegionCoprocessorEnvironment> e, 
-			Get get) throws IOException{
-		Entry<byte[], NavigableSet<byte[]>> entry = 
-				get.getFamilyMap().entrySet().iterator().next();
-		byte[] family = entry.getKey();
-		byte[] qualifier = entry.getValue().iterator().next();
-		Get g = new Get(Arrays.copyOfRange(get.getRow(), 0, 15));
-		g.addColumn(family, qualifier);
-		Result result = e.getEnvironment().getRegion().get(g);
-		return Transformer.BA2FA(0,
-				result.getColumnLatestCell(family, qualifier).getValueArray());
+			Get get) throws Exception{
+		List<Float> output = null;
+		try {
+			Entry<byte[], NavigableSet<byte[]>> entry = 
+					get.getFamilyMap().entrySet().iterator().next();
+			byte[] family = entry.getKey();
+			byte[] qualifier = entry.getValue().iterator().next();
+			Get g = new Get(Arrays.copyOfRange(get.getRow(), 0, 15));
+			g.addColumn(family, qualifier);
+			Result result = this.region.get(g);
+			output = Transformer.BA2FA(0,
+					result.getColumnLatestCell(family, qualifier).getValueArray());
+		} catch (Exception e1) {
+			throw e1;
+		}
+		return output;
 	}
 	
 	
@@ -79,21 +127,30 @@ public class OewcObserver extends BaseRegionObserver{
 	 * @param entry
 	 * @return Cell = [xxxx:XY, "fam", Z, W]
 	 */
-	public Cell createCell(Get get, Entry<Integer,Float> entry){
-		Cell cell = CellUtil.createCell(
-				Arrays.copyOfRange(get.getRow(), 0, 15),
-				get.getFamilyMap().keySet().iterator().next(),
-				String.valueOf(entry.getKey()).getBytes(), 
-				System.currentTimeMillis(), 
-				KeyValue.Type.valueOf("Oewc").getCode(), 
-				Bytes.toBytes(entry.getValue())
-				);
-		return cell;
+	public Cell createCell(Get get, Entry<Integer,Float> entry) throws Exception{
+		Cell cell = null;
+		try {
+			//rowkey type = HASH:XXXXXYYYYY:oewc:ORIENTATION:WEIGHTING
+			byte[] rowkey = Arrays.copyOfRange(get.getRow(), 0, 21);
+			String str = String.valueOf(entry.getKey()) +":"+ String.valueOf(entry.getValue());
+			
+			cell = CellUtil.createCell(
+					Bytes.add(rowkey,str.getBytes()),
+					"oewc".getBytes(),
+					"oewc".getBytes(), 
+					System.currentTimeMillis(), 
+					KeyValue.Type.Put.getCode(),  
+					Bytes.add(Bytes.toBytes(entry.getKey()),Bytes.toBytes(entry.getValue()))
+					);
+		} catch (Exception e) {
+			throw e;
+		}
+		return cell;    
 	}
 	
 
 	//for test
-	public static void main(String[] args) {
+	public static void main(String[] args) throws Exception {
 		//initialization
 		List<Float> zt = new ArrayList<Float>();
 		Random random = new Random();
