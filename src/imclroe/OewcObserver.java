@@ -35,7 +35,7 @@ public class OewcObserver extends BaseRegionObserver{
 	private HRegion region = null;
 	@Override
 	public void start(CoprocessorEnvironment e) throws IOException {
-		this.region = ((ObserverContext<RegionCoprocessorEnvironment>) e).getEnvironment().getRegion();
+		this.region = ((RegionCoprocessorEnvironment)e).getRegion();
 	}
 
 
@@ -47,7 +47,6 @@ public class OewcObserver extends BaseRegionObserver{
 			if(isOewc(arg1)){//whether execute oewc or not.
 				//create a cell of results
 				Cell result = null;
-				
 				//get the measurements from rowkey
 				List<Float> Zt = drawZtFromGet(arg1.getRow());
 				//get the simulations from region
@@ -55,7 +54,6 @@ public class OewcObserver extends BaseRegionObserver{
 				//start up OEWC
 				Entry<Integer, Float> oewc = Oewc.singleParticle(Zt, Circles);
 				result = createCell(arg1, oewc);
-			
 				//add it into the return
 				arg2.add(result);
 				//skip all further processing

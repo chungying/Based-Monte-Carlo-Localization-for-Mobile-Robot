@@ -46,6 +46,8 @@ public class SAMCL implements Closeable{
 		this.terminated = terminated;
 	}
 
+	public boolean mode = true;
+	
 	//	public boolean isClosing;
 	/**
 	 * run SAMCL
@@ -53,7 +55,7 @@ public class SAMCL implements Closeable{
 	 */
 	public void run(RobotState robot, JFrame samcl_window) throws Throwable{
 		this.setTerminated(false);
-		boolean mode = true;
+		
 		System.out.println("press enter to continue.");
 		System.in.read();
 		System.out.println("start!");

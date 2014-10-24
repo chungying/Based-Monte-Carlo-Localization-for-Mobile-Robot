@@ -1,13 +1,19 @@
 package util.table;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
+import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 
@@ -17,8 +23,14 @@ public class CreateTable extends Base{
 	@Parameter(names = {"-i","--input"}, description = "the path of image, default is \"hdfs:///user/eeuser/jpg/sim_map.jpg\"", required = true)
 	public String tableName = "hdfs:///user/eeuser/jpg/sim_map.jpg";
 
-	public static void main(String[] args) {
-		List<Cell> cells = new ArrayList<Cell>();
+	public static void main(String[] args) throws Exception {
+		System.out.println("start the programe");
+		Configuration conf = HBaseConfiguration.create();
+		HBaseAdmin admin = new HBaseAdmin(conf);
+		admin.deleteTable("test6.18.split");
+		
+		
+		/*List<Cell> cells = new ArrayList<Cell>();
 		Cell cell3 = CellUtil.createCell(
 				"r2".getBytes(), 
 				"f1".getBytes(), 
@@ -59,7 +71,7 @@ public class CreateTable extends Base{
 		for(Entry<byte[], byte[]> e: map.entrySet()){
 			System.out.println(Bytes.toString(e.getKey())+","+Bytes.toString(e.getValue()));
 		}
-		System.out.println();
+		System.out.println();*/
 
 	}
 

@@ -58,6 +58,7 @@ public class IMCLROE extends SAMCL{
 	
 	private void oewcObserver(List<Particle> src, float[] robotMeasurements) throws IOException {
 		//create List<Get> gets from List<Particle src
+		Transformer.debugMode(this.mode, "get into the OewcObserver.");
 		List<Get> gets = createGetList(src, robotMeasurements);
 		//deal with the results
 		updateParticles(src, this.table.get(gets));
