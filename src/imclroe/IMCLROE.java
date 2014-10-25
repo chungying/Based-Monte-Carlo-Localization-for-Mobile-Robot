@@ -52,8 +52,8 @@ public class IMCLROE extends SAMCL{
 	@Override
 	public void batchWeight(List<Particle> src, float[] robotMeasurements)
 			throws Throwable {
-		//this.oewcEndpoint(src, robotMeasurements);
-		this.oewcObserver(src, robotMeasurements);
+		this.oewcEndpoint(src, robotMeasurements);
+		//this.oewcObserver(src, robotMeasurements);
 	}
 	
 	private void oewcObserver(List<Particle> src, float[] robotMeasurements) throws IOException {

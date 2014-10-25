@@ -67,7 +67,7 @@ public class Transformer {
 	static public void debugMode(boolean mode,Object... obs){
 		if(mode){
 			for(Object ob: obs){
-				System.out.print(ob.toString()+"\t");
+				System.out.print(ob.toString()+"\n");
 			}
 			System.out.println();
 		}

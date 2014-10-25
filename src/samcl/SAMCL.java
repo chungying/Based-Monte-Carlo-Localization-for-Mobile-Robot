@@ -46,7 +46,7 @@ public class SAMCL implements Closeable{
 		this.terminated = terminated;
 	}
 
-	public boolean mode = true;
+	
 	
 	//	public boolean isClosing;
 	/**
@@ -150,7 +150,20 @@ public class SAMCL implements Closeable{
 			//log()
 			
 			//Transformer.log(this.isTerminated());
-//			System.out.print("Best position:"+maxPose.toString());
+			Transformer.debugMode(mode,
+					"Best position:"+bestParticle.toString(),
+					"Robot position:\t"+robot.getPose().toString(),
+					"Sensitive           : \t" + this.XI,
+					"RPC counter         : \t"+this.grid.RPCcount,
+					"Sampling Time		: \t" + sampleTime + "\tms",
+					"Weighting Time		: \t" + weightTime + "\tms",
+					"Determing Size Time	: \t" + determiningTime + "\tms",
+					"Caculating SER Time	: \t" + serTime + "\tms",
+					"Local Resampling Time	: \t" + localResamplingTime + "\tms",
+					"Combining Time		: \t" + combiminingTime + "\tms",
+					"*************************"
+					);
+//			System.out.print("Best position:"+bestParticle.toString());
 //			System.out.println("Robot position:\t"+robot.getPose().toString());
 //			System.out.println("Sensitive           : \t" + this.XI);
 //			System.out.println("RPC counter         : \t"+this.precomputed_grid.RPCcount);
@@ -345,11 +358,15 @@ public class SAMCL implements Closeable{
 	public SAMCL() throws IOException{
 		
 	}
+	
+	@Parameter(names = {"-D","--debug"}, description = "start up/stop debug mode, default is to start up", required = false)
+	public boolean mode = true;
+	
 	@Parameter(names = "--period", description = "the period of an executed time.", required = false)
 	private int period = 3;
 
 	//check the parameters 
-	@Parameter(names = {"-cl","--cloud"}, description = "if be on the cloud, default is false", required = false)
+	@Parameter(names = {"-cl","--cloud"}, description = "if there on the cloud is or not, default is false", required = false)
 	public boolean onCloud = false;
 	
 	@Parameter(names = {"-o","--orientation"}, description = "the number of orientation of a cell, default is 18.", required = false)

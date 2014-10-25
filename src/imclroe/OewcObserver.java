@@ -42,50 +42,30 @@ public class OewcObserver extends BaseRegionObserver{
 	@Override
 	public void preGetOp(ObserverContext<RegionCoprocessorEnvironment> arg0,
 			Get arg1, List<Cell> arg2) throws IOException {
-		
-		try {
-			if(isOewc(arg1)){//whether execute oewc or not.
-				//create a cell of results
-				Cell result = null;
+		if(isOewc(arg1)){//whether execute oewc or not.
+			try{
 				//get the measurements from rowkey
 				List<Float> Zt = drawZtFromGet(arg1.getRow());
 				//get the simulations from region
-				List<Float> Circles = getFromRegion(arg0, arg1);
+				List<Float> Circles = getFromRegion(arg0, arg1, this.region);
 				//start up OEWC
 				Entry<Integer, Float> oewc = Oewc.singleParticle(Zt, Circles);
-				result = createCell(arg1, oewc);
 				//add it into the return
-				arg2.add(result);
+				arg2.add(createCell(arg1, oewc));
+			}catch (Exception e) {
+				//create cell of error and add it into arg2.
+				arg2.add(exception2Cell(e));
+			}finally{
 				//skip all further processing
 				arg0.bypass();
 			}
-		} catch (Exception e) {
-			//add exception message to cell and return it
-			StringWriter sw = new StringWriter();
-			e.printStackTrace(new PrintWriter(sw));
-			String str = e.toString()+"\nStack Trace:"+sw.toString();
-			Cell error = CellUtil.createCell(
-					str.getBytes(),
-					"err".getBytes(),
-					"err".getBytes(), 
-					System.currentTimeMillis(), 
-					KeyValue.Type.Put.getCode(),  
-					"err".getBytes()
-					);
-			arg2.add(error);
-			arg0.bypass();
 		}
 	}
 
 	
-	static boolean isOewc(Get get) throws Exception{
-		String keyword = null;
-		try {
-			keyword = Bytes.toString(Arrays.copyOfRange(get.getRow(), 0, 21));
-			System.out.println("keyword="+ keyword);
-		} catch (Exception e) {
-			throw e;
-		}
+	public static boolean isOewc(Get get){
+		String keyword = Bytes.toString(Arrays.copyOfRange(get.getRow(), 0, 21));
+		System.out.println("keyword="+ keyword);
 		return keyword.contains(PASSWORD);
 	}
 	
@@ -99,8 +79,8 @@ public class OewcObserver extends BaseRegionObserver{
 		return result;
 	}
 	
-	public List<Float> getFromRegion(ObserverContext<RegionCoprocessorEnvironment> e, 
-			Get get) throws Exception{
+	public static List<Float> getFromRegion(ObserverContext<RegionCoprocessorEnvironment> e, 
+			Get get, HRegion region) throws Exception{
 		List<Float> output = null;
 		try {
 			Entry<byte[], NavigableSet<byte[]>> entry = 
@@ -109,7 +89,7 @@ public class OewcObserver extends BaseRegionObserver{
 			byte[] qualifier = entry.getValue().iterator().next();
 			Get g = new Get(Arrays.copyOfRange(get.getRow(), 0, 15));
 			g.addColumn(family, qualifier);
-			Result result = this.region.get(g);
+			Result result = region.get(g);
 			output = Transformer.BA2FA(0,
 					result.getColumnLatestCell(family, qualifier).getValueArray());
 		} catch (Exception e1) {
@@ -118,14 +98,28 @@ public class OewcObserver extends BaseRegionObserver{
 		return output;
 	}
 	
-	
+	public static Cell exception2Cell(Exception e){
+		//add exception message to cell and return it
+		StringWriter sw = new StringWriter();
+		e.printStackTrace(new PrintWriter(sw));
+		String str = e.toString()+"\nStack Trace:"+sw.toString();
+		Cell error = CellUtil.createCell(
+				str.getBytes(),
+				"err".getBytes(),
+				"err".getBytes(), 
+				System.currentTimeMillis(), 
+				KeyValue.Type.Put.getCode(),  
+				"err".getBytes()
+				);
+		return error;
+	}
 	
 	/**
 	 * @param get
 	 * @param entry
 	 * @return Cell = [xxxx:XY, "fam", Z, W]
 	 */
-	public Cell createCell(Get get, Entry<Integer,Float> entry) throws Exception{
+	public static Cell createCell(Get get, Entry<Integer,Float> entry) throws Exception{
 		Cell cell = null;
 		try {
 			//rowkey type = HASH:XXXXXYYYYY:oewc:ORIENTATION:WEIGHTING
