@@ -67,7 +67,7 @@ public class Transformer {
 	static public void debugMode(boolean mode,Object... obs){
 		if(mode){
 			for(Object ob: obs){
-				System.out.print(ob.toString()+"\n");
+				System.out.print(ob.toString());
 			}
 			System.out.println();
 		}
@@ -289,18 +289,17 @@ public class Transformer {
 	}
 	
 	public static void main(String[] args) throws IOException{
-		first:
-			for(int i = 0 ; i < 5; i++){
-				System.out.println("i:"+i);
-				int j = 0;
-				do{
-//					if(j>4)
-//						continue first;
-					j+=1;
-					System.out.println("\tj="+j);
-				}while(j<10);
-			}
+		List<Long> times = new ArrayList<Long>();
+		for(int i = 0 ; i< 5; i++){
+			times.add(System.currentTimeMillis());
+		}
+		byte[] ba = new byte[0];
+		for(Long l: times){
+			ba = Bytes.add(ba, Bytes.toBytes(l));
+			System.out.println("array length"+ba.length);
+		}
 		
+
 		
 		/*
 		Random random = new Random();

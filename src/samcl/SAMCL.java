@@ -151,16 +151,16 @@ public class SAMCL implements Closeable{
 			
 			//Transformer.log(this.isTerminated());
 			Transformer.debugMode(mode,
-					"Best position:"+bestParticle.toString(),
-					"Robot position:\t"+robot.getPose().toString(),
-					"Sensitive           : \t" + this.XI,
-					"RPC counter         : \t"+this.grid.RPCcount,
-					"Sampling Time		: \t" + sampleTime + "\tms",
-					"Weighting Time		: \t" + weightTime + "\tms",
-					"Determing Size Time	: \t" + determiningTime + "\tms",
-					"Caculating SER Time	: \t" + serTime + "\tms",
-					"Local Resampling Time	: \t" + localResamplingTime + "\tms",
-					"Combining Time		: \t" + combiminingTime + "\tms",
+					"Best position          :"+bestParticle.toString()+"\n",
+					"Robot position         : \t"+robot.getPose().toString()+"\n",
+					"Sensitive              : \t" + this.XI+"\n",
+					"RPC counter            : \t" + this.grid.RPCcount+"\n",
+					"Sampling Time	        : \t" + sampleTime + "\tms"+"\n",
+					"Weighting Time	        : \t" + weightTime + "\tms"+"\n",
+					"Determing Size Time    : \t" + determiningTime + "\tms"+"\n",
+					"Caculating SER Time    : \t" + serTime + "\tms"+"\n",
+					"Local Resampling Time  : \t" + localResamplingTime + "\tms"+"\n",
+					"Combining Time	        : \t" + combiminingTime + "\tms"+"\n",
 					"*************************"
 					);
 //			System.out.print("Best position:"+bestParticle.toString());

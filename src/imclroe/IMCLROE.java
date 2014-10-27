@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -16,6 +17,7 @@ import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
 import org.apache.hadoop.hbase.util.Bytes;
+
 import com.google.protobuf.RpcController;
 
 import coprocessor.services.generated.OewcProtos;
@@ -48,8 +50,8 @@ public class IMCLROE extends SAMCL{
 	@Override
 	public void batchWeight(List<Particle> src, float[] robotMeasurements)
 			throws Throwable {
-		this.oewcEndpoint(src, robotMeasurements);
-		//this.oewcObserver(src, robotMeasurements);
+		//this.oewcEndpoint(src, robotMeasurements);
+		this.oewcObserver(src, robotMeasurements);
 	}
 	
 	private void oewcObserver(List<Particle> src, float[] robotMeasurements) throws IOException {
@@ -57,15 +59,19 @@ public class IMCLROE extends SAMCL{
 		Transformer.debugMode(this.mode, "get into the OewcObserver.");
 		List<Get> gets = createGetList(src, robotMeasurements);
 		//deal with the results
+		Transformer.debugMode(this.mode, "a list of gets from table.");
 		updateParticles(src, this.table.get(gets));
+		Transformer.debugMode(this.mode, "OewcObserver end");
 		
 	}
 	
 	private void updateParticles(List<Particle> src, Result[] results) throws FileNotFoundException {
 		try {
 			if (src.size() == results.length) {
+				Transformer.debugMode(mode, "start to parse the results.","size="+src.size());
 				for (int i = 0; i < src.size(); i++) {
 					if(results[i].isEmpty()){
+						Transformer.debugMode(mode, "OewcObserver Failed:no results.");
 						throw new Exception("there is no result from OewcObserver. Rowkey:\n"+Bytes.toString(results[i].getRow()));
 					}
 					//parse the results[i]
@@ -80,6 +86,14 @@ public class IMCLROE extends SAMCL{
 						src.get(i).setTh(
 								Transformer.Z2Th(best, this.orientation));
 					}
+					
+					byte[] value = results[i].getValue("oewc".getBytes(), "oewc".getBytes());
+					System.out.print("time:");
+					for(int j = 0 ; j < value.length ; j+=8){
+						long l = Bytes.toLong(Arrays.copyOfRange(value, j, j+8));
+						System.out.print("\t"+l);
+					}
+					System.out.println();
 				}
 			}else{
 				throw new Exception("size is not match.\n"

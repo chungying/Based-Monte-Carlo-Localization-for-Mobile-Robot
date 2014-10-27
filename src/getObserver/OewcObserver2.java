@@ -1,6 +1,7 @@
-package imclroe;
+package getObserver;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.NavigableSet;
@@ -42,16 +43,22 @@ public class OewcObserver2 extends BaseRegionObserver{
 	@Override
 	public void preGetOp(ObserverContext<RegionCoprocessorEnvironment> arg0,
 			Get arg1, List<Cell> arg2) throws IOException {
+		List<Long> times = new ArrayList<Long>();
+		times.add(System.currentTimeMillis());
 		if(OewcObserver.isOewc(arg1)){//whether execute oewc or not.
 			try{
 				//get the measurements from rowkey
+				times.add(System.currentTimeMillis());
 				List<Float> Zt = OewcObserver.drawZtFromGet(arg1.getRow());
 				//get the simulations from region
+				times.add(System.currentTimeMillis());
 				List<Float> Circles = getFromConnection(arg0, arg1, this.connection, this.tableName);
 				//start up OEWC
-				Entry<Integer, Float> oewc = Oewc.singleParticle(Zt, Circles);
+				times.add(System.currentTimeMillis());
+				Entry<Integer, Float> oewc = OewcObserver.singleParticle(Zt, Circles);
 				//add it into the return
-				arg2.add(OewcObserver.createCell(arg1, oewc));
+				times.add(System.currentTimeMillis());
+				arg2.add(OewcObserver.createCell(arg1, oewc, times));
 			}catch (Exception e) {
 				//create cell of error and add it into arg2.
 				arg2.add(OewcObserver.exception2Cell(e));
