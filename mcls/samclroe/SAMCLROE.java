@@ -17,9 +17,8 @@ public class SAMCLROE extends SAMCL{
 	public void batchWeight(List<Particle> src, float[] robotMeasurements)
 			throws Exception {
 		for(Particle p : src){
-			Entry<Integer, Float> entry = Oewc.singleParticle(robotMeasurements, 
-					this.grid.getMeasurements(this.table, onCloud, p.getX(), p.getY(), -1) , 
-					this.orientation);
+			Entry<Integer, Float> entry = Oewc.singleParticleModified(robotMeasurements, 
+					this.grid.getMeasurements(this.table, onCloud, p.getX(), p.getY(), -1));
 			p.setTh(Transformer.Z2Th(entry.getKey(), this.orientation));
 			p.setWeight(entry.getValue());
 		}

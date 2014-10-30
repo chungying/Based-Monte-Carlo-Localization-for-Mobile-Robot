@@ -93,7 +93,7 @@ public class SAMCL implements Closeable{
 			
 			//Setp 1: Sampling
 //			System.out.println("(1)\tSampling\t");
-			Transformer.debugMode(mode, "(1)\tSampling");
+			Transformer.debugMode(mode, "(1)\tSampling\n");
 			long sampleTime = System.currentTimeMillis();
 			//TODO Particle
 			current_set.clear();
@@ -102,7 +102,7 @@ public class SAMCL implements Closeable{
 			
 			//Step 2: Weighting
 //			System.out.println("(2)\tWeighting\t");
-			Transformer.debugMode(mode, "(2)\tWeighting");
+			Transformer.debugMode(mode, "(2)\tWeighting\n");
 			long weightTime = System.currentTimeMillis();
 			//TODO Particle
 			this.batchWeight(current_set, Zt);
@@ -110,19 +110,19 @@ public class SAMCL implements Closeable{
 			
 			//Step 3: Determining size
 //			System.out.println("(3)\tDetermining size\t");
-			Transformer.debugMode(mode, "(3)\tDetermining size");
+			Transformer.debugMode(mode, "(3)\tDetermining size\n");
 			long determiningTime = System.currentTimeMillis();
 			Particle bestParticle = this.Determining_size(current_set);
 			determiningTime = System.currentTimeMillis() - determiningTime;
 			//Step 3-1: Calculating SER
-			Transformer.debugMode(mode, "(3-1)\tCalculating SER");
+			Transformer.debugMode(mode, "(3-1)\tCalculating SER\n");
 			long serTime = System.currentTimeMillis();
 			this.Caculating_SER(bestParticle.getWeight(), Zt, SER_set, global_set);
 			serTime = System.currentTimeMillis() - serTime;
 			
 			//Step 4: Local resampling
 //			System.out.println("(4)\tLocal resampling\t");
-			Transformer.debugMode(mode, "(4)\tLocal resampling");
+			Transformer.debugMode(mode, "(4)\tLocal resampling\n");
 			long localResamplingTime = System.currentTimeMillis();
 			this.Local_resampling(current_set, local_set, bestParticle);
 			localResamplingTime = System.currentTimeMillis() - localResamplingTime;
@@ -130,7 +130,7 @@ public class SAMCL implements Closeable{
 			
 			//Step 5: Combimining
 //			System.out.println("(5)\tCombimining\t");
-			Transformer.debugMode(mode, "(5)\tCombimining");
+			Transformer.debugMode(mode, "(5)\tCombimining\n");
 			long combiminingTime = System.currentTimeMillis();
 			last_set.clear();
 			last_set.addAll(this.Combining_sets(local_set, global_set));
@@ -161,7 +161,7 @@ public class SAMCL implements Closeable{
 					"Caculating SER Time    : \t" + serTime + "\tms"+"\n",
 					"Local Resampling Time  : \t" + localResamplingTime + "\tms"+"\n",
 					"Combining Time	        : \t" + combiminingTime + "\tms"+"\n",
-					"*************************"
+					"*************************\n"
 					);
 //			System.out.print("Best position:"+bestParticle.toString());
 //			System.out.println("Robot position:\t"+robot.getPose().toString());
@@ -359,7 +359,7 @@ public class SAMCL implements Closeable{
 		
 	}
 	
-	@Parameter(names = {"-D","--debug"}, description = "start up/stop debug mode, default is to start up", required = false)
+	@Parameter(names = {"-D","--debug"}, description = "start up/stop debug mode, default is to start up", required = false, arity = 1)
 	public boolean mode = true;
 	
 	@Parameter(names = "--period", description = "the period of an executed time.", required = false)

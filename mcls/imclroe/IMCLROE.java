@@ -56,22 +56,22 @@ public class IMCLROE extends SAMCL{
 	
 	private void oewcObserver(List<Particle> src, float[] robotMeasurements) throws IOException {
 		//create List<Get> gets from List<Particle src
-		Transformer.debugMode(this.mode, "get into the OewcObserver.");
+		Transformer.debugMode(this.mode, "get into the OewcObserver.\n");
 		List<Get> gets = createGetList(src, robotMeasurements);
 		//deal with the results
-		Transformer.debugMode(this.mode, "a list of gets from table.");
+		Transformer.debugMode(this.mode, "a list of gets from table.\n");
 		updateParticles(src, this.table.get(gets));
-		Transformer.debugMode(this.mode, "OewcObserver end");
+		Transformer.debugMode(this.mode, "OewcObserver end\n");
 		
 	}
 	
 	private void updateParticles(List<Particle> src, Result[] results) throws FileNotFoundException {
 		try {
 			if (src.size() == results.length) {
-				Transformer.debugMode(mode, "start to parse the results.","size="+src.size());
+				Transformer.debugMode(mode, "start to parse the results.","size="+src.size(),"\n");
 				for (int i = 0; i < src.size(); i++) {
 					if(results[i].isEmpty()){
-						Transformer.debugMode(mode, "OewcObserver Failed:no results.");
+						Transformer.debugMode(mode, "OewcObserver Failed:no results.\n");
 						throw new Exception("there is no result from OewcObserver. Rowkey:\n"+Bytes.toString(results[i].getRow()));
 					}
 					//parse the results[i]
@@ -88,12 +88,11 @@ public class IMCLROE extends SAMCL{
 					}
 					
 					byte[] value = results[i].getValue("oewc".getBytes(), "oewc".getBytes());
-					System.out.print("time:");
+					Transformer.debugMode(mode, "time:");
 					for(int j = 0 ; j < value.length ; j+=8){
-						long l = Bytes.toLong(Arrays.copyOfRange(value, j, j+8));
-						System.out.print("\t"+l);
+						Transformer.debugMode(mode, Bytes.toLong(Arrays.copyOfRange(value, j, j+8)));
 					}
-					System.out.println();
+					Transformer.debugMode(mode, "\n");
 				}
 			}else{
 				throw new Exception("size is not match.\n"

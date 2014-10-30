@@ -10,6 +10,8 @@ import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.util.Bytes;
 
+import com.kenai.jffi.Array;
+
 public class Transformer {
 	
 	public static List<Float> BA2FA(int offset, byte[] BA){
@@ -69,7 +71,6 @@ public class Transformer {
 			for(Object ob: obs){
 				System.out.print(ob.toString());
 			}
-			System.out.println();
 		}
 	}
 	
@@ -87,6 +88,18 @@ public class Transformer {
 	
 	static public double checkHeadRange(double h){
 		return (h%360+360)%360;
+	}
+	
+	public static int local2global(int localIndex, int particleHead, int orientation){
+		return (
+				particleHead + 
+				localIndex + 
+				Math.round( orientation * (360-90)/360 ) 
+					)% orientation;
+	}
+	
+	public static int global2local(int globalIndex, int particleHead, int orientation){
+		return (((globalIndex-particleHead-Math.round(orientation*(360-90)/360))%360)+360)%360;
 	}
 	
 	public static float[] drawMeasurements(Float[] circles, int z) {
@@ -289,16 +302,34 @@ public class Transformer {
 	}
 	
 	public static void main(String[] args) throws IOException{
-		List<Long> times = new ArrayList<Long>();
-		for(int i = 0 ; i< 5; i++){
-			times.add(System.currentTimeMillis());
-		}
-		byte[] ba = new byte[0];
-		for(Long l: times){
-			ba = Bytes.add(ba, Bytes.toBytes(l));
-			System.out.println("array length"+ba.length);
+//		for(int i =0; i<=180;i++){
+//			log("local="+i+"=>"+local2global(i,0,360));
+//		}
+		for(int i = 90 ; i<=180 ; i++){
+			log("global="+i+"=>"+global2local(i,180,360));
 		}
 		
+		/*List<Long> t1 = new ArrayList<Long>();
+		for(int i = 0 ; i< 5; i++){
+			t1.add(System.currentTimeMillis()+i);
+		}
+		List<Long> t2 = new ArrayList<Long>();
+		for(int i =3;i<t1.size();i++){
+			t2.add(t1.get(i));
+		}
+		System.out.println("before");
+		System.out.println(Arrays.toString(t1.toArray()));
+		System.out.println(Arrays.toString(t2.toArray()));
+		for(int i = 0 ;i<t2.size();i++){
+			Long l = t2.get(i);
+			System.out.print(l);
+			t2.get(i)
+			System.out.println("+1="+l);
+			
+		}
+		System.out.println("after");
+		System.out.println(Arrays.toString(t1.toArray()));
+		System.out.println(Arrays.toString(t2.toArray()));*/
 
 		
 		/*
