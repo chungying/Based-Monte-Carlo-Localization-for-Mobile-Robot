@@ -7,6 +7,14 @@ import java.util.Map.Entry;
 import util.metrics.Transformer;
 
 public class Oewc {
+	public static void main(String[] args){
+		for(int i =0; i<=18;i++){
+		Transformer.log("local="+i+"=>"+Transformer.local2global(i,0,36));
+	}
+//	for(int i = 90 ; i<=180 ; i++){
+//		log("global="+i+"=>"+global2local(i,180,360));
+//	}
+	}
 	
 	static public Entry<Integer, Float> singleParticleModified(float[] Zt, float[] circles){
 		float weight;
@@ -16,7 +24,9 @@ public class Oewc {
 			//calculate the weight
 			weight = 0;
 			for(int i = 0 ; i < Zt.length;i++){
-				weight += Math.abs(Zt[i]-circles[Transformer.local2global(i, z, circles.length)]); 
+				weight = weight + Math.abs(
+						Zt[i]-
+						circles[Transformer.local2global(i, z, circles.length)]); 
 			}
 			weight = weight/Zt.length;
 			if(bestWeight>weight){

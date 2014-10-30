@@ -90,26 +90,15 @@ public class Transformer {
 		return (h%360+360)%360;
 	}
 	
-	public static int local2global(int localIndex, int particleHead, int orientation){
-		return (
-				particleHead + 
-				localIndex + 
-				Math.round( orientation * (360-90)/360 ) 
-					)% orientation;
-	}
-	
-	public static int global2local(int globalIndex, int particleHead, int orientation){
-		return (((globalIndex-particleHead-Math.round(orientation*(360-90)/360))%360)+360)%360;
-	}
-	
 	public static float[] drawMeasurements(Float[] circles, int z) {
 		int sensor_number = (circles.length/2) +1;
 		float[] measurements = new float[sensor_number];
-		int bias = (sensor_number - 1) / 2;
-		int index;
-		for (int i = 0; i < sensor_number; i++) {
-			index = ( (z - bias + i + circles.length) % circles.length );
-			measurements[i] = circles[index];
+		//int bias = (sensor_number - 1) / 2;
+		int globalIndex;
+		for (int sensorIndex = 0; sensorIndex < sensor_number; sensorIndex++) {
+			globalIndex = local2global(sensorIndex, z, circles.length);
+			//globalIndex = ( (z - bias + i + circles.length) % circles.length );
+			measurements[sensorIndex] = circles[globalIndex];
 		}
 		return measurements;
 	}
@@ -117,11 +106,12 @@ public class Transformer {
 	public static float[] drawMeasurements(List<Float> circles, int z) {
 		int sensor_number = (circles.size()/2) +1;
 		float[] measurements = new float[sensor_number];
-		int bias = (sensor_number - 1) / 2;
-		int index;
-		for (int i = 0; i < sensor_number; i++) {
-			index = ( (z - bias + i + circles.size()) % circles.size() );
-			measurements[i] = circles.get(index);
+		//int bias = (sensor_number - 1) / 2;
+		int globalIndex;
+		for (int sensorIndex = 0; sensorIndex < sensor_number; sensorIndex++) {
+			globalIndex = local2global(sensorIndex, z, circles.size());
+			//globalIndex = ( (z - bias + i + circles.size()) % circles.size() );
+			measurements[sensorIndex] = circles.get(globalIndex);
 		}
 		return measurements;
 	}
@@ -129,33 +119,26 @@ public class Transformer {
 	public static float[] drawMeasurements(float[] circles, int z) {		
 		int sensor_number = (circles.length/2) +1;
 		float[] measurements = new float[sensor_number];
-		int bias = (sensor_number - 1) / 2;
-		int index;
-		for (int i = 0; i < sensor_number; i++) {
-			index = ( (z - bias + i + circles.length) % circles.length );
-			measurements[i] = circles[index];
+		//int bias = (sensor_number - 1) / 2;
+		int globalIndex;
+		for (int sensorIndex = 0; sensorIndex < sensor_number; sensorIndex++) {
+			globalIndex = local2global(sensorIndex, z, circles.length);
+			//globalIndex = ( (z - bias + i + circles.length) % circles.length );
+			measurements[sensorIndex] = circles[globalIndex];
 		}
 		return measurements;	
 	}
 	
+	public static int local2global(int sensorIndex, int particleHead, int orientation){
+		return (
+				particleHead + 
+				sensorIndex + 
+				Math.round( orientation * (360-90)/360 ) 
+					)% orientation;
+	}
 
-	/*public float Caculate_energy(float[] Zt){//TODO static?
-		float energy = 0;
-		for (int i = 0; i < Zt.length; i++) {
-			
-			energy = energy + Zt[i];
-		}
-		energy = energy / ((float)Zt.length);
-		return energy;
-	}*/
-	
-	public static float CalculateEnergy(float[] measurements){
-		float energy = 0.0f;
-		for(float m: measurements){
-			energy+=m;
-		}
-		energy = energy/measurements.length;
-		return energy;
+	public static int global2local(int globalIndex, int particleHead, int orientation){
+		return (((globalIndex-particleHead-Math.round(orientation*(360-90)/360))%360)+360)%360;
 	}
 
 	public static float WeightFloat(float[] a, float[] b){
@@ -213,6 +196,25 @@ public class Transformer {
 		}
 		// return the worst weight
 		return 1;
+	}
+
+	/*public float Caculate_energy(float[] Zt){//TODO static?
+		float energy = 0;
+		for (int i = 0; i < Zt.length; i++) {
+			
+			energy = energy + Zt[i];
+		}
+		energy = energy / ((float)Zt.length);
+		return energy;
+	}*/
+	
+	public static float CalculateEnergy(float[] measurements){
+		float energy = 0.0f;
+		for(float m: measurements){
+			energy+=m;
+		}
+		energy = energy/measurements.length;
+		return energy;
 	}
 
 	/**
@@ -302,12 +304,7 @@ public class Transformer {
 	}
 	
 	public static void main(String[] args) throws IOException{
-//		for(int i =0; i<=180;i++){
-//			log("local="+i+"=>"+local2global(i,0,360));
-//		}
-		for(int i = 90 ; i<=180 ; i++){
-			log("global="+i+"=>"+global2local(i,180,360));
-		}
+
 		
 		/*List<Long> t1 = new ArrayList<Long>();
 		for(int i = 0 ; i< 5; i++){

@@ -82,11 +82,12 @@ public class Grid extends MouseAdapter {
 		public float[] getMeasurements(int z) {
 			if (z >= 0) {
 				float[] measurements = new float[this.sensor_number];
-				int bias = (this.sensor_number - 1) / 2;
-				int index;
+				//int bias = (this.sensor_number - 1) / 2;
+				int globalIndex;
 				for (int i = 0; i < this.sensor_number; i++) {
-					index = ((z - bias + i + this.circle_measurements.length) % this.circle_measurements.length);
-					measurements[i] = this.circle_measurements[index];
+					globalIndex = Transformer.local2global(i, z, this.circle_measurements.length);
+					//globalIndex = ((z - bias + i + this.circle_measurements.length) % this.circle_measurements.length);
+					measurements[i] = this.circle_measurements[globalIndex];
 				}
 				return measurements;
 			} else {
@@ -117,11 +118,12 @@ public class Grid extends MouseAdapter {
 		public Point[] getMeasurement_points(int z) {
 			if (z >= 0) {
 				Point[] measurements = new Point[this.sensor_number];
-				int bias = (this.sensor_number - 1) / 2;
-				int index;
+				//int bias = (this.sensor_number - 1) / 2;
+				int globalIndex;
 				for (int i = 0; i < this.sensor_number; i++) {
-					index = ((z - bias + i + this.circle_measurements.length) % this.circle_measurements.length);
-					measurements[i] = this.measurement_points[index];
+					globalIndex = Transformer.local2global(i, z, this.circle_measurements.length);
+					//globalIndex = ((z - bias + i + this.circle_measurements.length) % this.circle_measurements.length);
+					measurements[i] = this.measurement_points[globalIndex];
 				}
 				return measurements;
 			} else {
@@ -372,24 +374,29 @@ public class Grid extends MouseAdapter {
 				//convertResultToParticle(src.get(i), results[i], fam);
 				Particle p = src.get(i);
 				byte[] value = null;
-				int index;
+				int globalIndex;
 				float[] measurements = new float[this.sensor_number];
-				int bias = (this.sensor_number - 1) / 2;
+				//int bias = (this.sensor_number - 1) / 2;
 				byte[] resultValue = results[i].getValue(
 						fam,
 						Bytes.toBytes("data")
 						);
 				if(resultValue!=null){
-					for (int j = 0; j < this.sensor_number; j++) {
-						index = (/*p.getZ()*/Transformer.th2Z(p.getTh(), this.orientation) 
-								- bias + j + this.orientation) 
-								% this.orientation;
+					for (int sensorIndex = 0; sensorIndex < this.sensor_number; sensorIndex++) {
+						globalIndex = 
+							Transformer.local2global(
+								sensorIndex, 
+								Transformer.th2Z(p.getTh(), this.orientation), 
+								this.orientation);
+						/*globalIndex = (Transformer.th2Z(p.getTh(), this.orientation) 
+								- bias + sensorIndex + this.orientation) 
+								% this.orientation;*/
 						value = Transformer.getBA(
-									index, 
+									globalIndex, 
 									resultValue
 									);
 						//System.out.println(Bytes.toString(value));
-						measurements[j] = Bytes.toFloat(value);
+						measurements[sensorIndex] = Bytes.toFloat(value);
 					}
 				}else{
 					throw new NullPointerException("bad particle"+src.get(i)+"\nrowkey:"+Bytes.toString(results[i].getRow()));
@@ -422,17 +429,22 @@ public class Grid extends MouseAdapter {
 				//convertResultToParticle(src.get(i), results[i], fam);
 				Particle p = src.get(i);
 				byte[] value = null;
-				int index;
+				int globalIndex;
 				//if (!results[i].isEmpty()) {
 					float[] measurements = new float[this.sensor_number];
-					int bias = (this.sensor_number - 1) / 2;
-					for (int j = 0; j < this.sensor_number; j++) {
-						index = (/*p.getZ()*/Transformer.th2Z(p.getTh(), this.orientation) 
+					//int bias = (this.sensor_number - 1) / 2;
+					for (int sensorIndex = 0; sensorIndex < this.sensor_number; sensorIndex++) {
+						globalIndex = 
+								Transformer.local2global(
+										sensorIndex, 
+										Transformer.th2Z(p.getTh(), this.orientation), 
+										this.orientation);
+						/*globalIndex = (Transformer.th2Z(p.getTh(), this.orientation) 
 								- bias + j + this.orientation) 
-								% this.orientation;
-						value = results[i].getValue(fam,Bytes.toBytes(String.valueOf(index)));
+								% this.orientation;*/
+						value = results[i].getValue(fam,Bytes.toBytes(String.valueOf(globalIndex)));
 						//System.out.println(Bytes.toString(value));
-						measurements[j] = Float.valueOf(Bytes.toString(value));
+						measurements[sensorIndex] = Float.valueOf(Bytes.toString(value));
 					}
 					p.setMeasurements(measurements);
 				//}else
@@ -453,11 +465,12 @@ public class Grid extends MouseAdapter {
 		byte[] BA = result.getValue(this.family, Bytes.toBytes(String.valueOf(this.orientation)));
 		if(Z>=0){
 			float[] measurements = new float[this.sensor_number];
-			int bias = (this.sensor_number - 1) / 2;
-			int index;
-			for (int i = 0; i < this.sensor_number; i++) {
-				index = ((Z - bias + i + this.orientation) % this.orientation);
-				measurements[i] = Bytes.toFloat(Transformer.getBA(index, BA));
+			//int bias = (this.sensor_number - 1) / 2;
+			int globalIndex;
+			for (int sensorIndex = 0; sensorIndex < this.sensor_number; sensorIndex++) {
+				globalIndex = Transformer.local2global(sensorIndex, Z, this.orientation);
+				//globalIndex = ((Z - bias + i + this.orientation) % this.orientation);
+				measurements[sensorIndex] = Bytes.toFloat(Transformer.getBA(globalIndex, BA));
 			}
 			return measurements;
 		}else{
@@ -484,16 +497,16 @@ public class Grid extends MouseAdapter {
 		if (Z >= 0) {
 			float[] measurements = new float[this.sensor_number];
 			float temp = 0f;
-			int bias = (this.sensor_number - 1) / 2;
-			int index;
-			for (int i = 0; i < this.sensor_number; i++) {
-
-				index = ((Z - bias + i + this.orientation) % this.orientation);
+			//int bias = (this.sensor_number - 1) / 2;
+			int globalIndex;
+			for (int sensorIndex = 0; sensorIndex < this.sensor_number; sensorIndex++) {
+				globalIndex = Transformer.local2global(sensorIndex, Z, this.orientation);
+				//globalIndex = ((Z - bias + i + this.orientation) % this.orientation);
 				// System.out.println("index: " + index);
 				temp = Float.parseFloat(Bytes.toString(result.getValue(
-						this.family, Bytes.toBytes(String.valueOf(index)))));
+						this.family, Bytes.toBytes(String.valueOf(globalIndex)))));
 				// System.out.println("temparary float = " + temp);
-				measurements[i] = temp;
+				measurements[sensorIndex] = temp;
 
 			}
 			return measurements;
