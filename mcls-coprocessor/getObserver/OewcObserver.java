@@ -1,7 +1,6 @@
 package getObserver;
 
 import java.io.IOException;
-import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.AbstractMap;
@@ -25,7 +24,6 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import util.metrics.Transformer;
-import util.oewc.Oewc;
 
 /**
  * @author w514

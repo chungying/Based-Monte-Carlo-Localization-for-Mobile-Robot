@@ -5,7 +5,6 @@ import java.util.Random;
 
 import mapreduce.input.RectangleSplit;
 
-import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -22,7 +21,9 @@ public class Image2Mapper extends Mapper< Text, RectangleSplit, ImmutableBytesWr
 	}
 	private byte[] Family_Distance = null;
 	private byte[] Family_Energy = null;
+	@SuppressWarnings("unused")
 	private byte[] Family_X = null; 
+	@SuppressWarnings("unused")
 	private byte[] Family_Y = null;
 	
 	@Override

@@ -4,18 +4,15 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Random;
 import java.util.TreeMap;
 
-import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorException;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
@@ -24,10 +21,6 @@ import org.apache.hadoop.hbase.filter.CompareFilter;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.filter.RowFilter;
-import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.regionserver.InternalScanner;
-import org.apache.hadoop.hbase.regionserver.MultiVersionConsistencyControl;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import util.metrics.Transformer;
@@ -128,6 +121,7 @@ implements Coprocessor, CoprocessorService{
 		}
 	}
 
+	@SuppressWarnings("unused")
 	private FilterList createFilter(List<Particle> existParticles){
 		List<Filter> filters = new ArrayList<Filter>();
 		Random random = new Random();
@@ -151,19 +145,20 @@ implements Coprocessor, CoprocessorService{
 		}
 		try{
 			byte[] BA = result.getValue(family, Bytes.toBytes("data"));
-			message = message + "BA.length="+String.valueOf(BA.length)+", ";
+//			message = message + "BA.length="+String.valueOf(BA.length)+", ";
 			for(int i = 0 ; i*4 < BA.length; i++){
 				FA.add(Bytes.toFloat(
 						Transformer.getBA(i, BA)));
 			}
-			message = message + "drawMeasurements2() succeed";
+//			message = message + "drawMeasurements2() succeed";
 		}catch(Exception e){
-			message = message + "drawMeasurements2() failed" + e.toString();
+//			message = message + "drawMeasurements2() failed" + e.toString();
 		}
 		return message;
 		
 	}
 	
+	@SuppressWarnings("unused")
 	@Deprecated
 	private List<Float> drawMeasurements(Result result){
 		NavigableMap<byte[], byte[]> circleMap = new TreeMap<byte[], byte[]>(new BytesValueComparator());
@@ -185,7 +180,7 @@ implements Coprocessor, CoprocessorService{
 			Builder responseBuilder, 
 			List<Particle> existParticles, 
 			List<Float> zt) throws IOException {
-		String message = "OEWC203 start, ";
+		String message = "OEWC223 start, ";
 		try{
 		/**
 		 * the bug of scanner need to be figureout
@@ -241,27 +236,27 @@ implements Coprocessor, CoprocessorService{
 			Result result = null;
 			for(Particle p : existParticles){
 				//get the round measurements to circleMeasure
-				message = message +"1,";
+//				message = message +"1,";
 				Get get = new Get(Bytes.toBytes(p.toRowKeyString()));
-				message = message +"2,";
+//				message = message +"2,";
 				get.addColumn(family, "data".getBytes());
-				message = message +"3,";
+//				message = message +"3,";
 				result = this.env.getRegion().get(get);
-				message = message +"4,";
+//				message = message +"4,";
 				//List<Float> circleMeasurements = drawMeasurements(result);
 				List<Float> circleMeasurements = new ArrayList<Float>();
 				message = message + drawMeasurements2(result, circleMeasurements);
-				message = message +"5,";
+//				message = message +"5,";
 				if(circleMeasurements.size()==0){
 					throw new Exception("there is no circle measurements! ");
 				}
 				//OE of a particle
-				Entry<Integer, Float> entry = Oewc.singleParticle(zt, circleMeasurements);
-				message = message +"6,";
+				Entry<Integer, Float> entry = Oewc.singleParticleModified(zt, circleMeasurements);
+//				message = message +"6,";
 				//output the best weight
 				OewcProtos.Particle.Builder outputP = OewcProtos.Particle.newBuilder().
 				setX(p.getX()).setY(p.getY()).setZ(entry.getKey()).setW(entry.getValue());
-				message = message +"7,";
+//				message = message +"7,";
 				responseBuilder.addParticles(outputP);
 			}
 		}catch(Exception e){

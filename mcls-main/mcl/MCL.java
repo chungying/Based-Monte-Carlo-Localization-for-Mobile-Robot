@@ -3,8 +3,6 @@ package mcl;
 import java.io.IOException;
 import java.util.List;
 
-import com.google.protobuf.ServiceException;
-
 import samcl.SAMCL;
 import util.metrics.Particle;
 import util.metrics.Transformer;

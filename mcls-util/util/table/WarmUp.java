@@ -6,9 +6,6 @@ import java.util.Comparator;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 
-import coprocessor.services.OewcEndpoint;
-import coprocessor.services.OewcEndpoint.BytesValueComparator;
-
 import org.apache.hadoop.hbase.util.Bytes;
 
 public class WarmUp extends Base{

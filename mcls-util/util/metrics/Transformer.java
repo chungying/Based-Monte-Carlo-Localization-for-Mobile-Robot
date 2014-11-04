@@ -10,8 +10,6 @@ import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.util.Bytes;
 
-import com.kenai.jffi.Array;
-
 public class Transformer {
 	
 	public static List<Float> BA2FA(int offset, byte[] BA){
@@ -265,10 +263,18 @@ public class Transformer {
 		return String.format("%05d", x)+String.format("%05d", y);
 	}
 	
+	public static String getHash(Particle p, Random random){
+		return getHash(Long.parseLong(xy2String(p.getX(),p.getY())), random);
+	}
+	
 	static final String separator = ":";
-	public static String xy2RowkeyString(long l, String str, Random random){
+	public static String getHash(long l, Random random){
 		random.setSeed(l);
-		String rand = String.format("%04d", random.nextInt(1000));
+		return String.format("%04d", random.nextInt(1000));
+	}
+	
+	public static String xy2RowkeyString(long l, String str, Random random){
+		String rand = getHash(l, random);
 		return rand+separator+str;
 	}
 	

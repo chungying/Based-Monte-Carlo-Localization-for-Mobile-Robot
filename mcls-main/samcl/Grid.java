@@ -19,6 +19,7 @@ import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
@@ -282,10 +283,14 @@ public class Grid extends MouseAdapter {
 	private byte[] energy = null;
 	
 	public HTable getTable(String tablename) throws IOException{
-		if(tablename != null)
+		if(tablename != null){
+			System.out.println("get new HTable from Grid.");
 			return (HTable)this.connection.getTable(tablename);
-		else
+		}
+		else{
+			System.out.println("tablename is null.Cannot get HTable from Grid.");
 			return null;
+		}
 	}
 	
 	public void closeTable() throws IOException {
@@ -482,6 +487,7 @@ public class Grid extends MouseAdapter {
 		}
 	}
 
+	@SuppressWarnings("unused")
 	@Deprecated
 	private float[] getFromCloud(HTable table, int X, int Y, int Z) throws IOException {
 		// TODOdone count RPC times
@@ -836,7 +842,7 @@ public class Grid extends MouseAdapter {
 
 	public static void main(String[] args) throws IOException{
 		Configuration conf = HBaseConfiguration.create();
-		Grid grid = new Grid(4,4,"file:///home/w514/jpg/test6.jpg");
+		Grid grid = new Grid(4,4,"file:///home/wuser/backup/jpg/test6.jpg");
 		grid.readmap();
 		HTable[] tables = new HTable[10];
 		try {
@@ -845,9 +851,9 @@ public class Grid extends MouseAdapter {
 			int n = 10;
 			long time = System.currentTimeMillis();
 			for(int i = 0 ; i < n; i++){
-				tables[i] = grid.getTable("t1");
-				Result r = tables[i].get(new Get(Bytes.toBytes("r1")));
-				System.out.println(r.toString());
+				tables[i] = grid.getTable("test6.18.split");
+				/*Result r = tables[i].get(new Get(Bytes.toBytes("r1")));
+				System.out.println(r.toString());*/
 			}
 			time = System.currentTimeMillis() - time;
 			System.out.println("time : " + time +" ms");

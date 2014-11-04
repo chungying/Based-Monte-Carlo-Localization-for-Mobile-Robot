@@ -45,7 +45,7 @@ public class OewcObserver3 extends BaseRegionObserver{
 				List<Float> Circles = getFromRegionByScanner(arg0, arg1, this.region);
 				//start up OEWC
 				times.add(System.currentTimeMillis());
-				Entry<Integer, Float> oewc = OewcObserver.singleParticle(Zt, Circles);
+				Entry<Integer, Float> oewc = Oewc.singleParticleModified(Zt, Circles);
 				//add it into the return
 				times.add(System.currentTimeMillis());
 				arg2.add(OewcObserver.createCell(arg1, oewc,times));

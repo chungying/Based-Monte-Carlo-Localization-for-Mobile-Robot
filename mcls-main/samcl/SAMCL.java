@@ -163,21 +163,8 @@ public class SAMCL implements Closeable{
 					"Combining Time	        : \t" + combiminingTime + "\tms"+"\n",
 					"*************************\n"
 					);
-//			System.out.print("Best position:"+bestParticle.toString());
-//			System.out.println("Robot position:\t"+robot.getPose().toString());
-//			System.out.println("Sensitive           : \t" + this.XI);
-//			System.out.println("RPC counter         : \t"+this.precomputed_grid.RPCcount);
-			this.grid.RPCcount = 0;
-//			System.out.println("Sampling Time		: \t" + sampleTime + "\tms");
-//			System.out.println("Weighting Time		: \t" + weightTime + "\tms");
-//			System.out.println("Determing Size Time	: \t" + determiningTime + "\tms");
-//			System.out.println("Caculating SER Time	: \t" + serTime + "\tms");
-//			System.out.println("Local Resampling Time	: \t" + localResamplingTime + "\tms");
-//			System.out.println("Global Resampling Time	: \t" + globalResampleTime + "\tms");
-//			System.out.println("Combining Time		: \t" + combiminingTime + "\tms");
-//			System.out.println("*************************");
-			//robotz = (int) Math.round( robot.getHead()/this.orientation_delta_degree );
 			
+			this.grid.RPCcount = 0;
 			this.delay(this.period);
 			
 			//draw image 
@@ -221,13 +208,14 @@ public class SAMCL implements Closeable{
 
 	private void delay(int milliSecond) {
 		try {
-			Thread.sleep(milliSecond);
+			if(milliSecond >0)
+				Thread.sleep(milliSecond);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
 	}
 
-	public void setup() throws IOException{
+	public void setup() throws Exception{
 		if(this.deltaEnergyStr!=null)
 			this.deltaEnergy = Float.parseFloat(deltaEnergyStr);
 		if(this.alpha!=null)
@@ -248,6 +236,9 @@ public class SAMCL implements Closeable{
 			System.out.println("local setup");
 			this.localSetup();
 		}
+		this.customizedSetup();
+	}
+		public void customizedSetup() throws Exception{ 
 	}
 	
 	private void localSetup(){
@@ -276,6 +267,14 @@ public class SAMCL implements Closeable{
 		//precomputed_grid.start_mouse(precomputed_grid);
 	}
 	
+	//check the parameters 
+	@Parameter(names = {"--showser"}, description = "if show the SER or not, default is false", required = false)
+	public boolean ifShowSER = false;
+	@Parameter(names = {"--showparticles"}, description = "if show the particles or not, default is false", required = false)
+	public boolean ifShowParticles = false;
+	@Parameter(names = {"--showmeasurements"}, description = "if show the measurements or not, default is false", required = false)
+	public boolean ifShowSensors = false;
+	
 	public void Drawing(Graphics2D grap, JFrame window
 				, RobotState robot, Particle bestParticle, List<Particle> particles, List<Particle> SER){
 			//Graphics2D grap = samcl_image.createGraphics();
@@ -288,9 +287,18 @@ public class SAMCL implements Closeable{
 			Tools.drawRobot(grap, bestParticle.getX(), bestParticle.getY(), bestParticle.getTh(), 8, Color.GREEN);
 	
 			//SER
-	//		if (SER.size() >= 1) {
-	//			Tools.drawBatchPoint(grap, SER, 1, Color.PINK);
-	//		}
+			if (SER.size() >= 1&&this.ifShowSER) {
+				Tools.drawBatchPoint(grap, SER, 1, Color.PINK);
+			}
+			
+			//Particles
+			if(this.ifShowParticles)
+				Tools.drawBatchPoint(grap, particles, 2, Color.BLUE);;
+			
+			//Measurements
+			if(this.ifShowSensors){
+				;
+			}
 		}
 
 

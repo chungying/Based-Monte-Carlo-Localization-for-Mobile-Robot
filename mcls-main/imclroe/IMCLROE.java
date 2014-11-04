@@ -10,15 +10,26 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletionService;
+import java.util.concurrent.ExecutorCompletionService;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
+import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.Pair;
 
+import com.beust.jcommander.Parameter;
 import com.google.protobuf.RpcController;
+import com.google.protobuf.ServiceException;
 
 import coprocessor.services.generated.OewcProtos;
 import coprocessor.services.generated.OewcProtos.OewcRequest;
@@ -29,9 +40,49 @@ import util.metrics.Particle;
 import util.metrics.Transformer;
 
 public class IMCLROE extends SAMCL{
+		
 	//for test
+	@SuppressWarnings({ })
 	public static void main(String[] args){
-		String str = "1:2:3:4:5:";
+		List<Integer> list1 = new ArrayList<Integer>();
+		for(int i = 0 ; i <10; i++)
+			list1.add(i);
+		List<Integer> list2 = new ArrayList<Integer>();
+		for(int i= list1.size()-1;i>=0;i--){
+			list2.add(list1.get(i));
+			list1.remove(i);
+		}
+		System.out.println("list1:"+list1);
+		System.out.println("list2:"+list2);
+		/*
+		String i = HConstants.EMPTY_START_ROW.toString();
+		String j = HConstants.EMPTY_END_ROW.toString();
+		byte[] s = HConstants.EMPTY_START_ROW;
+		byte[] t = HConstants.EMPTY_END_ROW;
+		System.out.println("i length="+s.length);
+		System.out.println("j length="+t.length);
+		System.out.println(Bytes.compareTo(HConstants.EMPTY_START_ROW, HConstants.EMPTY_END_ROW)==0?i+"=="+j:i+"!="+j);
+		System.out.println(Bytes.compareTo(HConstants.EMPTY_START_ROW, t)>0?i+">"+j:i+"<="+j);
+		*/
+		/*
+		List<Integer> src = new ArrayList<Integer>();
+		for(int i = 0 ; i < 90;i++){
+			src.add(i);
+		}
+		
+		Map<Integer, List<Integer>> classfy = new TreeMap<Integer, List<Integer>>();
+		for(int i = 0; i < 10 ; i++){
+			classfy.put(i, new ArrayList<Integer>());
+		}
+		
+		for(Integer i:src){
+			List<Integer> list = classfy.get(i%10);
+			list.add(i);
+		}
+		
+		System.out.println(classfy.toString());*/
+		
+		/*String str = "1:2:3:4:5:";
 		String[] strs = str.split(":");
 		System.out.println(str);
 		for(String s: strs){
@@ -44,14 +95,23 @@ public class IMCLROE extends SAMCL{
 		}catch(Exception e){
 			System.out.println(e.toString());
 			System.out.println(e.getMessage());
-		}
+		}*/
 	}
+	
+	@Parameter(names = {"-E","--endpoint"}, description = "start up/stop debug mode, default is to start up", required = false, arity = 1)
+	public boolean endpoint = true;
 	
 	@Override
 	public void batchWeight(List<Particle> src, float[] robotMeasurements)
 			throws Throwable {
-		//this.oewcEndpoint(src, robotMeasurements);
-		this.oewcObserver(src, robotMeasurements);
+		if(this.endpoint){
+			Transformer.debugMode(mode, "choose the endpoint.");
+			this.oewcEndpoint2(src, robotMeasurements);
+		}
+		else{
+			Transformer.debugMode(mode, "choose the observer.");
+			this.oewcObserver(src, robotMeasurements);
+		}
 	}
 	
 	private void oewcObserver(List<Particle> src, float[] robotMeasurements) throws IOException {
@@ -125,43 +185,171 @@ public class IMCLROE extends SAMCL{
 		return gets;
 	}
 
-	@SuppressWarnings("unused")
-	@Deprecated
-	private void oewcEndpoint(List<Particle> src, float[] robotMeasurements)
+	private void oewcEndpoint(final List<Particle> src, final float[] robotMeasurements) 
 			throws Throwable {
 		List<Long> times = new ArrayList<Long>();
 		times.add(System.currentTimeMillis());
-		Batch.Call<OewcService,OewcResponse> b = new OewcCall( src, robotMeasurements, this.orientation);
+		//Batch.Call<OewcService,OewcResponse> b = new OewcCall( src, robotMeasurements, orientation);
+		Batch.Call<OewcService, OewcResponse> b = 
+				new Batch.Call<OewcProtos.OewcService, OewcProtos.OewcResponse>() {
+			@Override
+			public OewcResponse call(OewcService endpoint) throws IOException {
+				BlockingRpcCallback<OewcResponse> done = new BlockingRpcCallback<OewcResponse>();
+				RpcController controller = new ServerRpcController();
+				OewcRequest request = IMCLROE.setupRequest(src, robotMeasurements, orientation);
+				endpoint.getRowCount(controller, request, done);
+				return done.get();
+			}	
+		};
 		times.add(System.currentTimeMillis());
-//		System.out.println("service.....");
-//		System.out.println("src size:"+ src.size());
-//		System.out.println(Arrays.toString(robotMeasurements));
-//		System.out.println("orientation: "+this.orientation);
-		Map<byte[],OewcResponse> results = this.table.coprocessorService(OewcService.class, "0000".getBytes(), "1000".getBytes(), b);
-//		System.out.println("service done.");
+		Map<byte[], OewcResponse> results=null;
+		try {
+			results = table.coprocessorService(OewcService.class, "0000".getBytes(), "1000".getBytes(), b);
+		} catch (ServiceException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (Throwable e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		//setup weight and orientatin to the particles(src)
 		times.add(System.currentTimeMillis());
 		Long sum = 0l;
 		List<Particle> result = new ArrayList<Particle>();
-//		System.out.println("results....");
 		for(Entry<byte[], OewcResponse> entry:results.entrySet()){
 			sum = sum + entry.getValue().getCount();
-			System.out.println(/*Bytes.toString(entry.getKey())+"\n"+*/entry.getValue().getStr());
+			Transformer.debugMode(mode, entry.getValue().getStr());
 			for(OewcProtos.Particle op : entry.getValue().getParticlesList()){
-				result.add(IMCLROE.ParticleFromO(op, this.orientation));
+				result.add(IMCLROE.ParticleFromO(op, orientation));
 			}
 		}
 		times.add(System.currentTimeMillis());
-		//change the result to src 
-//		System.out.println("store..");
+		//change the result to src
 		src.clear();
 		src.addAll(result);
 		times.add(System.currentTimeMillis());
 		int counter = 0;
-		System.out.println("-----------------------------");
+		Transformer.debugMode(mode, "-----------------------------");
 		for(Long time: times){
 			counter++;
-			System.out.println("\t"+counter + "\t:"+ time);
+			Transformer.debugMode(mode, "\t"+counter + "\t:"+ time);
+		}
+	}
+	
+	private void oewcEndpoint2(List<Particle> src, float[] robotMeasurements) 
+			throws Throwable{
+		//1.Filter
+		Random random = new Random();
+		for(OewcCallable thread:this.threads){
+			List<Particle> ps = new ArrayList<Particle>();
+			for(int i = src.size()-1 ; i>=0;i--){
+				//TODO the conditions
+				if(thread.isContains(Transformer.getHash(src.get(i), random))){
+					ps.add(src.get(i));
+					src.remove(i);
+				}
+			}
+			thread.update(ps, robotMeasurements);
+		}
+		//2.Start the threads
+		//TODO if step 1 is succeed, 1 will combine with 2.
+		ExecutorService threadPool = Executors.newFixedThreadPool(this.threads.size());
+		CompletionService<List<Particle>> pool = new ExecutorCompletionService<List<Particle>>(threadPool);
+		for(OewcCallable thread: this.threads){
+			pool.submit(thread);
+		}
+		//3.draw particles
+		for(int i = 0;i<this.threads.size();i++){
+			src.addAll(pool.take().get());
+		}
+		//4.shutdown threadPool
+		threadPool.shutdown();
+	}
+	
+	List<OewcCallable> threads = null;
+	List<HTable> tables = null;
+	List<Pair<byte[],byte[]>> regionKeys= new ArrayList<Pair<byte[],byte[]>>();
+	@SuppressWarnings("deprecation")
+	@Override
+	public void customizedSetup() throws Exception {
+		List<HRegionLocation> regions = this.table.getRegionsInRange("0000".getBytes(), "1000".getBytes());
+		this.threads = new ArrayList<OewcCallable>();
+		this.tables = new ArrayList<HTable>();
+		for(HRegionLocation r: regions){
+			if(Bytes.equals(r.getRegionInfo().getStartKey(), HConstants.EMPTY_START_ROW)
+			   &&Bytes.equals(r.getRegionInfo().getEndKey(), HConstants.EMPTY_END_ROW)){
+				System.out.println("the table has not yet been split."+r);
+				throw new Exception("table didn't be split.");
+			}
+			regionKeys.add(
+				new Pair<byte[],byte[]>(
+					r.getRegionInfo().getStartKey(),
+					r.getRegionInfo().getEndKey()
+				)
+			);
+			this.tables.add(this.grid.getTable(tableName));
+		}
+		
+		for(int i = 0; i < tables.size();i++){
+			threads.add(new OewcCallable(
+							this.tables.get(i),this.regionKeys.get(i)
+						));
+		}
+	}
+
+	public static void oewcThread(
+			boolean mode, 
+			final int orientation ,
+			final List<Particle> src, 
+			final float[] robotMeasurements, 
+			HTable table, 
+			Pair<byte[],byte[]> keys){
+		List<Long> times = new ArrayList<Long>();
+		times.add(System.currentTimeMillis());
+		//Batch.Call<OewcService,OewcResponse> b = new OewcCall( src, robotMeasurements, orientation);
+		Batch.Call<OewcService, OewcResponse> b = 
+				new Batch.Call<OewcProtos.OewcService, OewcProtos.OewcResponse>() {
+			@Override
+			public OewcResponse call(OewcService endpoint) throws IOException {
+				BlockingRpcCallback<OewcResponse> done = new BlockingRpcCallback<OewcResponse>();
+				RpcController controller = new ServerRpcController();
+				OewcRequest request = IMCLROE.setupRequest(src, robotMeasurements, orientation);
+				endpoint.getRowCount(controller, request, done);
+				return done.get();
+			}	
+		};
+		times.add(System.currentTimeMillis());
+		Map<byte[], OewcResponse> results=null;
+		try {
+			results = table.coprocessorService(OewcService.class, keys.getFirst(), keys.getSecond(), b);
+		} catch (ServiceException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (Throwable e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		//setup weight and orientatin to the particles(src)
+		times.add(System.currentTimeMillis());
+		Long sum = 0l;
+		List<Particle> result = new ArrayList<Particle>();
+		for(Entry<byte[], OewcResponse> entry:results.entrySet()){
+			sum = sum + entry.getValue().getCount();
+			Transformer.debugMode(mode, entry.getValue().getStr());
+			for(OewcProtos.Particle op : entry.getValue().getParticlesList()){
+				result.add(IMCLROE.ParticleFromO(op, orientation));
+			}
+		}
+		times.add(System.currentTimeMillis());
+		//change the result to src
+		src.clear();
+		src.addAll(result);
+		times.add(System.currentTimeMillis());
+		int counter = 0;
+		Transformer.debugMode(mode, "-----------------------------");
+		for(Long time: times){
+			counter++;
+			Transformer.debugMode(mode, "\t"+counter + "\t:"+ time);
 		}
 	}
 
@@ -201,7 +389,45 @@ public class IMCLROE extends SAMCL{
 		return builder.build();
 	}
 	
-	public class OewcCall implements Batch.Call<OewcService, OewcResponse>{
+	private class OewcCallable implements Callable<List<Particle>>{
+		public HTable table = null;
+		public Pair<byte[], byte[]> range = null;
+		OewcCallable(HTable table, Pair<byte[],byte[]> range){
+			this.table = table;
+			this.range = range;
+		}
+		
+		public boolean isContains(String hash) {
+			if(Bytes.compareTo(hash.getBytes(),range.getFirst())<0)
+				return false;
+			if(Bytes.equals(range.getSecond(), HConstants.EMPTY_END_ROW))
+				return true;
+			if(Bytes.compareTo(hash.getBytes(),range.getSecond())<0)
+				return true;
+			return false;
+		}
+
+		private List<Particle> particles = null;
+		private float[] robotMeasurements = null;
+		public void update(List<Particle> particles, float[] robotMeasurements){
+			this.particles = particles;
+			this.robotMeasurements = robotMeasurements;
+		}
+		
+		@Override
+		public List<Particle> call() {
+			oewcThread(
+					IMCLROE.this.mode, 
+					IMCLROE.this.orientation, 
+					this.particles, 
+					this.robotMeasurements,
+					this.table,
+					this.range);
+			return this.particles;
+		}	
+	}
+		
+	static public class OewcCall implements Batch.Call<OewcService, OewcResponse>{
 		
 		List<Particle> particles = null;
 		float[] robotMeasurements = null;

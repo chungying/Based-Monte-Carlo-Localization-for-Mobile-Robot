@@ -56,6 +56,7 @@ public class ImageSpliterInputFormat extends FileInputFormat<Text, RectangleSpli
 				System.out.println("the file length:" + length);
 				FileSystem fs = path.getFileSystem(job.getConfiguration());
 				
+				@SuppressWarnings("unused")
 				BlockLocation[] blkLocations;
 				if (file instanceof LocatedFileStatus) {
 					blkLocations = ((LocatedFileStatus) file).getBlockLocations();
