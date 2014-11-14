@@ -236,12 +236,9 @@ public class SAMCL implements Closeable{
 			System.out.println("local setup");
 			this.localSetup();
 		}
-		this.customizedSetup();
+		
 	}
-		public void customizedSetup() throws Exception{ 
-	}
-	
-	private void localSetup(){
+		private void localSetup(){
 		grid.readmap();
 		/**
 		 *  the initialization of SAMCL 
@@ -253,7 +250,7 @@ public class SAMCL implements Closeable{
 	}
 	
 	public HTable table = null;
-	private void cloudSetup() throws IOException{
+	private void cloudSetup() throws Exception{
 		Configuration conf = HBaseConfiguration.create();
 		grid.setupTable(conf);
 		grid.readmap(this.mapFilename, conf);
@@ -265,8 +262,13 @@ public class SAMCL implements Closeable{
 		this.height = this.grid.height;
 		//TODO add a condition to choose if start mouse function or not
 		//precomputed_grid.start_mouse(precomputed_grid);
+		
+		this.customizedSetup(conf);
 	}
 	
+	public void customizedSetup(Configuration conf) throws Exception{ 
+	}
+
 	//check the parameters 
 	@Parameter(names = {"--showser"}, description = "if show the SER or not, default is false", required = false)
 	public boolean ifShowSER = false;
@@ -716,6 +718,15 @@ public class SAMCL implements Closeable{
 			this.table.close();
 			this.grid.closeTable();
 		}
+		
+		this.customizedClose();
+	}
+
+
+
+	protected void customizedClose() {
+		// TODO Auto-generated method stub
+		
 	}
 
 }

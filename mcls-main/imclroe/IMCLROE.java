@@ -15,7 +15,9 @@ import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.client.Get;
@@ -40,7 +42,7 @@ import util.metrics.Particle;
 import util.metrics.Transformer;
 
 public class IMCLROE extends SAMCL{
-		
+	
 	//for test
 	@SuppressWarnings({ })
 	public static void main(String[] args){
@@ -106,14 +108,15 @@ public class IMCLROE extends SAMCL{
 			throws Throwable {
 		if(this.endpoint){
 			Transformer.debugMode(mode, "choose the endpoint.");
-			this.oewcEndpoint2(src, robotMeasurements);
+			this.oewcEndpoint(src, robotMeasurements);
 		}
 		else{
-			Transformer.debugMode(mode, "choose the observer.");
-			this.oewcObserver(src, robotMeasurements);
+			Transformer.debugMode(mode, "choose the endpoint version 2.");
+			this.oewcEndpoint2(src, robotMeasurements);
 		}
 	}
 	
+	@SuppressWarnings("unused")
 	private void oewcObserver(List<Particle> src, float[] robotMeasurements) throws IOException {
 		//create List<Get> gets from List<Particle src
 		Transformer.debugMode(this.mode, "get into the OewcObserver.\n");
@@ -253,48 +256,55 @@ public class IMCLROE extends SAMCL{
 		}
 		//2.Start the threads
 		//TODO if step 1 is succeed, 1 will combine with 2.
-		ExecutorService threadPool = Executors.newFixedThreadPool(this.threads.size());
-		CompletionService<List<Particle>> pool = new ExecutorCompletionService<List<Particle>>(threadPool);
-		for(OewcCallable thread: this.threads){
-			pool.submit(thread);
+		//ExecutorService threadPool = Executors.newFixedThreadPool(this.threads.size());
+//		CompletionService<List<Particle>> pool = new ExecutorCompletionService<List<Particle>>(this.pool);
+		List<Future<List<Particle>>> futures = new ArrayList<Future<List<Particle>>>(this.threads.size());
+		for(int i = 0; i < this.threads.size();i++){
+			futures.add(pool.submit(this.threads.get(i)));
 		}
 		//3.draw particles
-		for(int i = 0;i<this.threads.size();i++){
-			src.addAll(pool.take().get());
+		for(int i = 0;i<futures.size();i++){
+//			src.addAll(pool.take().get());
+			src.addAll(futures.get(i).get());
 		}
-		//4.shutdown threadPool
-		threadPool.shutdown();
+		
 	}
 	
 	List<OewcCallable> threads = null;
 	List<HTable> tables = null;
+	ExecutorService pool = null;
 	List<Pair<byte[],byte[]>> regionKeys= new ArrayList<Pair<byte[],byte[]>>();
 	@SuppressWarnings("deprecation")
 	@Override
-	public void customizedSetup() throws Exception {
-		List<HRegionLocation> regions = this.table.getRegionsInRange("0000".getBytes(), "1000".getBytes());
-		this.threads = new ArrayList<OewcCallable>();
-		this.tables = new ArrayList<HTable>();
-		for(HRegionLocation r: regions){
-			if(Bytes.equals(r.getRegionInfo().getStartKey(), HConstants.EMPTY_START_ROW)
-			   &&Bytes.equals(r.getRegionInfo().getEndKey(), HConstants.EMPTY_END_ROW)){
-				System.out.println("the table has not yet been split."+r);
-				throw new Exception("table didn't be split.");
+	public void customizedSetup(Configuration conf) throws Exception {
+		if (!this.endpoint) {
+			List<HRegionLocation> regions = this.table.getRegionsInRange(
+					"0000".getBytes(), "1000".getBytes());
+			this.threads = new ArrayList<OewcCallable>();
+			this.tables = new ArrayList<HTable>();
+			for (HRegionLocation r : regions) {
+				if (Bytes.equals(r.getRegionInfo().getStartKey(),
+						HConstants.EMPTY_START_ROW)
+						&& Bytes.equals(r.getRegionInfo().getEndKey(),
+								HConstants.EMPTY_END_ROW)) {
+					System.out.println("the table has not yet been split." + r);
+					throw new Exception("table didn't be split.");
+				}
+				regionKeys.add(new Pair<byte[], byte[]>(r.getRegionInfo()
+						.getStartKey(), r.getRegionInfo().getEndKey()));
+				this.tables.add(this.grid.getTable(tableName));
 			}
-			regionKeys.add(
-				new Pair<byte[],byte[]>(
-					r.getRegionInfo().getStartKey(),
-					r.getRegionInfo().getEndKey()
-				)
-			);
-			this.tables.add(this.grid.getTable(tableName));
+			for (int i = 0; i < tables.size(); i++) {
+				threads.add(new OewcCallable(this.tables.get(i),
+						this.regionKeys.get(i)));
+			}
+			this.pool = HTable.getDefaultExecutor(conf);
 		}
-		
-		for(int i = 0; i < tables.size();i++){
-			threads.add(new OewcCallable(
-							this.tables.get(i),this.regionKeys.get(i)
-						));
-		}
+	}
+
+	@Override
+	protected void customizedClose() {
+		this.pool.shutdownNow();
 	}
 
 	public static void oewcThread(
