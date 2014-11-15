@@ -1,10 +1,16 @@
 package robot;
 
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Container;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
 
 import org.apache.hadoop.hbase.client.HTable;
 
@@ -13,7 +19,14 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.converters.DoubleConverter;
 
 import samcl.Grid;
+import samcl.SAMCL;
+import util.gui.Panel;
 import util.gui.RobotController;
+import util.gui.Tools;
+import util.gui.VariablesController;
+import util.gui.Window;
+import util.metrics.Distribution;
+import util.metrics.Particle;
 import util.metrics.Transformer;
 
 public class RobotState implements Runnable,Closeable{
@@ -21,8 +34,118 @@ public class RobotState implements Runnable,Closeable{
 	public static final double standardAngularVelocity = 15;// degree/second
 	public static final double standardVelocity = 10;// pixel/second
 	
-	public static void main(String[] args) throws IOException{
-		List<Pose> path = new ArrayList<Pose>();
+	public static void main(String[] args) throws Exception{
+		//test for the sample motion model
+		RobotState robot = new RobotState(100,100,0);
+		SAMCL samcl = new SAMCL(
+				18, //orientation
+				"file:///home/wuser/backup/jpg/map.jpg",//map image file
+//				"hdfs:///user/eeuser/map1024.jpeg",
+				(float) 0.005, //delta energy
+				100, //total particle
+				(float) 0.001, //threshold xi
+				(float) 0.6, //rate of population
+				10);//competitive strength
+		JCommander jc = new JCommander();
+		jc.setAcceptUnknownOptions(true);
+		jc.addObject(samcl);
+		jc.parse(args);
+		samcl.onCloud = false;
+		samcl.setup();
+		//below is for test.
+		Panel panel = new Panel(new BufferedImage(samcl.grid.width,samcl.grid.height, BufferedImage.TYPE_INT_ARGB));
+		Window samcl_window = new Window("samcl image", samcl,robot);
+		samcl_window.add(panel);
+		samcl_window.setVisible(true);
+		Graphics2D grap = panel.img.createGraphics();
+		RobotController robotController = new RobotController("robot controller", robot,samcl);
+		
+		List<Particle> parts = new ArrayList<Particle>();
+		
+		for(int i = 0 ; i < 1000; i++){
+			parts.add(new Particle(0, 0, 0));
+		}
+		int rx=0, ry=0,px=0, py=0;
+		double rh=0.0;
+		int i = 0;
+		double[] al = new double[6];
+		System.out.println(Arrays.toString(al));
+		VariablesController vc = new VariablesController(al);
+		Random random = new Random();
+//		double time = System.currentTimeMillis()/1000;
+		double time = 1;
+		Particle nextRobot = new Particle(0,0,0);
+		robot.setVt(5);
+		robot.setWt(0);
+		while(true){
+			i++;
+			Thread.sleep(500);
+			grap.drawImage(samcl.grid.map_image, null, 0, 0);
+			//System.out.println(robot.toString());
+//			px = robot.getX();
+//			py = robot.getY();
+			//time = System.currentTimeMillis()/1000 - time;
+			
+			rx = robot.getX();
+			ry = robot.getY();
+			rh = robot.getHead();
+			//System.out.println(robot);
+			for(Particle p : parts){
+				//System.out.println("drawing particles");
+				
+//				if(i<100){
+					p.setX(rx);
+					p.setY(ry);
+					p.setTh(rh);
+//				}
+				
+				Distribution.MotionSampling(p, robot.getUt(), time, random, al);
+				Tools.drawPoint(grap,  p.getX(), p.getY(), p.getTh(), 4, Color.BLUE);
+				System.out.println(p.toString());
+			}
+			
+			Tools.drawRobot(grap,  robot.getX(),  robot.getY(), robot.getHead(), 20, Color.ORANGE);
+			
+			double r  =( robot.getVt()/Math.toRadians(robot.getWt()) );
+			if(robot.getWt()!=0){
+				nextRobot.setX((robot.getX() +  
+						time*r *(Math.sin( Math.toRadians( robot.getHead() + robot.getWt()*time ) ) 
+								-  Math.sin( Math.toRadians( robot.getHead() ) ) 
+								)));
+				nextRobot.setY((robot.getY() +  
+						time*r *(Math.cos( Math.toRadians( robot.getHead() ) ) 
+								-  Math.cos( Math.toRadians( robot.getHead() + robot.getWt()*time ) )  
+								)));
+				nextRobot.setTh(Transformer.checkHeadRange( robot.getHead() +
+						robot.getWt()*time
+						));
+			}else{
+				r=robot.getVt();
+				nextRobot.setX(robot.getX() +  
+						time*r *( Math.cos( Math.toRadians(robot.getHead()) ) ));
+				nextRobot.setY(robot.getY() +  
+						time*r *(-  Math.sin( Math.toRadians(robot.getHead()) ) ));
+				nextRobot.setTh(Transformer.checkHeadRange( robot.getHead() +
+						robot.getWt()*time
+						));
+			}
+			Tools.drawRobot(grap, 
+					nextRobot.getX(), 
+					nextRobot.getY(), 
+					nextRobot.getTh()
+					, 10, Color.RED);
+//			this.x +  ( ut.getVelocity() * t * Math.cos( Math.toRadians(head) ) ) /*+ (int)(Math.round(Wt))*/;
+//			this.y = this.y +  ( ut.getVelocity() * t * Math.sin( Math.toRadians(head) ) ) /*+ (int)(Math.round(Wt))*/;
+//			this.head = Transformer.checkHeadRange((ut.getAngular_velocity() * t) + this.head);
+			panel.repaint();
+			System.out.println(robot.toString());
+			System.out.println(nextRobot.toString());
+			
+		}
+		
+		
+		//test the robot's update state
+		/*List<Pose> path = new ArrayList<Pose>();
 		path.add(new Pose(400,150,0));
 		path.add(new Pose(400,150,90));
 		path.add(new Pose(400,400,90));
@@ -71,7 +194,7 @@ public class RobotState implements Runnable,Closeable{
 				e.printStackTrace();
 			}
 			System.out.println(robot.toString());
-		}
+		}*/
 	}
 
 	

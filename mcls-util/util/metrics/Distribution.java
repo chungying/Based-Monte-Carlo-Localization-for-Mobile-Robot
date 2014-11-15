@@ -1,11 +1,53 @@
 package util.metrics;
 
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Random;
+import java.util.TreeMap;
+
+import javax.swing.JFrame;
+import javax.swing.JPanel;
 
 import robot.VelocityModel;
 import samcl.Grid;
+import util.gui.Panel;
+import util.gui.Tools;
 
 public class Distribution {
+	
+	public static void main(String[] args){
+		Map<Integer,Integer> map = new TreeMap<Integer, Integer>();
+		int n = 1000000;
+		int w = 1000;
+		int h = 1000;
+		for(int i = 0 ; i < n;i++){
+			double d = sample_normal_distribution(1);
+			int index = (int) (d*w/10);
+			if(map.get(index)!=null){
+				map.put(index,map.get(index)+1);
+			}else{
+				map.put(index,1);
+			}
+		}
+		JFrame window = new JFrame("test");
+		
+		window.setSize(w,h);
+		Panel panel = new Panel(new BufferedImage(w,h, BufferedImage.TYPE_INT_ARGB));
+		Graphics2D grap = panel.img.createGraphics();
+		for(Entry<Integer, Integer> e:map.entrySet()){
+			System.out.println(e);
+			Tools.drawPoint(grap, (int)Math.round(e.getKey()+w/2), (int)Math.round((double)e.getValue()/10000*(double)h), 0, 5, Color.BLACK);
+		}
+		panel.repaint();
+		window.add(panel);
+		window.setVisible(true);
+		
+		
+	}
+	
 	public static double sample_normal_distribution(double b){
 		return sample_normal_distribution(b,new Random());
 	}
@@ -37,24 +79,95 @@ public class Distribution {
 		0.01,0.01
 		};
 	
-	public static void Motion_sampling(Particle p, int orientation, VelocityModel u, double deltaT){
-		Motion_sampling(p, orientation, u, deltaT, new Random());
+	public static void Motion_sampling(Particle p, VelocityModel u, double deltaT){
+		Motion_sampling(p,  u, deltaT, new Random());
+	}
+	
+	public static void Motion_sampling(Particle p, VelocityModel u, double deltaT, Random random){
+		Motion_sampling(p,  u, deltaT, new Random(), al);
+	}
+	
+	public static void MotionSampling(Particle p, VelocityModel u, double deltaT, Random random, double[] al){
+		//formula
+		double Vcup = u.velocity + 
+				Distribution.sample_normal_distribution(al[0]*Math.abs(u.velocity) + al[1]*Math.abs(u.angular_velocity), random);
+		double Wcup = u.angular_velocity + 
+				Distribution.sample_normal_distribution(al[2]*Math.abs(u.velocity) + al[3]*Math.abs(u.angular_velocity), random);
+		double Rcup =  Distribution.sample_normal_distribution(al[4]*Math.abs(u.velocity) + al[5]*Math.abs(u.angular_velocity), random);
+		
+		//avoid arithmetical error, such as divide by ZERO.
+		double noise = 0;
+		if(u.angular_velocity!=0.0){
+			//formula
+			noise =  Vcup/Math.toRadians(Wcup) *(
+							+ Math.sin( Math.toRadians( p.getTh() + Wcup*deltaT ) ) 
+							- Math.sin( Math.toRadians( p.getTh() ) ) 
+							);
+			//add some disturbances when u is static.
+			if(noise==0.0){
+//				noise = Distribution.sample_normal_distribution(1);
+			}
+			p.setX(p.getX() + noise*deltaT);
+			
+			//formula
+			noise =  Vcup/Math.toRadians(Wcup) *( 
+							+ Math.cos( Math.toRadians( p.getTh() ) ) 
+							- Math.cos( Math.toRadians( p.getTh() + Wcup*deltaT ) )  
+							);
+			//add some disturbances when u is static.
+			if(noise==0.0){
+//				noise = Distribution.sample_normal_distribution(1);
+			}
+			p.setY(p.getY() + noise*deltaT);
+			
+			//formula
+			noise = Wcup*deltaT + Rcup*deltaT;
+			//add some disturbances when u is static.
+			if(noise==0.0){
+//				noise = Distribution.sample_normal_distribution(5);
+			}
+			p.setTh(p.getTh()+noise);
+		}else{
+			//formula
+			noise =  Vcup *( Math.cos( Math.toRadians( p.getTh() + Wcup*deltaT ) ) );
+			//add some disturbances when u is static.
+			if(noise==0.0){
+//				noise = Distribution.sample_normal_distribution(1);
+			}
+			p.setX(p.getX() + noise*deltaT);
+			
+			//formula
+			noise =  Vcup *( Math.sin( Math.toRadians( p.getTh() + Wcup*deltaT ) ));
+			//add some disturbances when u is static.
+			if(noise==0.0){
+//				noise = Distribution.sample_normal_distribution(1);
+			}
+			p.setY(p.getY() + noise*deltaT);
+			
+			//formula
+			noise = Wcup*deltaT + Rcup*deltaT;
+			//add some disturbances when u is static.
+			if(noise==0.0){
+//				noise = Distribution.sample_normal_distribution(5);
+			}
+			p.setTh(p.getTh()+noise);
+		}
 	}
 	
 	/**
 	 * @param p ready to use motion sampling
 	 * @param orientation 
 	 * @param u the robot's velocity model
-	 * @param deltaT miliseconds
+	 * @param deltaT seconds
 	 */
-	public static void Motion_sampling(Particle p, int orientation, VelocityModel u, double deltaT, Random random){
+	public static void Motion_sampling(Particle p, VelocityModel u, double deltaT, Random random, double[] al){
 		
 		//formula
 		double Vcup = u.velocity + 
-				Distribution.sample_normal_distribution(al[0]*u.velocity*u.velocity + al[1]*u.angular_velocity*u.angular_velocity, random);
+				Distribution.sample_normal_distribution(al[0]*Math.abs(u.velocity) + al[1]*Math.abs(u.angular_velocity), random);
 		double Wcup = u.angular_velocity + 
-				Distribution.sample_normal_distribution(al[2]*u.velocity*u.velocity + al[3]*u.angular_velocity*u.angular_velocity, random);
-		double Rcup =  Distribution.sample_normal_distribution(al[4]*u.velocity*u.velocity + al[5]*u.angular_velocity*u.angular_velocity, random);
+				Distribution.sample_normal_distribution(al[2]*Math.abs(u.velocity) + al[3]*Math.abs(u.angular_velocity), random);
+		double Rcup =  Distribution.sample_normal_distribution(al[4]*Math.abs(u.velocity) + al[5]*Math.abs(u.angular_velocity), random);
 		
 		//avoid arithmetical error, such as divide by ZERO.
 		if(Wcup==0.0){
@@ -64,11 +177,12 @@ public class Distribution {
 			Vcup = 4.9e-324;
 		}
 		
+		double r =  Vcup/Math.toRadians(Wcup);
 		//formula
 		double temp = p.getX();
-		double noise =  ( Vcup/Wcup ) *(
-						 Math.sin( Math.toRadians( p.getTh() + Wcup*deltaT ) ) 
-						-  Math.sin( Math.toRadians( p.getTh() ) ) 
+		double noise =  r *(
+						- Math.cos( Math.toRadians( p.getTh() + Wcup*deltaT ) ) 
+						+ Math.cos( Math.toRadians( p.getTh() ) ) 
 						);
 		//add some disturbances when u is static.
 		if(noise==0.0){
@@ -78,9 +192,9 @@ public class Distribution {
 		
 		//formula
 		temp = p.getY();
-		noise =  ( Vcup/Wcup ) *( 
-						 Math.cos( Math.toRadians( p.getTh() ) ) 
-						-  Math.cos( Math.toRadians( p.getTh() + Wcup*deltaT ) )  
+		noise =  r *( 
+						- Math.sin( Math.toRadians( p.getTh() ) ) 
+						+ Math.sin( Math.toRadians( p.getTh() + Wcup*deltaT ) )  
 						);
 		//add some disturbances when u is static.
 		if(noise==0.0){

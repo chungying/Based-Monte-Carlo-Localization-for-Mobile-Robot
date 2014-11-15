@@ -100,55 +100,6 @@ public class Main {
 			robot.lock();
 			robot.initRobot();
 		}
-		
-		/*
-		//below is for test.
-		Panel panel = new Panel(new BufferedImage(samcl.grid.width,samcl.grid.height, BufferedImage.TYPE_INT_ARGB));
-		samcl_window.add(panel);
-		samcl_window.setVisible(true);
-		Graphics2D grap = panel.img.createGraphics();
-		
-		List<Particle> parts = new ArrayList<Particle>();
-		
-		for(int i = 0 ; i < 1000; i++){
-			parts.add(new Particle(0, 0, 0,samcl.orientation));
-		}
-		int rx=0, ry=0,px=0, py=0;
-		double rh=0.0;
-		int i = 0;
-		double time = System.currentTimeMillis()/1000;
-		while(true){
-			i++;
-			Thread.sleep(33);
-			grap.drawImage(samcl.grid.map_image, null, 0, 0);
-			//System.out.println(robot.toString());
-//			px = robot.getX();
-//			py = robot.getY();
-			time = System.currentTimeMillis()/1000 - time;
-			rx = robot.getX();
-			ry = robot.getY();
-			rh = robot.getHead();
-			for(Particle p : parts){
-				//System.out.println("drawing particles");
-				
-//				if(i<10000000){
-					p.setX(rx);
-					p.setY(ry);
-					p.setTh(rh);
-//				}
-				
-				Distribution.Motion_sampling(p,samcl.orientation, robot.getUt(), time);
-				Tools.drawPoint(grap,  p.getX(), p.getY(), p.getTh(), 4, Color.BLUE);
-				System.out.println(p.toString());
-			}
-			
-			Tools.drawRobot(grap,  robot.getX(),  robot.getY(), robot.getHead(), 20, Color.ORANGE);
-			
-//			Tools.drawRobot(grap, 250, 250, robot.getHead(), 10, Color.RED);
-			panel.repaint();
-			//System.out.println(robot.toString());
-			
-		}*/
 	}
 	
 }

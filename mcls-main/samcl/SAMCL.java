@@ -496,7 +496,7 @@ public class SAMCL implements Closeable{
 						if(i>10)
 							continue first;
 						i++;
-						Distribution.Motion_sampling(p,this.orientation, u, duration/1000, random); 
+						Distribution.Motion_sampling(p, u, duration/1000, random); 
 					}while(!Distribution.boundaryCheck(p, this.grid));
 					
 					result.add(p.clone());
