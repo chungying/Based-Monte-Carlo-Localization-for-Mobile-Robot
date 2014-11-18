@@ -68,7 +68,7 @@ public class RobotState implements Runnable,Closeable{
 		int rx=0, ry=0,px=0, py=0;
 		double rh=0.0;
 		int i = 0;
-		double[] al = new double[6];
+		double[] al = Distribution.al.clone();
 		System.out.println(Arrays.toString(al));
 		VariablesController vc = new VariablesController(al);
 		Random random = new Random();
@@ -93,15 +93,15 @@ public class RobotState implements Runnable,Closeable{
 			for(Particle p : parts){
 				//System.out.println("drawing particles");
 				
-//				if(i<100){
+				if(i<5){
 					p.setX(rx);
 					p.setY(ry);
 					p.setTh(rh);
-//				}
+				}
 				
 				Distribution.MotionSampling(p, robot.getUt(), time, random, al);
 				Tools.drawPoint(grap,  p.getX(), p.getY(), p.getTh(), 4, Color.BLUE);
-				System.out.println(p.toString());
+//				System.out.println(p.toString());
 			}
 			
 			Tools.drawRobot(grap,  robot.getX(),  robot.getY(), robot.getHead(), 20, Color.ORANGE);
