@@ -41,6 +41,10 @@ import com.google.protobuf.ServiceException;
  */
 public class SAMCL implements Closeable{
 	
+	@Parameter(names = "--help", help = true)
+	public boolean help;
+
+	
 	private boolean terminated = false;
 	public void setTerminated(boolean terminated) {
 		this.terminated = terminated;
@@ -227,6 +231,7 @@ public class SAMCL implements Closeable{
 		this.sensorNumber = this.orientation/2 + 1;
 		this.sensorDeltaDegree = this.orientationDeltaDegree;
 		
+		this.al = Distribution.al.clone();
 		this.grid= new Grid(this.orientation, this.sensorNumber, this.mapFilename);
 		
 		if(this.onCloud){
@@ -422,6 +427,9 @@ public class SAMCL implements Closeable{
 	//for Determining_size()
 	protected int Nl;
 	protected int Ng;
+
+
+	public double[] al;
 	//for Local_resampling()
 	
 	
@@ -488,7 +496,6 @@ public class SAMCL implements Closeable{
 			long duration) throws Exception{
 		List<Particle> result = new ArrayList<Particle>();
 		if(!src.isEmpty()){
-			Random random = new Random();
 			first:
 				for(Particle p : src){
 					int i = 0;
@@ -496,7 +503,7 @@ public class SAMCL implements Closeable{
 						if(i>10)
 							continue first;
 						i++;
-						Distribution.Motion_sampling(p, u, duration/1000, random); 
+						Distribution.MotionSampling(p, u, duration/1000, new Random(), this.al); 
 					}while(!Distribution.boundaryCheck(p, this.grid));
 					
 					result.add(p.clone());

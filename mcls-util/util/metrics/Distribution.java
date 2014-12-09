@@ -74,19 +74,25 @@ public class Distribution {
 	}
 	
 	public static double[] al = {
-		0.0001,0.0001,
 		0.1,0.1,
-		0.01,0.01
+		0.3,0.3,
+		0.9,0.9
 		};
 	
-	public static void Motion_sampling(Particle p, VelocityModel u, double deltaT){
-		Motion_sampling(p,  u, deltaT, new Random());
+	public static void MotionSampling(Particle p, VelocityModel u, double deltaT){
+		MotionSampling(p,  u, deltaT, new Random());
 	}
 	
-	public static void Motion_sampling(Particle p, VelocityModel u, double deltaT, Random random){
-		Motion_sampling(p,  u, deltaT, new Random(), al);
+	public static void MotionSampling(Particle p, VelocityModel u, double deltaT, Random random){
+		MotionSampling(p,  u, deltaT, random, al);
 	}
 	
+	
+	/**
+	 * @param p ready to use motion sampling
+	 * @param u the robot's velocity model
+	 * @param deltaT seconds
+	 */
 	public static void MotionSampling(Particle p, VelocityModel u, double deltaT, Random random, double[] al){
 		//formula
 		double Vcup = u.velocity + 
@@ -152,65 +158,6 @@ public class Distribution {
 			}
 			p.setTh(p.getTh()+noise);
 		}
-	}
-	
-	/**
-	 * @param p ready to use motion sampling
-	 * @param orientation 
-	 * @param u the robot's velocity model
-	 * @param deltaT seconds
-	 */
-	public static void Motion_sampling(Particle p, VelocityModel u, double deltaT, Random random, double[] al){
-		
-		//formula
-		double Vcup = u.velocity + 
-				Distribution.sample_normal_distribution(al[0]*Math.abs(u.velocity) + al[1]*Math.abs(u.angular_velocity), random);
-		double Wcup = u.angular_velocity + 
-				Distribution.sample_normal_distribution(al[2]*Math.abs(u.velocity) + al[3]*Math.abs(u.angular_velocity), random);
-		double Rcup =  Distribution.sample_normal_distribution(al[4]*Math.abs(u.velocity) + al[5]*Math.abs(u.angular_velocity), random);
-		
-		//avoid arithmetical error, such as divide by ZERO.
-		if(Wcup==0.0){
-			Wcup = 4.9e-324;
-		}
-		if(Vcup==0.0){
-			Vcup = 4.9e-324;
-		}
-		
-		double r =  Vcup/Math.toRadians(Wcup);
-		//formula
-		double temp = p.getX();
-		double noise =  r *(
-						- Math.cos( Math.toRadians( p.getTh() + Wcup*deltaT ) ) 
-						+ Math.cos( Math.toRadians( p.getTh() ) ) 
-						);
-		//add some disturbances when u is static.
-		if(noise==0.0){
-			noise = Distribution.sample_normal_distribution(1);
-		}
-		p.setX((int)Math.round(temp + noise));
-		
-		//formula
-		temp = p.getY();
-		noise =  r *( 
-						- Math.sin( Math.toRadians( p.getTh() ) ) 
-						+ Math.sin( Math.toRadians( p.getTh() + Wcup*deltaT ) )  
-						);
-		//add some disturbances when u is static.
-		if(noise==0.0){
-			noise = Distribution.sample_normal_distribution(1);
-		}
-		p.setY((int)Math.round(temp + noise));
-		
-		//formula
-		temp = p.getTh();
-		noise = Wcup*deltaT + Rcup*deltaT;
-		//add some disturbances when u is static.
-		if(noise==0.0){
-			noise = Distribution.sample_normal_distribution(5);
-		}
-		p.setTh(temp+noise);
-		
 	}
 	
 	public static boolean boundaryCheck(Particle p, Grid grid){

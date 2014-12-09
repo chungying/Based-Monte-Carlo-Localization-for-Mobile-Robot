@@ -4,9 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import robot.Pose;
-
 import robot.RobotState;
 import util.gui.RobotController;
+import util.gui.VariablesController;
 import util.gui.Window;
 
 import com.beust.jcommander.JCommander;
@@ -48,6 +48,10 @@ public class Main {
 		jc.setAcceptUnknownOptions(true);
 		jc.addObject(mcl);
 		jc.parse(args);
+		if(mcl.help){
+			jc.usage();
+			System.exit(0);
+		}
 		mcl.setup();
 //				if(!mcl.onCloud){
 //					System.out.println("start to pre-caching");
@@ -72,7 +76,7 @@ public class Main {
 		path.add(new Pose(150,550,270));
 		path.add(new Pose(150,150,270));
 		path.add(new Pose(150,150,0));
-		RobotState robot = new RobotState(150, 150, 0, /*null*/mcl.grid, /*null*/"map.512.4.split", path);
+		RobotState robot = new RobotState(150, 150, 0, /*null*/mcl.grid, mcl.tableName, path);
 		jc = new JCommander();
 		jc.setAcceptUnknownOptions(true);
 		jc.addObject(robot);
@@ -82,6 +86,7 @@ public class Main {
 		robot.setInitPose(robot.getPose());
 		@SuppressWarnings("unused")
 		RobotController robotController = new RobotController("robot controller", robot,mcl);
+		VariablesController vc = new VariablesController(mcl.al);
 		Thread t = new Thread(robot);
 		t.start();
 		/**

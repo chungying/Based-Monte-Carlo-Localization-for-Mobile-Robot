@@ -6,6 +6,7 @@ import java.util.List;
 import robot.Pose;
 import robot.RobotState;
 import util.gui.RobotController;
+import util.gui.VariablesController;
 import util.gui.Window;
 
 import com.beust.jcommander.JCommander;
@@ -48,6 +49,10 @@ public class Main {
 		jc.setAcceptUnknownOptions(true);
 		jc.addObject(samclroe);
 		jc.parse(args);
+		if(samclroe.help){
+			jc.usage();
+			System.exit(0);
+		}
 		samclroe.setup();
 		if(!samclroe.onCloud){
 			System.out.println("start to pre-caching");
@@ -82,6 +87,7 @@ public class Main {
 		robot.setInitPose(robot.getPose());
 		@SuppressWarnings("unused")
 		RobotController robotController = new RobotController("robot controller", robot,samclroe);
+		VariablesController vc = new VariablesController(samclroe.al);
 		Thread t = new Thread(robot);
 		t.start();
 		/**
