@@ -18,16 +18,19 @@ public class Main {
 		//for debug mode
 		if(args.length==0){
 			String[] targs = {
-					"--help",
+//					"--help",
 //					"-i","file:///Users/ihsumlee/Jolly/jpg/sim_map.jpg"
-					"-i","file:///home/w514/jpg/map.jpg"
+					"-i","file:///home/wuser/backup/jpg/test6.jpg"
 					,"-o","4"
 //					,"-rl","true"
-					,"-rx","100"
-					,"-ry","100"
+					,"-rx","25"
+					,"-ry","25"
 //					,"-p","10"
 //					,"-cl"
+					,"-x","0.2"
 					,"-t map.512.4.split"
+					,"--showparticles"
+					,"--period","30"
 					};
 			args = targs;
 		}

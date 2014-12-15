@@ -467,7 +467,7 @@ public class Grid extends MouseAdapter {
 		Get get = new Get(Bytes.toBytes(rowkey));
 		get.addColumn(this.family, Bytes.toBytes("data"));
 		Result result = table.get(get);
-		byte[] BA = result.getValue(this.family, Bytes.toBytes(String.valueOf(this.orientation)));
+		byte[] BA = result.getValue(this.family, Bytes.toBytes("data"));
 		if(Z>=0){
 			float[] measurements = new float[this.sensor_number];
 			//int bias = (this.sensor_number - 1) / 2;

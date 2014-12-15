@@ -19,14 +19,18 @@ public class Main {
 		if(args.length==0){
 			String[] targs = {/*"-cl",*/
 					//"-i","file:///Users/ihsumlee/Jolly/jpg/sim_map.jpg"
-					"-i","file:///home/w514/jpg/sim_map.jpg"
-					,"-o","36"
+					"-i","file:///home/wuser/backup/jpg/test6.jpg"
+					,"-o","18"
 					,"-rl","true"
-//					,"-rx","30"
-//					,"-ry","30"
+					,"-rx","30"
+					,"-ry","30"
 					,"-p","10"
 //					,"-cl"
-					,"-d 0.0001 -x 0.05"
+//					,"-d", "0.0001"
+					,"-x", "0.2"
+					,"--showparticles"
+					,"-t","test6.18.split"
+					,"-cl"
 					};
 			args = targs;
 		}

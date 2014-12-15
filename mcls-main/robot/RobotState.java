@@ -73,27 +73,31 @@ public class RobotState implements Runnable,Closeable{
 		VariablesController vc = new VariablesController(al);
 		Random random = new Random();
 //		double time = System.currentTimeMillis()/1000;
-		double time = 1;
+		double time = 0.05;
 		Particle nextRobot = new Particle(0,0,0);
-		robot.setVt(5);
-		robot.setWt(0);
-		while(true){
+		
+		robot.setVt(100);
+		robot.setWt(90);
+//		robot.unlock();
+		while(time<1){
 			i++;
-			Thread.sleep(500);
+			Thread.sleep(20);
 			grap.drawImage(samcl.grid.map_image, null, 0, 0);
 			//System.out.println(robot.toString());
 //			px = robot.getX();
 //			py = robot.getY();
 			//time = System.currentTimeMillis()/1000 - time;
-			
+			time = i*0.001;
 			rx = robot.getX();
 			ry = robot.getY();
 			rh = robot.getHead();
 			//System.out.println(robot);
+			System.out.println("counter"+i);
+			System.out.println("time="+time+"s");
 			for(Particle p : parts){
-				//System.out.println("drawing particles");
 				
-				if(i<5){
+				
+				if(i<100000000){
 					p.setX(rx);
 					p.setY(ry);
 					p.setTh(rh);
@@ -109,11 +113,11 @@ public class RobotState implements Runnable,Closeable{
 			double r  =( robot.getVt()/Math.toRadians(robot.getWt()) );
 			if(robot.getWt()!=0){
 				nextRobot.setX((robot.getX() +  
-						time*r *(Math.sin( Math.toRadians( robot.getHead() + robot.getWt()*time ) ) 
+						time*r *(+Math.sin( Math.toRadians( robot.getHead() + robot.getWt()*time ) ) 
 								-  Math.sin( Math.toRadians( robot.getHead() ) ) 
 								)));
 				nextRobot.setY((robot.getY() +  
-						time*r *(Math.cos( Math.toRadians( robot.getHead() ) ) 
+						time*r *(+Math.cos( Math.toRadians( robot.getHead() ) ) 
 								-  Math.cos( Math.toRadians( robot.getHead() + robot.getWt()*time ) )  
 								)));
 				nextRobot.setTh(Transformer.checkHeadRange( robot.getHead() +
@@ -124,7 +128,7 @@ public class RobotState implements Runnable,Closeable{
 				nextRobot.setX(robot.getX() +  
 						time*r *( Math.cos( Math.toRadians(robot.getHead()) ) ));
 				nextRobot.setY(robot.getY() +  
-						time*r *(-  Math.sin( Math.toRadians(robot.getHead()) ) ));
+						time*r *(  Math.sin( Math.toRadians(robot.getHead()) ) ));
 				nextRobot.setTh(Transformer.checkHeadRange( robot.getHead() +
 						robot.getWt()*time
 						));

@@ -38,7 +38,7 @@ public class VariablesController extends JFrame {
 		@Override
 		public void stateChanged(ChangeEvent e) {
 			JSlider slider = (JSlider)e.getSource();
-			al[index] = ((double)slider.getValue())/100;
+			al[index] = ((double)slider.getValue());
 			//al[index+1] = ((double)slider.getValue())/1000;
 			text.setText(String.valueOf(al[index]));
 		}
@@ -64,15 +64,15 @@ public class VariablesController extends JFrame {
 		
 		
 		Dictionary<Integer, Component> labelTable = new Hashtable<Integer, Component>();
-		labelTable.put(0, new JLabel("0.0"));
-		labelTable.put(200, new JLabel("0.2"));
-		labelTable.put(400, new JLabel("0.4"));
-		labelTable.put(600, new JLabel("0.6"));
-		labelTable.put(800, new JLabel("0.8"));
-		labelTable.put(1000, new JLabel("1.0"));
+		labelTable.put(0, new JLabel("0"));
+		labelTable.put(50000, new JLabel("50000"));
+//		labelTable.put(4000, new JLabel("4000"));
+//		labelTable.put(6000, new JLabel("6000"));
+//		labelTable.put(8000, new JLabel("8000"));
+		labelTable.put(100000, new JLabel("100000"));
 		JSlider slider;
 		for(int i = 0 ; i<listeners.size(); i++){
-			slider = new JSlider(0,1000,(int)al[i]*1000);
+			slider = new JSlider(0,100000,(int)al[i]);
 			slider.setPaintLabels(true);
 			slider.setPaintTicks(true);
 			slider.setMajorTickSpacing(200);

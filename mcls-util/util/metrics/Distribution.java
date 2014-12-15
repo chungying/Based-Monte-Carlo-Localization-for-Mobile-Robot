@@ -74,9 +74,9 @@ public class Distribution {
 	}
 	
 	public static double[] al = {
-		0.1,0.1,
-		0.3,0.3,
-		0.9,0.9
+		100,100,
+		100,100,
+		10,10
 		};
 	
 	public static void MotionSampling(Particle p, VelocityModel u, double deltaT){
@@ -94,6 +94,9 @@ public class Distribution {
 	 * @param deltaT seconds
 	 */
 	public static void MotionSampling(Particle p, VelocityModel u, double deltaT, Random random, double[] al){
+//		System.out.println("velocity model:"+u);
+//		System.out.println("duration:"+deltaT);
+//		System.out.println("al:"+al);
 		//formula
 		double Vcup = u.velocity + 
 				Distribution.sample_normal_distribution(al[0]*Math.abs(u.velocity) + al[1]*Math.abs(u.angular_velocity), random);
