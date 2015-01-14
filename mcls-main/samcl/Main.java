@@ -3,11 +3,11 @@ package samcl;
 import java.util.ArrayList;
 import java.util.List;
 
-import robot.Pose;
-import robot.RobotState;
 import util.gui.RobotController;
 import util.gui.VariablesController;
 import util.gui.Window;
+import util.robot.Pose;
+import util.robot.RobotState;
 
 import com.beust.jcommander.JCommander;
 import com.google.protobuf.ServiceException;
@@ -103,6 +103,7 @@ public class Main {
 		
 		//TODO test 2014/06/19
 		int counter = 0;
+		System.out.println(System.currentTimeMillis());
 		while(true){
 			window.setTitle("samcl image:"+String.valueOf(counter));
 			robot.goStraight();

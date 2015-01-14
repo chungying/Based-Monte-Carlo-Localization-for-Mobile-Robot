@@ -3,11 +3,11 @@ package samclroe;
 import java.util.ArrayList;
 import java.util.List;
 
-import robot.Pose;
-import robot.RobotState;
 import util.gui.RobotController;
 import util.gui.VariablesController;
 import util.gui.Window;
+import util.robot.Pose;
+import util.robot.RobotState;
 
 import com.beust.jcommander.JCommander;
 import com.google.protobuf.ServiceException;

@@ -1,7 +1,7 @@
 /**
  * 
  */
-package samcl;
+package util.grid;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
@@ -670,14 +670,22 @@ public class Grid extends MouseAdapter {
 			}
 		}
 	}
-
+	private double totalProgress;
+	private double currentProgress;
 	/**
 	 * 
 	 */
 	public void pre_compute() {
+		this.totalProgress = this.width*this.height;
+		int progress = 0;
 		this.G = new position[this.width][this.height];
 		for (int x = 1; x < this.width - 1; x++) {
 			for (int y = 1; y < this.height - 1; y++) {
+				this.currentProgress = x*y;
+				if(Math.round(this.currentProgress/this.totalProgress)>progress){
+					progress++;
+					System.out.println("pre-caching progress"+progress+"%");
+				}
 				if (x == 0) {
 					this.G[x][y] = new position();
 				} else {

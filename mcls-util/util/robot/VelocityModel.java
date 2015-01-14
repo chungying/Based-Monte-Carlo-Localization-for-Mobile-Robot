@@ -1,4 +1,4 @@
-package robot;
+package util.robot;
 
 public class VelocityModel {
 	
@@ -9,6 +9,10 @@ public class VelocityModel {
 		super();
 		this.setVelocity(m.getVelocity());
 		this.setAngular_velocity(m.getAngular_velocity());
+	}
+	public VelocityModel(double velocity, double angular_velocity) {
+		this.velocity = velocity;
+		this.angular_velocity = angular_velocity;
 	}
 	public double velocity;// pixel/s
 	public double angular_velocity;// degree/s

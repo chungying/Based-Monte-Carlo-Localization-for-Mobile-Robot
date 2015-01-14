@@ -5,9 +5,10 @@ import java.awt.event.WindowEvent;
 
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
+import javax.swing.WindowConstants;
 
-import robot.RobotState;
 import samcl.SAMCL;
+import util.robot.RobotState;
 
 public class Window extends JFrame{
 	/**
@@ -22,6 +23,7 @@ public class Window extends JFrame{
 		this.robot = robot;
 		this.setSize(samcl.grid.width, samcl.grid.height);
 		this.addWindowListener(new CustomAdapter());
+		this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 	}
 	
 	public class CustomAdapter extends WindowAdapter{

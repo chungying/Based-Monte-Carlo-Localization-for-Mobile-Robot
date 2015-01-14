@@ -13,8 +13,8 @@ import java.awt.event.AdjustmentListener;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
-import robot.RobotState;
 import samcl.SAMCL;
+import util.robot.RobotState;
 @Deprecated
 @SuppressWarnings("serial")
 public class JFrameListener extends JFrame implements ActionListener, AdjustmentListener{

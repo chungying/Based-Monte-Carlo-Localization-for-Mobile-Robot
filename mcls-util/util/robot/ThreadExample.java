@@ -1,4 +1,4 @@
-package robot;
+package util.robot;
 public class ThreadExample {
 	    private String str = "outer";
 		public void setStr(String str) {

@@ -1,9 +1,11 @@
-package samcl;
+package util.grid;
 
 import java.awt.Point;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+
+import samcl.SAMCL;
 
 import com.beust.jcommander.JCommander;
 

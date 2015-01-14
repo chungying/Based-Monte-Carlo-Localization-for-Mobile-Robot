@@ -1,4 +1,4 @@
-package robot;
+package util.robot;
 
 import java.awt.Color;
 import java.awt.Component;
@@ -18,8 +18,8 @@ import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.converters.DoubleConverter;
 
-import samcl.Grid;
 import samcl.SAMCL;
+import util.grid.Grid;
 import util.gui.Panel;
 import util.gui.RobotController;
 import util.gui.Tools;
@@ -92,16 +92,16 @@ public class RobotState implements Runnable,Closeable{
 			ry = robot.getY();
 			rh = robot.getHead();
 			//System.out.println(robot);
-			System.out.println("counter"+i);
-			System.out.println("time="+time+"s");
+//			System.out.println("counter"+i);
+//			System.out.println("time="+time+"s");
 			for(Particle p : parts){
 				
 				
-				if(i<100000000){
+//				if(i<100000000){
 					p.setX(rx);
 					p.setY(ry);
 					p.setTh(rh);
-				}
+//				}
 				
 				Distribution.MotionSampling(p, robot.getUt(), time, random, al);
 				Tools.drawPoint(grap,  p.getX(), p.getY(), p.getTh(), 4, Color.BLUE);
@@ -142,8 +142,8 @@ public class RobotState implements Runnable,Closeable{
 //			this.y = this.y +  ( ut.getVelocity() * t * Math.sin( Math.toRadians(head) ) ) /*+ (int)(Math.round(Wt))*/;
 //			this.head = Transformer.checkHeadRange((ut.getAngular_velocity() * t) + this.head);
 			panel.repaint();
-			System.out.println(robot.toString());
-			System.out.println(nextRobot.toString());
+//			System.out.println(robot.toString());
+//			System.out.println(nextRobot.toString());
 			
 		}
 		
@@ -482,14 +482,19 @@ public class RobotState implements Runnable,Closeable{
 	}
 	
 	public void initRobot(){
-		this.setPose(initRobot);
-		this.setVelocityModel(initModel);
-		this.target = 0;
+		if(initRobot!=null){
+			this.setPose(initRobot);
+			this.setVelocityModel(initModel);
+			this.target = 0;
+		}
 	}
 
-
+	static public VelocityModel ZEROU = new VelocityModel(0.0,0.0); 
 	public VelocityModel getUt() {
-		return ut;
+		if(lock)
+			return ZEROU;
+		else
+			return ut;
 	}
 
 	public double getVt() {

@@ -13,7 +13,7 @@ import java.util.NavigableMap;
 import java.util.Random;
 import java.util.TreeMap;
 
-import samcl.Grid;
+import util.grid.Grid;
 import util.gui.Panel;
 import util.metrics.Transformer;
 

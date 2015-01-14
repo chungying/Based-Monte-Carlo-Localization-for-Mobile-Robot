@@ -11,7 +11,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 
-import samcl.Grid;
+import util.grid.Grid;
 import util.metrics.Transformer;
 
 public class Image2Mapper extends Mapper< Text, RectangleSplit, ImmutableBytesWritable, Put>{

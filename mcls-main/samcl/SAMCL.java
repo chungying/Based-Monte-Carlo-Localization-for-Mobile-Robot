@@ -20,13 +20,14 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.HTable;
 
-import robot.VelocityModel;
-import robot.RobotState;
+import util.grid.Grid;
 import util.gui.Panel;
 import util.gui.Tools;
 import util.metrics.Distribution;
 import util.metrics.Particle;
 import util.metrics.Transformer;
+import util.robot.RobotState;
+import util.robot.VelocityModel;
 
 import com.beust.jcommander.Parameter;
 import com.google.protobuf.ServiceException;
@@ -191,6 +192,7 @@ public class SAMCL implements Closeable{
 //			Transformer.log(
 //					"batch weight time: " + weightTime
 //					);
+//			System.gc();
 		}
 	}
 	

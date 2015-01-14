@@ -11,10 +11,10 @@ import java.util.TreeMap;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
-import robot.VelocityModel;
-import samcl.Grid;
+import util.grid.Grid;
 import util.gui.Panel;
 import util.gui.Tools;
+import util.robot.VelocityModel;
 
 public class Distribution {
 	
