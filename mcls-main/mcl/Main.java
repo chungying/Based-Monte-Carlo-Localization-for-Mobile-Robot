@@ -17,14 +17,15 @@ public class Main {
 		//for debug mode
 		if(args.length==0){
 			String[] targs = {/*"-cl",*/
-					"-i","file:///Users/ihsumlee/Jolly/jpg/sim_map.jpg"
-					//"-i","file:///home/w514/jpg/sim_map.jpg"
+					//"-i","file:///Users/ihsumlee/Jolly/jpg/sim_map.jpg"
+					"-i","file:///home/wuser/backup/jpg/sim_map.jpg"
 					,"-o","36"
 					,"-rl","true"
 //							,"-rx","30"
 //							,"-ry","30"
 					,"-p","10"
 //							,"-cl"
+					,"-D","false"
 					};
 			args = targs;
 		}
@@ -86,7 +87,7 @@ public class Main {
 		robot.setInitPose(robot.getPose());
 		@SuppressWarnings("unused")
 		RobotController robotController = new RobotController("robot controller", robot,mcl);
-		VariablesController vc = new VariablesController(mcl.al);
+		VariablesController vc = new VariablesController(mcl);
 		Thread t = new Thread(robot);
 		t.start();
 		/**

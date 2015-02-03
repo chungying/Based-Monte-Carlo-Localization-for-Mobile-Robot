@@ -522,13 +522,25 @@ public class RobotState implements Runnable,Closeable{
 	public int getX() {
 		return (int)Math.round(x);
 	}
+	
+	public void setX(double X) {
+		this.x = X;
+	}
 
 	public int getY() {
 		return (int)Math.round(y);
 	}
 	
+	public void setY(double Y) {
+		this.y = Y;
+	}
+	
 	public double getHead() {
 		return head;
+	}
+	
+	public void setHead(double Head) {
+		this.head = Head;
 	}
 
 	public float[] getMeasurements() {
@@ -557,6 +569,13 @@ public class RobotState implements Runnable,Closeable{
 		return new Pose(this.x,this.y,this.head);
 	}
 
+	public void setPose(Pose pose) {
+		this.x = pose.X;
+		this.y = pose.Y;
+		this.head = pose.H;
+	}
+
+
 	public void stop() {
 		this.ut.reset(0.0, 0.0);
 	}
@@ -566,12 +585,6 @@ public class RobotState implements Runnable,Closeable{
 		this.ut.setVelocity(u.getVelocity());
 		this.ut.setAngular_velocity(u.getAngular_velocity());
 		
-	}
-
-	public void setPose(Pose pose) {
-		this.x = pose.X;
-		this.y = pose.Y;
-		this.head = pose.H;
 	}
 	
 }

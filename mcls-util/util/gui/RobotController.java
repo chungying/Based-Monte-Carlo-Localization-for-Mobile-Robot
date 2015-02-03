@@ -26,9 +26,7 @@ public class RobotController extends JFrame implements ActionListener{
 	};
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		this.labelU.setText(
-				"v:"+Double.toString(this.robot.getVt())+
-				",w:"+Double.toString(this.robot.getWt()));
+		
 		//System.out.println("action!!");
 		Object object = e.getSource();
 		if(object instanceof Button){
@@ -58,7 +56,7 @@ public class RobotController extends JFrame implements ActionListener{
 				this.robot.setVt(this.robot.getVt() + 1);
 			}
 			else if(btn==B[5]){
-				//
+				//Initialize
 				System.out.println("Initialize robot");
 				this.robot.lock();
 				this.robot.initRobot();
@@ -85,22 +83,56 @@ public class RobotController extends JFrame implements ActionListener{
 				System.out.println("update velocity");
 				if(text.getText().length()!=0)
 					this.robot.setVt(Double.parseDouble(text.getText()));
-//				this.labelU.setText(
-//						"v:"+Double.toString(this.robot.getVt())+
-//						",w:"+Double.toString(this.robot.getWt()));
 			}
 			else if(text==textU[1]){
 				System.out.println("update angular velocity");
 				if(text.getText().length()!=0)
 					this.robot.setWt(Double.parseDouble(text.getText()));
-//				this.labelU.setText(
-//						"v:"+Double.toString(this.robot.getVt())+
-//						",w:"+Double.toString(this.robot.getWt()));
+			}
+			else if(text==textPose[0]){
+				System.out.println("update robot X");
+				if(text.getText().length()!=0)
+					this.robot.setX(Double.parseDouble(text.getText()));
+			}
+			else if(text==textPose[1]){
+				System.out.println("update robot Y");
+				if(text.getText().length()!=0)
+					this.robot.setY(Double.parseDouble(text.getText()));
+			}
+			else if(text==textPose[2]){
+				System.out.println("update robot Head");
+				if(text.getText().length()!=0)
+					this.robot.setHead(Double.parseDouble(text.getText()));
 			}
 		}
 	}
 
 
+	Thread updateThtread = new Thread(){
+		@Override
+		public void run() {
+			try {
+				while(true){
+					if(!robot.isLock()){
+						labelU.setText(
+								"v:"+Double.toString(robot.getVt())+
+								",w:"+Double.toString(robot.getWt()));
+						label[0].setText(
+								Double.toString(robot.getPose().X).substring(0, 5));
+						label[1].setText(
+								Double.toString(robot.getPose().Y).substring(0, 5));
+						label[2].setText(
+								Double.toString(robot.getHead()));
+					}
+					Thread.sleep(33);
+				}
+			} catch (InterruptedException e) {
+				System.out.println("updateThread in RobotController");
+				e.printStackTrace();
+			}
+		}
+	};
+	
 	private RobotState robot;
 	private SAMCL samcl;
 	
@@ -113,15 +145,19 @@ public class RobotController extends JFrame implements ActionListener{
 	 * |________________________|
 	 * |Button	|Button	|Button	|
 	 * |________________________|
-	 * |Text	|Button	|Label	|
+	 * |Label	|Label	|Label	|
+	 * |________________________|
+	 * |Text	|Text	|Text	|
 	 * |________________________|
 	 * 
 	 * 
 	 */
-	JPanel control_panel = new JPanel(new GridLayout(4,3));
+	JPanel control_panel = new JPanel(new GridLayout(6,3));
 	Button[] B = new Button[9];
 	TextField[] textU = new TextField[2];
 	Label labelU = new Label();
+	TextField[] textPose = new TextField[3];
+	Label[] label = new Label[3];
 	/**
 	 * @param title
 	 * @throws HeadlessException
@@ -138,9 +174,7 @@ public class RobotController extends JFrame implements ActionListener{
 		super(title);
 		this.robot = robot;
 		this.samcl = samcl;
-
-		BorderLayout boarder = new BorderLayout(3,3);
-		this.setLayout(boarder);
+		this.setLayout(new BorderLayout(3,3));
 		
 		//set up contorl panel
 		System.out.println("initial "+ this.getTitle());
@@ -149,12 +183,12 @@ public class RobotController extends JFrame implements ActionListener{
 			control_panel.add(B[i]);
 			B[i].addActionListener(this);
 		}
+		
+		
 		labelU = new Label(
 				"v:"+Double.toString(this.robot.getVt())+
 				",w:"+Double.toString(this.robot.getWt()));
-		
 		control_panel.add(labelU);
-		
 		textU[0] = new TextField();
 		textU[0].setText(String.valueOf(this.robot.getVt()));
 		control_panel.add(textU[0]);
@@ -165,9 +199,35 @@ public class RobotController extends JFrame implements ActionListener{
 		textU[1].addActionListener(this);
 		
 		
+		label[0] = new Label(
+				Double.toString(this.robot.getPose().X).substring(0, 5));
+		label[1] = new Label(
+				Double.toString(this.robot.getPose().Y).substring(0, 5));
+		label[2] = new Label(
+				Double.toString(this.robot.getHead()));
+		control_panel.add(label[0]);
+		control_panel.add(label[1]);
+		control_panel.add(label[2]);
+		textPose[0] = new TextField();
+		textPose[0].setText(String.valueOf(this.robot.getX()));
+		control_panel.add(textPose[0]);
+		textPose[0].addActionListener(this);
+		textPose[1] = new TextField();
+		textPose[1].setText(String.valueOf(this.robot.getY()));
+		control_panel.add(textPose[1]);
+		textPose[1].addActionListener(this);
+		textPose[2] = new TextField();
+		textPose[2].setText(String.valueOf(this.robot.getHead()));
+		control_panel.add(textPose[2]);
+		textPose[2].addActionListener(this);
+		
+		
 		this.add(control_panel, BorderLayout.NORTH);
 		
-				
+		if(this.robot!=null){
+			this.updateThtread.start();
+		}
+		
 		this.pack();
 		this.setVisible(true);
 	}

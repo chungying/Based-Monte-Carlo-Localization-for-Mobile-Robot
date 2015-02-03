@@ -10,6 +10,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -166,6 +167,7 @@ public class SAMCL implements Closeable{
 					"Caculating SER Time    : \t" + serTime + "\tms"+"\n",
 					"Local Resampling Time  : \t" + localResamplingTime + "\tms"+"\n",
 					"Combining Time	        : \t" + combiminingTime + "\tms"+"\n",
+					"Alpha argument         : \t" + Arrays.toString(this.al) + "\n",
 					"*************************\n"
 					);
 			
@@ -289,25 +291,30 @@ public class SAMCL implements Closeable{
 			//Graphics2D grap = samcl_image.createGraphics();
 			grap.drawImage(this.grid.map_image, null, 0, 0);
 			
-			//Robot
-			Tools.drawRobot(grap, robot.getX(), robot.getY(), robot.getHead(), 10, Color.RED);
-	
-			//Best Particle
-			Tools.drawRobot(grap, bestParticle.getX(), bestParticle.getY(), bestParticle.getTh(), 8, Color.GREEN);
-	
 			//SER
 			if (SER.size() >= 1&&this.ifShowSER) {
 				Tools.drawBatchPoint(grap, SER, 1, Color.PINK);
 			}
 			
 			//Particles
-			if(this.ifShowParticles)
-				Tools.drawBatchPoint(grap, particles, 2, Color.BLUE);;
+			if(this.ifShowParticles){
+				//Tools.drawBatchPoint(grap, particles, 2, Color.BLUE);
+				for(Particle p: particles){
+					Tools.drawRobot(grap, p.getX(), p.getY(), p.getTh(), 4, Color.BLUE);
+				}
+			}
 			
 			//Measurements
 			if(this.ifShowSensors){
 				;
 			}
+			
+			//Robot
+			Tools.drawRobot(grap, robot.getX(), robot.getY(), robot.getHead(), 10, Color.RED);
+			
+			//Best Particle
+			Tools.drawRobot(grap, bestParticle.getX(), bestParticle.getY(), bestParticle.getTh(), 8, Color.GREEN);
+			
 		}
 
 

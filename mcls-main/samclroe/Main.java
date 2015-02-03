@@ -91,7 +91,7 @@ public class Main {
 		robot.setInitPose(robot.getPose());
 		@SuppressWarnings("unused")
 		RobotController robotController = new RobotController("robot controller", robot,samclroe);
-		VariablesController vc = new VariablesController(samclroe.al);
+		VariablesController vc = new VariablesController(samclroe);
 		Thread t = new Thread(robot);
 		t.start();
 		/**
