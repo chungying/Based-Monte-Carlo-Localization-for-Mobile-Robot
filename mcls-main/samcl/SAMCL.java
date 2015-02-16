@@ -91,6 +91,11 @@ public class SAMCL implements Closeable{
 		long time = 0;
 		long duration = 0;
 		while(!this.isTerminated()){
+			
+			if(this.convergeFlag){
+				this.converge(last_set, robot);
+			}
+			
 			time = System.currentTimeMillis();
 			counter = counter +1;
 			
@@ -140,6 +145,8 @@ public class SAMCL implements Closeable{
 			long combiminingTime = System.currentTimeMillis();
 			last_set.clear();
 			last_set.addAll(this.Combining_sets(local_set, global_set));
+			local_set.clear();
+			global_set.clear();
 			combiminingTime = System.currentTimeMillis() - combiminingTime;
 //			System.out.println("\tnext set size: \t" + last_set.size());
 			
@@ -737,8 +744,20 @@ public class SAMCL implements Closeable{
 		
 		this.customizedClose();
 	}
-
-
+	
+	@Parameter(names = {"-c","--converge"}, description = "start up/stop debug mode, default is to start up", required = false, arity = 1)
+	private boolean convergeFlag = false;
+	public void forceConverge(){
+		this.convergeFlag = true;
+	}
+	
+	private void converge(List<Particle> current, RobotState robot){
+		current.clear();
+		for(int i = 0;i< this.Nt;i++){
+			current.add(new Particle(robot.getX(), robot.getY(), robot.getHead()));
+		}
+		this.convergeFlag = false;
+	}
 
 	protected void customizedClose() {
 		// TODO Auto-generated method stub

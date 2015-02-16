@@ -6,6 +6,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -116,7 +117,7 @@ public class IMCLROE extends SAMCL{
 		}
 	}
 	
-	@SuppressWarnings("unused")
+	@Deprecated
 	private void oewcObserver(List<Particle> src, float[] robotMeasurements) throws IOException {
 		//create List<Get> gets from List<Particle src
 		Transformer.debugMode(this.mode, "get into the OewcObserver.\n");
@@ -197,14 +198,25 @@ public class IMCLROE extends SAMCL{
 				new Batch.Call<OewcProtos.OewcService, OewcProtos.OewcResponse>() {
 			@Override
 			public OewcResponse call(OewcService endpoint) throws IOException {
+				//initialize the tow objects.(not important)
 				BlockingRpcCallback<OewcResponse> done = new BlockingRpcCallback<OewcResponse>();
 				RpcController controller = new ServerRpcController();
+				//this part is our point to implement packaging the data(request) and calling the customized method(getRowCount).
 				OewcRequest request = IMCLROE.setupRequest(src, robotMeasurements, orientation);
 				endpoint.getRowCount(controller, request, done);
+				//get the results.
 				return done.get();
 			}	
 		};
 		times.add(System.currentTimeMillis());
+		/*
+		 * first:create Map<byte[], OewcResponse> results to store the results.
+		 * second: execute the coprocessor with the arguments which are 
+		 * RPC type(OewcService.class)
+		 * start row key("0000".getBytes()) 
+		 * stop row key("1000".getBytes())
+		 * batch call object(b)
+		 * */
 		Map<byte[], OewcResponse> results=null;
 		try {
 			results = table.coprocessorService(OewcService.class, "0000".getBytes(), "1000".getBytes(), b);
@@ -215,12 +227,15 @@ public class IMCLROE extends SAMCL{
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
+		
 		//setup weight and orientatin to the particles(src)
 		times.add(System.currentTimeMillis());
-		Long sum = 0l;
+		List<Long> durations = new ArrayList<Long>();
 		List<Particle> result = new ArrayList<Particle>();
 		for(Entry<byte[], OewcResponse> entry:results.entrySet()){
-			sum = sum + entry.getValue().getCount();
+			durations.add(entry.getValue().getCount());
+			Transformer.debugMode(mode, "getCount:"+entry.getValue().getCount());
 			Transformer.debugMode(mode, entry.getValue().getStr());
 			for(OewcProtos.Particle op : entry.getValue().getParticlesList()){
 				result.add(IMCLROE.ParticleFromO(op, orientation));
@@ -232,12 +247,15 @@ public class IMCLROE extends SAMCL{
 		src.addAll(result);
 		times.add(System.currentTimeMillis());
 		int counter = 0;
+		System.out.print("longest weighting\t"+Collections.max(durations)+"\t");
 		Transformer.debugMode(mode, "-----------------------------");
 		for(Long time: times){
 			counter++;
 			Transformer.debugMode(mode, "\t"+counter + "\t:"+ time);
 		}
 	}
+	
+	
 	
 	private void oewcEndpoint2(List<Particle> src, float[] robotMeasurements) 
 			throws Throwable{

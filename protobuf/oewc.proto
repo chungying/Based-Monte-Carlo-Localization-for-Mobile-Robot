@@ -1,0 +1,29 @@
+option java_package = "coprocessor.services.generated";
+option java_outer_classname = "OewcProtos2";
+option java_generic_services = true;
+option java_generate_equals_and_hash = true;
+option optimize_for = SPEED;
+
+message Particle {
+  optional float X = 1 [default = 0];
+  optional float Y = 2 [default = 0];
+  optional float Z = 3 [default = 0];
+  optional float W = 4;
+}
+
+message OewcRequest {
+  repeated Particle particles = 1;
+  repeated float measurements = 2;
+}
+
+message OewcResponse {
+  repeated Particle particles = 1;
+  optional int32 count = 2 [default = 0];
+  optional float weight = 3;
+  optional string str = 4;
+}
+
+service OewcService {
+  rpc getRowCount(OewcRequest)
+    returns (OewcResponse);
+}

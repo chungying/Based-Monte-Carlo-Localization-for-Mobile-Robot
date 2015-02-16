@@ -1,0 +1,24 @@
+import public "oewc.proto";
+option java_package = "coprocessor.services.generated";
+option java_outer_classname = "RpcProxyProtos";
+option java_generic_services = true;
+option java_generate_equals_and_hash = true;
+option optimize_for = SPEED;
+
+service RpcProxyService {
+  rpc getCalculationResult(OewcRequest)
+    returns (OewcResponse);
+}
+
+message ProxyRequest{
+  required bytes behavior = 1;
+}
+
+message ProxyResponse{
+  required string result = 1;
+}
+
+service SetupProxyService {
+  rpc setupProxy(ProxyRequest)
+    returns (ProxyResponse);
+}

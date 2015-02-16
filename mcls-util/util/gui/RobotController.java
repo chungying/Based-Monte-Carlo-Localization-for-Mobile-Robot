@@ -21,7 +21,7 @@ public class RobotController extends JFrame implements ActionListener{
 	
 	public String S[] = {
 			/*0*/"Pause/Continue",	/*1*/"Stop",		/*2*/"Terminate",
-			/*3*/"",				/*4*/"Forward",		/*5*/"Initialize",
+			/*3*/"Converge",		/*4*/"Forward",		/*5*/"Initialize",
 			/*6*/"TurnLeft",		/*7*/"Backward",	/*8*/"TurnRight"
 	};
 	@Override
@@ -49,7 +49,8 @@ public class RobotController extends JFrame implements ActionListener{
 				this.samcl.setTerminated(true);
 			}
 			else if(btn==B[3]){
-				//
+				//force converge
+				samcl.forceConverge();
 			}
 			else if(btn==B[4]){//Forward
 				System.out.println("Forward");
@@ -200,9 +201,9 @@ public class RobotController extends JFrame implements ActionListener{
 		
 		
 		label[0] = new Label(
-				Double.toString(this.robot.getPose().X).substring(0, 5));
+				Double.toString(this.robot.getPose().X));
 		label[1] = new Label(
-				Double.toString(this.robot.getPose().Y).substring(0, 5));
+				Double.toString(this.robot.getPose().Y));
 		label[2] = new Label(
 				Double.toString(this.robot.getHead()));
 		control_panel.add(label[0]);

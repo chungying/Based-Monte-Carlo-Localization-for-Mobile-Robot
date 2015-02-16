@@ -8,6 +8,7 @@ import java.util.Random;
 
 import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 
 public class Transformer {
@@ -86,6 +87,26 @@ public class Transformer {
 	
 	static public double checkHeadRange(double h){
 		return (h%360+360)%360;
+	}
+	
+	public static String result2Array(byte[] familyName, Result result, List<Float> FA){
+		String message = "";
+		if(!FA.isEmpty()){
+			return "input of drawMeasurements2() is not empty";
+		}
+		try{
+			byte[] BA = result.getValue(familyName, Bytes.toBytes("data"));
+//			message = message + "BA.length="+String.valueOf(BA.length)+", ";
+			for(int i = 0 ; i*4 < BA.length; i++){
+				FA.add(Bytes.toFloat(
+						Transformer.getBA(i, BA)));
+			}
+//			message = message + "drawMeasurements2() succeed";
+		}catch(Exception e){
+//			message = message + "drawMeasurements2() failed" + e.toString();
+		}
+		return message;
+		
 	}
 	
 	public static float[] drawMeasurements(Float[] circles, int z) {

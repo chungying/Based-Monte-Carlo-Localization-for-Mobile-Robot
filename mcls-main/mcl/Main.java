@@ -26,6 +26,7 @@ public class Main {
 					,"-p","10"
 //							,"-cl"
 					,"-D","false"
+					,"-c","true"
 					};
 			args = targs;
 		}
