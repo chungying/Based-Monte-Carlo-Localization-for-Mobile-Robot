@@ -19,6 +19,7 @@ import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
+import org.apache.hadoop.hbase.util.Bytes;
 
 import util.metrics.Particle;
 import util.metrics.Transformer;
@@ -62,31 +63,53 @@ implements Coprocessor, CoprocessorService{
 		
 	}
 
+	
+	private class ProxyBatchCall implements Batch.Call<OewcService, OewcResponse> {
+
+		private OewcRequest request = null;
+		ProxyBatchCall( OewcRequest request){
+			this.request = request;
+		}
+		
+		@Override
+		public OewcResponse call(OewcService endpoint) throws IOException {
+			//initialize the tow objects.(not important)
+			BlockingRpcCallback<OewcResponse> done = new BlockingRpcCallback<OewcResponse>();
+			RpcController controller = new ServerRpcController();
+			//this part is our point to implement packaging the data(request) and calling the customized method(getRowCount).
+			//TODO passing through whole request directly.
+			OewcRequest request = OewcRequest.newBuilder(this.request).build(); 
+//			IMCLROE.setupRequest(src, robotMeasurements, orientation);
+			endpoint.getRowCount(controller, request, done);
+			//get the results.
+			return done.get();
+		}
+		
+	}
+	
 	@Override
 	public void getCalculationResult(RpcController controller,
 			OewcRequest request, RpcCallback<OewcResponse> done) {
 		
-		
-		
 		List<Long> times = new ArrayList<Long>();
 		times.add(System.currentTimeMillis());
 		//Batch.Call<OewcService,OewcResponse> b = new OewcCall( src, robotMeasurements, orientation);
-		Call<OewcService, OewcResponse> b = 
-				new Batch.Call<OewcService, OewcResponse>() {
+		Call<OewcService, OewcResponse> b = new ProxyBatchCall(request);
+/*				new Batch.Call<OewcService, OewcResponse>() {
 			@Override
 			public OewcResponse call(OewcService endpoint) throws IOException {
 				//initialize the tow objects.(not important)
 				BlockingRpcCallback<OewcResponse> done = new BlockingRpcCallback<OewcResponse>();
 				RpcController controller = new ServerRpcController();
 				//this part is our point to implement packaging the data(request) and calling the customized method(getRowCount).
-				//TODO
-				OewcRequest request = setupProxyRequest(); 
+				//TODO passing through whole request directly.
+				OewcRequest request = OewcRequest.newBuilder(request).build(); 
 //				IMCLROE.setupRequest(src, robotMeasurements, orientation);
 				endpoint.getRowCount(controller, request, done);
 				//get the results.
 				return done.get();
 			}	
-		};
+		};*/
 		times.add(System.currentTimeMillis());
 		/*
 		 * first:create Map<byte[], OewcResponse> results to store the results.
@@ -98,7 +121,8 @@ implements Coprocessor, CoprocessorService{
 		 * */
 		Map<byte[], OewcResponse> results=null;
 		try {
-			results = table.coprocessorService(OewcService.class, "0000".getBytes(), "0000".getBytes(), b);
+			//proxy is not client end. it needs to distribute the one request over all of region server on Gigabit Network.
+			results = table.coprocessorService(OewcService.class, "0000".getBytes(), "1000".getBytes(), b);
 		} catch (ServiceException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -107,33 +131,56 @@ implements Coprocessor, CoprocessorService{
 			e.printStackTrace();
 		}
 		
-		
 		//setup weight and orientatin to the particles(src)
 		times.add(System.currentTimeMillis());
-		List<Long> durations = new ArrayList<Long>();
+		OewcResponse.Builder oewcResponseBuilder = OewcResponse.newBuilder();
+		int countOfResults = 0;
+		String strOfResults = "";
+		float weightOfResults = 0;
+//		List<Long> durations = new ArrayList<Long>();
 		List<Particle> result = new ArrayList<Particle>();
 		for(Entry<byte[], OewcResponse> entry:results.entrySet()){
-			durations.add((long) entry.getValue().getCount());
+//			durations.add((long) entry.getValue().getCount());
 //			Transformer.debugMode(mode, "getCount:"+entry.getValue().getCount());
 //			Transformer.debugMode(mode, entry.getValue().getStr());
 //			for(OewcProtos.Particle op : entry.getValue().getParticlesList()){
 //				result.add(IMCLROE.ParticleFromO(op, orientation));
 //			}
 			//TODO combine all of response into one!
-			
+			//only the Particles list can be appended so next paragraph will assgin the remains message.
+			//TODO check this function whether works.
+			oewcResponseBuilder.addAllParticles(entry.getValue().getParticlesList());
+			if(entry.getValue().getCount()>countOfResults)
+				countOfResults = entry.getValue().getCount();
+			if(entry.getValue().getWeight()>weightOfResults)
+				weightOfResults = entry.getValue().getWeight();
+			strOfResults = strOfResults
+					+Bytes.toString(entry.getKey())+"\n"
+					+entry.getValue().getStr() + "\n";
 		}
+		oewcResponseBuilder.setCount(countOfResults);
+		oewcResponseBuilder.setWeight(weightOfResults);
+		
 		times.add(System.currentTimeMillis());
+		strOfResults = strOfResults
+				+"processing period on sending oewc."+"\n";
+		for(Long time:times){
+			strOfResults = strOfResults
+					+(time-times.get(0))+"\t";
+		}
+		oewcResponseBuilder.setStr(strOfResults);
+		//response is done!!!!!
+		done.run(oewcResponseBuilder.build());
+		
 		//change the result to src
-		OewcResponse.Builder oewcResponseBuilder = OewcResponse.newBuilder();
-		oewcResponseBuilder.setCount(value)
 //		src.clear();
 //		src.addAll(result);
-		times.add(System.currentTimeMillis());
-		System.out.print("longest weighting\t"+Collections.max(durations)+"\t");
+//		times.add(System.currentTimeMillis());
+//		System.out.print("longest weighting\t"+Collections.max(durations)+"\t");
 //		Transformer.debugMode(mode, "-----------------------------");
-		for(Long time: times){
+//		for(Long time: times){
 //			Transformer.debugMode(mode, "\t"+counter + "\t:"+ time);
-		}
+//		}
 		
 	}
 

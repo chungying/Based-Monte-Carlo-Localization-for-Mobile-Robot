@@ -12,6 +12,7 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorException;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import util.metrics.Transformer;
@@ -73,10 +74,11 @@ implements Coprocessor, CoprocessorService{
 			// get Measurements
 			//Step 1: Filter the Particles
 			
-			if(this.exsitRow(requsetParts, existParticles)){
+			if(exsitRow(requsetParts, existParticles,
+					this.env.getRegion().getStartKey(), this.env.getRegion().getEndKey())){
 				step1 = System.currentTimeMillis();
 				//Step 2: Orientation Estimation and setup response
-				message = message+this.orientationEstimate(responseBuilder, existParticles, Zt);
+				message = message+orientationEstimate( this.env.getRegion(), responseBuilder, existParticles, Zt);
 				step2 = System.currentTimeMillis();
 				//Step 3: Send back the response
 				responseBuilder.setWeight(1.0f);
@@ -113,11 +115,11 @@ implements Coprocessor, CoprocessorService{
 		}
 	}
 	
-	private boolean exsitRow(List<Particle> src, List<Particle> dst) {
+	static public boolean exsitRow(List<Particle> src, List<Particle> dst, byte[] startKey, byte[] endKey) {
 		dst.clear();
 		
-		byte[] startKey = this.env.getRegion().getStartKey();
-		byte[] endKey = this.env.getRegion().getEndKey();
+//		byte[] startKey = this.env.getRegion().getStartKey();
+//		byte[] endKey = this.env.getRegion().getEndKey();
 		if(startKey.length!=0 && endKey.length!=0){
 			for(Particle p : src){
 				String s = p.toRowKeyString();
@@ -158,7 +160,8 @@ implements Coprocessor, CoprocessorService{
 
 	static byte[] family = Bytes.toBytes("distance");
 
-	private String orientationEstimate(
+	static public String orientationEstimate(
+				HRegion region,
 				Builder responseBuilder, 
 				List<Particle> existParticles, 
 				List<Float> zt) throws IOException {
@@ -176,7 +179,8 @@ implements Coprocessor, CoprocessorService{
 	//				message = message +"2,";
 					get.addColumn(family, "data".getBytes());
 	//				message = message +"3,";
-					result = this.env.getRegion().get(get);
+					result = region.get(get);
+//					result = this.env.getRegion().get(get);
 	//				message = message +"4,";
 					//List<Float> circleMeasurements = drawMeasurements(result);
 					List<Float> circleMeasurements = new ArrayList<Float>();

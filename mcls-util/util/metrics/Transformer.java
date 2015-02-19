@@ -283,6 +283,14 @@ public class Transformer {
 	static public String xy2String(int x, int y){
 		return String.format("%05d", x)+String.format("%05d", y);
 	}
+
+	static public String xy2String(double x, double y){
+		return String.format("%05d", Math.round(x))+String.format("%05d", Math.round(y));
+	}
+
+	static public String xy2String(float x, float y){
+		return String.format("%05d", Math.round(x))+String.format("%05d", Math.round(y));
+	}
 	
 	public static String getHash(Particle p, Random random){
 		return getHash(Long.parseLong(xy2String(p.getX(),p.getY())), random);
@@ -297,6 +305,16 @@ public class Transformer {
 	public static String xy2RowkeyString(long l, String str, Random random){
 		String rand = getHash(l, random);
 		return rand+separator+str;
+	}
+	
+	public static String xy2RowkeyString( double X, double Y , Random random){
+//		String str = xy2String(X,Y);
+//		return xy2RowkeyString(Long.parseLong(str), str, random);
+		return null;
+	}
+	
+	public static String xy2RowkeyString( double X, double Y){
+		return xy2RowkeyString(X, Y, new Random());
 	}
 	
 	public static String xy2RowkeyString( int X, int Y , Random random){
@@ -332,6 +350,9 @@ public class Transformer {
 	
 	public static void main(String[] args) throws IOException{
 
+		float x = (float) 100.5001;
+		System.out.println(String.format("%05d", Math.round(x)));
+		
 		
 		/*List<Long> t1 = new ArrayList<Long>();
 		for(int i = 0 ; i< 5; i++){
