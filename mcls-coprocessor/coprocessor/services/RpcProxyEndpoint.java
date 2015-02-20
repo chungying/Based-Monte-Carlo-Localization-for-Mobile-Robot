@@ -11,6 +11,8 @@ import java.util.Map.Entry;
 
 import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
+import org.apache.hadoop.hbase.client.HConnection;
+import org.apache.hadoop.hbase.client.HConnectionManager;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.client.coprocessor.Batch.Call;
@@ -45,6 +47,7 @@ implements Coprocessor, CoprocessorService{
 	}
 
 	private RegionCoprocessorEnvironment env;
+	private HConnection connection;
 	private HTable table;
 	@Override
 	public void start(CoprocessorEnvironment arg0) throws IOException {
@@ -54,7 +57,9 @@ implements Coprocessor, CoprocessorService{
 		} else {
 			throw new CoprocessorException("Must be loaded on a table region!");
 		}	
-		this.table = new HTable(this.env.getConfiguration(), this.env.getRegion().getTableDesc().getName());
+		this.connection = HConnectionManager.createConnection(this.env.getConfiguration());
+		this.table = (HTable) this.connection.getTable( this.env.getRegion().getTableDesc().getName());
+//		this.table = new HTable(this.env.getConfiguration(), this.env.getRegion().getTableDesc().getName());
 	}
 
 	@Override
