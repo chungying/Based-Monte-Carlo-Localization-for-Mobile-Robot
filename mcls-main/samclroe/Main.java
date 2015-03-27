@@ -20,17 +20,17 @@ public class Main {
 			String[] targs = {/*"-cl",*/
 					//"-i","file:///Users/ihsumlee/Jolly/jpg/sim_map.jpg"
 					"-i","file:///home/wuser/backup/jpg/test6.jpg"
-					,"-o","18"
+					,"-o","36"
 					,"-rl","true"
-					,"-rx","30"
-					,"-ry","30"
-					,"-p","10"
+					,"-rx","150"
+					,"-ry","50"
+					,"-n","50"
 //					,"-cl"
 //					,"-d", "0.0001"
-					,"-x", "0.2"
+					,"-x", "0.05"
 					,"--showparticles"
-					,"-t","test6.18.split"
-					,"-cl"
+//					,"-t","test6.18.split"
+					,"--period","500"
 					};
 			args = targs;
 		}

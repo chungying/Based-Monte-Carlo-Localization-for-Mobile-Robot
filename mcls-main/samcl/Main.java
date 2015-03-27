@@ -23,16 +23,16 @@ public class Main {
 					"-i","file:///home/wuser/backup/jpg/test6.jpg"
 					,"-o","36"
 //					,"-rl","true"
-					,"-rx","50"
-					,"-ry","120"
-					,"-rh","270"
-//					,"-p","10"
+					,"-rx","150"
+					,"-ry","90"
+					,"-rh","90"
+					,"-n","50"
 //					,"-cl"
 					,"-d","0.001"
-					,"-x","0.2"
-					,"-t map.512.4.split"
+					,"-x","0.05"
+//					,"-t map.512.4.split"
 					,"--showparticles"
-					,"--period","100"
+					,"--period","500"
 					
 					};
 			args = targs;
