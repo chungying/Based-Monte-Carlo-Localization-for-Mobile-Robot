@@ -1,4 +1,4 @@
-package coprocessor.services;
+package endpoint.services;
 
 import imclroe.IMCLROE;
 
@@ -31,12 +31,12 @@ import com.google.protobuf.RpcController;
 import com.google.protobuf.Service;
 import com.google.protobuf.ServiceException;
 
-import coprocessor.services.generated.*;
-import coprocessor.services.generated.OewcProtos2.OewcService;
-import coprocessor.services.generated.OewcProtos2.OewcRequest;
-import coprocessor.services.generated.OewcProtos2.OewcResponse;
-import coprocessor.services.generated.RpcProxyProtos.ProxyRequest;
-import coprocessor.services.generated.RpcProxyProtos.ProxyResponse;
+import enpoint.services.generated.*;
+import enpoint.services.generated.OewcProtos2.OewcRequest;
+import enpoint.services.generated.OewcProtos2.OewcResponse;
+import enpoint.services.generated.OewcProtos2.OewcService;
+import enpoint.services.generated.RpcProxyProtos.ProxyRequest;
+import enpoint.services.generated.RpcProxyProtos.ProxyResponse;
 
 public class RpcProxyEndpoint extends RpcProxyProtos.RpcProxyService
 implements Coprocessor, CoprocessorService{

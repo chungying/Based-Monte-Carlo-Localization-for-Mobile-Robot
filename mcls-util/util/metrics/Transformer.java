@@ -308,12 +308,18 @@ public class Transformer {
 	}
 	
 	public static String xy2RowkeyString( double X, double Y , Random random){
-//		String str = xy2String(X,Y);
-//		return xy2RowkeyString(Long.parseLong(str), str, random);
-		return null;
+		return xy2RowkeyString((int)Math.round(X), (int)Math.round(Y), random);
 	}
 	
 	public static String xy2RowkeyString( double X, double Y){
+		return xy2RowkeyString(X, Y, new Random());
+	}
+	
+	public static String xy2RowkeyString( float X, float Y , Random random){
+		return xy2RowkeyString(Math.round(X), Math.round(Y), random);
+	}
+	
+	public static String xy2RowkeyString( float X, float Y){
 		return xy2RowkeyString(X, Y, new Random());
 	}
 	
@@ -350,8 +356,14 @@ public class Transformer {
 	
 	public static void main(String[] args) throws IOException{
 
-		float x = (float) 100.5001;
-		System.out.println(String.format("%05d", Math.round(x)));
+		double xd = (double) 100.5001;
+		double yd = (double) 100.5001;
+		int xi =  100;
+		int yi =  100;
+		System.out.println(xy2RowkeyString(xd,yd));
+		System.out.println(xy2RowkeyString(xi,yi));
+
+		//System.out.println(String.format("%05d", Math.round(x)));
 		
 		
 		/*List<Long> t1 = new ArrayList<Long>();

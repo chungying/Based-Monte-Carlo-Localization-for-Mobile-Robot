@@ -38,9 +38,9 @@ public class Particle implements Cloneable{
 		this(particle.getX(), particle.getY(), particle.getTh());
 	}
 
-	public int getX() {
-		return (int)Math.round(x);
-	}
+//	public int getX() {
+//		return (int)Math.round(x);
+//	}
 
 	public void setX(double x) {
 		this.x = x;
