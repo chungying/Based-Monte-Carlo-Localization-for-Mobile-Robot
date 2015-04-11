@@ -40,7 +40,6 @@ public class WarmUp extends Base{
 		try {
 			this.setup();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
@@ -50,7 +49,6 @@ public class WarmUp extends Base{
 		try {
 			this.close();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		

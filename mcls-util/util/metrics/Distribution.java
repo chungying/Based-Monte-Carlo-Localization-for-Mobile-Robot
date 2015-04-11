@@ -14,12 +14,28 @@ import javax.swing.JPanel;
 import util.grid.Grid;
 import util.gui.Panel;
 import util.gui.Tools;
+import util.robot.Pose;
 import util.robot.VelocityModel;
 
 public class Distribution {
 	
 	public static void main(String[] args){
-		Map<Integer,Integer> map = new TreeMap<Integer, Integer>();
+		Particle p = new Particle(50,50,0);
+		Pose currentPose = new Pose(50,50,0);
+		Pose previousPose = new Pose(60,60,0);
+		double duration = 1;
+		Random random = new Random();
+		
+		System.out.println(p);
+		System.out.println(currentPose);
+		System.out.println(previousPose);
+		
+//		Distribution.OdemetryMotionSampling(p, currentPose, previousPose, duration, random, al);
+		System.out.println(p);
+		System.out.println(currentPose);
+		System.out.println(previousPose);
+		
+/*		Map<Integer,Integer> map = new TreeMap<Integer, Integer>();
 		int n = 1000000;
 		int w = 1000;
 		int h = 1000;
@@ -43,11 +59,50 @@ public class Distribution {
 		}
 		panel.repaint();
 		window.add(panel);
-		window.setVisible(true);
+		window.setVisible(true);*/
 		
+	
+		/*
+		double x = 0, y = 0, z = 0;
+		double v = 1, w = Double.MIN_VALUE, t = 1000;
+		System.out.println("MIN_VALUE:"+w);
+		double r = v/w;
+		System.out.println("radius is:"+r);
 		
+		x = r * ( 0 
+				+ Math.cos(Math.toRadians(z)) 
+				- Math.cos( 
+					Math.toRadians(	z+ w * t )
+				) 
+			);
+		System.out.println("r	:"+r);
+		System.out.println("x	:"+x);
+		if(Double.isInfinite(r)){
+				System.out.println("r is Infinity");
+				r=Double.MAX_VALUE;
+		}else
+			System.out.println("r isn't Infinity");
+		System.out.println("r	:"+r);
+		x = r * ( 0 
+				+ Math.cos(Math.toRadians(z)) 
+				- Math.cos( 
+					Math.toRadians(	z+ w * t )
+				) 
+			);
+		System.out.println("x	:"+x);
+		System.out.println("z+w*t				:"+(z+w*t));
+		System.out.println("radians of z+w*t	:"+Math.toRadians(	z+ w * t ));
+		System.out.println("PI/180				:"+(Math.PI/180));
+		System.out.println("z+w*t				:"+(z+w*t)*(Math.PI/180));
+		System.out.println("cos(z)				:"+Math.cos(Math.toRadians(z)));
+		System.out.println("cos(doubleMIN)		:"+Math.cos(z+w*t));
+		System.out.println("cos(z+w*t)			:"+Math.cos(Math.toRadians(	z+ w * t )));
+		System.out.println("cos(w*t)			:"+Math.cos(w*t));
+		*/
 	}
 	
+	
+
 	public static double sample_normal_distribution(double b){
 		return sample_normal_distribution(b,new Random());
 	}
@@ -89,6 +144,7 @@ public class Distribution {
 	
 	
 	/**
+	 * 
 	 * @param p ready to use motion sampling
 	 * @param u the robot's velocity model
 	 * @param deltaT seconds
@@ -99,35 +155,65 @@ public class Distribution {
 //		System.out.println("al:"+al);
 		//formula
 		double Vcup = u.velocity + 
-				Distribution.sample_normal_distribution(al[0]*Math.abs(u.velocity) + al[1]*Math.abs(u.angular_velocity), random);
-		double Wcup = u.angular_velocity + 
-				Distribution.sample_normal_distribution(al[2]*Math.abs(u.velocity) + al[3]*Math.abs(u.angular_velocity), random);
-		double Rcup =  Distribution.sample_normal_distribution(al[4]*Math.abs(u.velocity) + al[5]*Math.abs(u.angular_velocity), random);
+				Distribution.sample_normal_distribution(al[0]*Math.abs(u.velocity)*Math.abs(u.velocity) + al[1]*Math.abs(Math.toRadians(u.angular_velocity))*Math.abs(Math.toRadians(u.angular_velocity)), random);
+		double Wcup = Math.toRadians(u.angular_velocity) + 
+				Distribution.sample_normal_distribution(al[2]*Math.abs(u.velocity)*Math.abs(u.velocity) + al[3]*Math.abs(Math.toRadians(u.angular_velocity))*Math.abs(Math.toRadians(u.angular_velocity)), random);
+		double Rcup =  Distribution.sample_normal_distribution(al[4]*Math.abs(u.velocity)*Math.abs(u.velocity) + al[5]*Math.abs(Math.toRadians(u.angular_velocity))*Math.abs(Math.toRadians(u.angular_velocity)), random);
 		
 		//avoid arithmetical error, such as divide by ZERO.
 		double noise = 0;
-		if(u.angular_velocity!=0.0){
+		if(Wcup==0.0)
+			Wcup=Double.MIN_VALUE;
+//		{
 			//formula
-			noise =  Vcup/Math.toRadians(Wcup) *(
-							+ Math.sin( Math.toRadians( p.getTh() + Wcup*deltaT ) ) 
+			noise =  Vcup/Wcup *(
+							+ Math.cos( Math.toRadians(p.getTh()) ) 
+							- Math.cos( Math.toRadians(p.getTh()) + Wcup*deltaT ) 
+							);
+			//add some disturbances when u is static.
+			if(noise==0.0){
+				noise = Double.MIN_VALUE;
+//				noise = Distribution.sample_normal_distribution(1);
+			}
+			p.setX(p.getDX() + noise*deltaT);
+			
+			//formula
+			noise =  Vcup/Wcup *( 
 							- Math.sin( Math.toRadians( p.getTh() ) ) 
+							+ Math.sin( Math.toRadians( p.getTh() ) + Wcup*deltaT  )  
 							);
 			//add some disturbances when u is static.
 			if(noise==0.0){
+				noise = Double.MIN_VALUE;
 //				noise = Distribution.sample_normal_distribution(1);
 			}
-			p.setX(p.getX() + noise*deltaT);
+			p.setY(p.getDY() + noise*deltaT);
 			
 			//formula
-			noise =  Vcup/Math.toRadians(Wcup) *( 
-							+ Math.cos( Math.toRadians( p.getTh() ) ) 
-							- Math.cos( Math.toRadians( p.getTh() + Wcup*deltaT ) )  
-							);
+			noise = Wcup*deltaT + Rcup*deltaT;
+			//add some disturbances when u is static.
+			if(noise==0.0){
+				noise = Double.MIN_VALUE;
+//				noise = Distribution.sample_normal_distribution(5);
+			}
+			p.setTh(p.getTh() + Math.toDegrees(noise) );
+//		}
+	 /* else{
+			//formula
+			noise =  Vcup *( Math.cos( Math.toRadians( p.getTh() ) + Wcup*deltaT ) );
 			//add some disturbances when u is static.
 			if(noise==0.0){
 //				noise = Distribution.sample_normal_distribution(1);
 			}
-			p.setY(p.getY() + noise*deltaT);
+			p.setX(p.getDX() + noise*deltaT);
+			
+			//formula
+			noise =  Vcup *( Math.sin( Math.toRadians( p.getTh() ) + Wcup*deltaT ));
+			//add some disturbances when u is static.
+			if(noise==0.0){
+//				noise = Distribution.sample_normal_distribution(1);
+			}
+			p.setY(p.getDY() + noise*deltaT);
 			
 			//formula
 			noise = Wcup*deltaT + Rcup*deltaT;
@@ -135,32 +221,42 @@ public class Distribution {
 			if(noise==0.0){
 //				noise = Distribution.sample_normal_distribution(5);
 			}
-			p.setTh(p.getTh()+noise);
-		}else{
-			//formula
-			noise =  Vcup *( Math.cos( Math.toRadians( p.getTh() + Wcup*deltaT ) ) );
-			//add some disturbances when u is static.
-			if(noise==0.0){
-//				noise = Distribution.sample_normal_distribution(1);
-			}
-			p.setX(p.getX() + noise*deltaT);
-			
-			//formula
-			noise =  Vcup *( Math.sin( Math.toRadians( p.getTh() + Wcup*deltaT ) ));
-			//add some disturbances when u is static.
-			if(noise==0.0){
-//				noise = Distribution.sample_normal_distribution(1);
-			}
-			p.setY(p.getY() + noise*deltaT);
-			
-			//formula
-			noise = Wcup*deltaT + Rcup*deltaT;
-			//add some disturbances when u is static.
-			if(noise==0.0){
-//				noise = Distribution.sample_normal_distribution(5);
-			}
-			p.setTh(p.getTh()+noise);
-		}
+			p.setTh(p.getTh() + Math.toDegrees(noise) );
+		}*/
+	}
+
+	/**
+	 * 
+	 * @param p
+	 * @param currentPose
+	 * @param previousPose
+	 * @param deltaT
+	 * @param random
+	 * @param al
+	 */
+	public static void OdemetryMotionSampling(Particle p, Pose currentPose, Pose previousPose, double deltaT, Random random, double[] al) throws Exception{
+//		double deltax = u.getVelocity()*Math.cos()
+		double xbardelta = currentPose.X-previousPose.X;
+		if(xbardelta==0)
+			xbardelta = Double.MIN_VALUE;
+		double rot1 = Math.atan2(currentPose.Y-previousPose.Y,xbardelta)-previousPose.H;
+		double rot2 = currentPose.H-previousPose.H-rot1;
+		double trans= Math.sqrt(xbardelta*xbardelta+(currentPose.Y-previousPose.Y)*(currentPose.Y-previousPose.Y));
+		
+		double rot1c = rot1 - sample_normal_distribution(al[0] * Math.abs(rot1) + al[1] * Math.abs(trans), random);
+		double transc= trans- sample_normal_distribution(al[2] * Math.abs(trans) + al[3] * Math.abs( rot1 + rot2), random);
+		double rot2c = rot2 - sample_normal_distribution(al[0] * Math.abs(rot2) + al[1] * Math.abs(trans), random);
+		
+		if(Double.isNaN(rot1c) || Double.isNaN(transc) || Double.isNaN(rot2c))
+			throw new Exception("there is NaN!!!!!!!");
+		
+		p.setX(p.getDX() + transc * Math.cos( 
+										Math.toRadians( p.getTh() + rot1c)
+									));
+		p.setY(p.getDY() + transc * Math.sin( 
+				Math.toRadians( p.getTh() + rot1c)
+			));
+		p.setTh( p.getTh() + rot1c + rot2c );
 	}
 	
 	public static boolean boundaryCheck(Particle p, Grid grid){

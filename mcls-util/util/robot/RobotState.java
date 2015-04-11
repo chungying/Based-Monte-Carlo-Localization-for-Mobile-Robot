@@ -308,6 +308,30 @@ public class RobotState implements Runnable,Closeable{
 		this.x = this.x +  ( ut.getVelocity() * t * Math.cos( Math.toRadians(head) ) ) /*+ (int)(Math.round(Wt))*/;
 		this.y = this.y +  ( ut.getVelocity() * t * Math.sin( Math.toRadians(head) ) ) /*+ (int)(Math.round(Wt))*/;
 		this.head = Transformer.checkHeadRange((ut.getAngular_velocity() * t) + this.head);
+//		update2(t);
+		
+	}
+	
+	private void update2(double t){
+		double w = this.ut.getAngular_velocity();
+		if(w==0)
+			w = Double.MIN_VALUE;
+		
+		double r = this.ut.getVelocity()/Math.toRadians(w);
+		
+		this.x = this.x + r * ( 0 
+					+ Math.cos(Math.toRadians(this.head)) 
+					- Math.cos( 
+						Math.toRadians(	this.head + w * t )
+					) 
+				);
+		this.y = this.y + r * ( 0
+					- Math.sin(Math.toRadians(this.head))
+					+ Math.sin( 
+						Math.toRadians(	this.head + w * t )
+					) 
+				);
+		this.head = Transformer.checkHeadRange( this.head + w * t);
 	}
 
 	private void updateSensor() throws Exception {

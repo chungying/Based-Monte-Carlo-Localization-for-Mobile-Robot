@@ -27,6 +27,7 @@ import util.gui.Tools;
 import util.metrics.Distribution;
 import util.metrics.Particle;
 import util.metrics.Transformer;
+import util.robot.Pose;
 import util.robot.RobotState;
 import util.robot.VelocityModel;
 
@@ -90,6 +91,8 @@ public class SAMCL implements Closeable{
 		int counter = 0;
 		long time = 0;
 		long duration = 0;
+		Pose previousPose = new Pose(robot.getPose());
+		Pose currentPose = null;
 		while(!this.isTerminated()){
 			
 			if(this.convergeFlag){
@@ -108,7 +111,9 @@ public class SAMCL implements Closeable{
 			long sampleTime = System.currentTimeMillis();
 			//TODO Particle
 			current_set.clear();
-			current_set.addAll(this.Prediction_total_particles(last_set, robot.getUt(), duration));
+			currentPose = robot.getPose();
+			current_set.addAll(this.Prediction_total_particles(last_set, robot.getUt(), currentPose, previousPose, duration));
+			previousPose = currentPose;
 			sampleTime = System.currentTimeMillis() - sampleTime;
 			
 			//Step 2: Weighting
@@ -151,7 +156,9 @@ public class SAMCL implements Closeable{
 //			System.out.println("\tnext set size: \t" + last_set.size());
 			
 			//TODO Particle
+			long averageTime = System.currentTimeMillis();
 			Particle averagePose = this.averagePose(current_set);
+			averageTime = System.currentTimeMillis() - averageTime;
 			//show out the information
 			/**
 			 * best particle
@@ -161,6 +168,21 @@ public class SAMCL implements Closeable{
 			 * is succeeded?
 			 * */
 			//log()
+			
+			
+			
+			
+			this.delay(this.period);
+			
+			//draw image 
+			//TODO Particle
+			long drawingTime = System.currentTimeMillis();
+			this.Drawing(grap, samcl_window, robot, bestParticle, current_set, SER_set);
+			drawingTime = System.currentTimeMillis() - drawingTime;
+			
+			//update image
+			image_panel.repaint();
+			duration = System.currentTimeMillis() - time;
 			
 			//Transformer.log(this.isTerminated());
 			Transformer.debugMode(mode,
@@ -174,20 +196,16 @@ public class SAMCL implements Closeable{
 					"Caculating SER Time    : \t" + serTime + "\tms"+"\n",
 					"Local Resampling Time  : \t" + localResamplingTime + "\tms"+"\n",
 					"Combining Time	        : \t" + combiminingTime + "\tms"+"\n",
+					"Averaging Time	        : \t" + averageTime + "\tms"+"\n",
+					"Drawing Time	        : \t" + drawingTime + "\tms"+"\n",
+					"Default Delay Time     : \t" + this.period + "\tms"+"\n",
 					"Alpha argument         : \t" + Arrays.toString(this.al) + "\n",
+					
 					"*************************\n"
 					);
 			
 			this.grid.RPCcount = 0;
-			this.delay(this.period);
 			
-			//draw image 
-			//TODO Particle
-			this.Drawing(grap, samcl_window, robot, bestParticle, current_set, SER_set);
-			
-			//update image
-			image_panel.repaint();
-			duration = System.currentTimeMillis() - time;
 			Transformer.log(
 					"counter:", counter,
 					"time", time,
@@ -214,8 +232,8 @@ public class SAMCL implements Closeable{
 		double ySum = 0;
 		double zSum = 0;
 		for(Particle p : src_set){
-			xSum = xSum + p.getX();
-			ySum = ySum + p.getY();
+			xSum = xSum + p.getDX();
+			ySum = ySum + p.getDY();
 			zSum = zSum + p.getTh();
 		}
 		return new Particle(xSum/src_set.size(), ySum/src_set.size(), zSum/src_set.size());
@@ -509,8 +527,11 @@ public class SAMCL implements Closeable{
 	public List<Particle> Prediction_total_particles(
 			List<Particle> src, 
 			VelocityModel u, 
+			Pose currentPose,
+			Pose previousPose,
 			long duration) throws Exception{
 		List<Particle> result = new ArrayList<Particle>();
+		Random random = new Random();
 		if(!src.isEmpty()){
 			first:
 				for(Particle p : src){
@@ -519,7 +540,8 @@ public class SAMCL implements Closeable{
 						if(i>10)
 							continue first;
 						i++;
-						Distribution.MotionSampling(p, u, (double)duration/1000, new Random(), this.al); 
+//						Distribution.MotionSampling(p, u, (double)duration/1000, random, this.al); 
+						Distribution.OdemetryMotionSampling(p, currentPose, previousPose, duration, random, al);
 					}while(!Distribution.boundaryCheck(p, this.grid));
 					
 					result.add(p.clone());
@@ -531,6 +553,8 @@ public class SAMCL implements Closeable{
 			System.out.println("*********the src_set is empty!!!!!!");
 //			throw new Exception("The set is empty!\n");
 		}
+		if(result.size()==0)
+			throw new Exception("there is no result!!!!");
 		return result;
 	}
 	
@@ -545,7 +569,7 @@ public class SAMCL implements Closeable{
 					System.out.println(e.getMessage());
 					e.printStackTrace();
 					for(Particle p: src){
-						System.out.println(Transformer.xy2RowkeyString(p.getX(), p.getY()));
+						System.out.println(Transformer.xy2RowkeyString(p.getDX(), p.getDY()));
 					}
 					System.exit(1);
 				}
@@ -615,8 +639,9 @@ public class SAMCL implements Closeable{
 			for (int i = 0; i < this.Ng; i++) {
 				rand = random.nextInt(src.size());
 				//Particle particleC = src.get(rand).clone();
-				Particle particle = new Particle(src.get(rand).getX(), src
-						.get(rand).getY(),
+				Particle particle = new Particle(
+						src.get(rand).getDX(), 
+						src.get(rand).getDY(),
 						src.get(rand).getTh());
 				dst.add(particle);
 				src.remove(rand);
@@ -686,7 +711,7 @@ public class SAMCL implements Closeable{
 		return p;
 	}
 	
-	@SuppressWarnings("unused")
+	@Deprecated
 	private void pixel_sampling(
 			Particle p, 
 			int radius, 

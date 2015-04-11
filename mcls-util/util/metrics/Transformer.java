@@ -216,16 +216,6 @@ public class Transformer {
 		// return the worst weight
 		return 1;
 	}
-
-	/*public float Caculate_energy(float[] Zt){//TODO static?
-		float energy = 0;
-		for (int i = 0; i < Zt.length; i++) {
-			
-			energy = energy + Zt[i];
-		}
-		energy = energy / ((float)Zt.length);
-		return energy;
-	}*/
 	
 	public static float CalculateEnergy(float[] measurements){
 		float energy = 0.0f;

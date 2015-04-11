@@ -18,17 +18,18 @@ public class Main {
 		if(args.length==0){
 			String[] targs = {
 					//"-i","file:///Users/ihsumlee/Jolly/jpg/white.jpg"
-					"-i","file:///home/wuser/backup/jpg/map.jpg"
-					,"-o","4"
+					"-i","file:///home/wuser/backup/jpg/test6.jpg"
+					,"-o","18"
 					,"-rl","true"
-					,"-rx","100"
-					,"-ry","100"
-//					,"-p","10"
-//					,"-cl"
-//					,"-t", "map.512.4.split"
+					,"-rx","25"
+					,"-ry","50"
+//					,"-n","10"
+					,"-cl"
+					,"-t", "test6.18.split"
 					,"-d","0.0001"
 					,"-x","0.03"
-					,"--period","100"
+//					,"--period","500"
+					,"-E","2"
 					};
 			args = targs;
 		}

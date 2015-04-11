@@ -21,6 +21,9 @@ public class Particle implements Cloneable{
 
 	/**
 	 * 
+	 * @param x
+	 * @param y
+	 * @param th
 	 */
 	public Particle(double x, double y, double th) {
 		super();
@@ -30,18 +33,34 @@ public class Particle implements Cloneable{
 	}
 	
 	/**
+	 * 
+	 * @param x
+	 * @param y
+	 * @param th
+	 * @param w
+	 */
+	public Particle(double x, double y, double th, float w) {
+		this(x,y,th);
+		this.weight = w;
+	}
+	
+	/**
 	 * @param x
 	 * @param y
 	 * @param z
 	 */
 	public Particle(Particle particle) {
-		this(particle.getX(), particle.getY(), particle.getTh());
+		this(particle.getDX(), particle.getDY(), particle.getTh(), particle.getWeight());
 	}
 
-//	public int getX() {
-//		return (int)Math.round(x);
-//	}
+	public int getX() {
+		return (int)Math.round(x);
+	}
 
+	public double getDX() {
+		return x;
+	}
+	
 	public void setX(double x) {
 		this.x = x;
 	}
@@ -50,6 +69,10 @@ public class Particle implements Cloneable{
 		return (int)Math.round(y);
 	}
 
+	public double getDY() {
+		return y;
+	}
+	
 	public void setY(double y) {
 		this.y = y;
 	}

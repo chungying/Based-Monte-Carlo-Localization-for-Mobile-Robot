@@ -6,17 +6,21 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
+
 import com.beust.jcommander.Parameter;
 import com.google.protobuf.RpcController;
 import com.google.protobuf.ServiceException;
 
-import enpoint.services.generated.OewcProtos;
-import enpoint.services.generated.OewcProtos.OewcRequest;
-import enpoint.services.generated.OewcProtos.OewcResponse;
-import enpoint.services.generated.OewcProtos.OewcService;
+import endpoint.services.generated.OewcProtos;
+import endpoint.services.generated.OewcProtos2;
+import endpoint.services.generated.OewcProtos.OewcRequest;
+import endpoint.services.generated.OewcProtos.OewcResponse;
+import endpoint.services.generated.OewcProtos.OewcService;
+import endpoint.services.generated.RpcProxyProtos;
 import samcl.SAMCL;
 import util.metrics.Particle;
 import util.metrics.Transformer;
@@ -89,19 +93,23 @@ public class IMCLROE extends SAMCL{
 		}*/
 	}
 	
-	@Parameter(names = {"-E","--endpoint"}, description = "start up/stop debug mode, default is to start up", required = false, arity = 1)
-	public boolean endpoint = true;
+	@Parameter(names = {"-E","--endpoint"}, description = "choose the endpoint type, oewc, oewc2, and proxy modes.", required = false)
+	public int endpoint = 0;
 	
 	@Override
 	public void batchWeight(List<Particle> src, float[] robotMeasurements)
 			throws Throwable {
-		if(this.endpoint){
-			Transformer.debugMode(mode, "choose the endpoint.");
+		if(this.endpoint==0){
+			Transformer.debugMode(mode, "choose the endpoint.\n");
 			this.oewcEndpoint(src, robotMeasurements);
 		}
-		else{
-			Transformer.debugMode(mode, "choose the proxy endpoint version.");
+		else if(this.endpoint==1){
+			Transformer.debugMode(mode, "choose the proxy endpoint version.\n");
 			this.proxyEndpoint(src, robotMeasurements);
+		}
+		else if(this.endpoint==2){
+			Transformer.debugMode(mode, "choose the oewc2 endpoint version.\n");
+			this.oewc2Endpoint(src, robotMeasurements);
 		}
 	}
 
@@ -134,7 +142,7 @@ public class IMCLROE extends SAMCL{
 	}
 	
 	
-	private void proxyEndpoint(List<Particle> src, float[] robotMeasurements) {
+	private void proxyEndpoint(final List<Particle> src, final float[] robotMeasurements) {
 		// TODO proxy endpoint
 		List<Long> times = new ArrayList<Long>();
 		times.add(System.currentTimeMillis());
@@ -142,21 +150,41 @@ public class IMCLROE extends SAMCL{
 		/**
 		 * replaceable
 		 */
-		Batch.Call<OewcService,OewcResponse> b = new OewcCall( src, robotMeasurements, orientation);
-/*		Batch.Call<OewcService, OewcResponse> b = 
-				new Batch.Call<OewcProtos.OewcService, OewcProtos.OewcResponse>() {
+		/*Batch.Call<OewcProtos2.Oewc2Service,OewcProtos2.OewcResponse> b = new OewcCall( src, robotMeasurements, orientation);
+		*/
+		Batch.Call<RpcProxyProtos.RpcProxyService, OewcProtos2.OewcResponse> b = 
+				new Batch.Call<RpcProxyProtos.RpcProxyService, OewcProtos2.OewcResponse>() {
 			@Override
-			public OewcResponse call(OewcService endpoint) throws IOException {
+			public OewcProtos2.OewcResponse call(RpcProxyProtos.RpcProxyService endpoint) throws IOException {
 				//initialize the tow objects.(not important)
-				BlockingRpcCallback<OewcResponse> done = new BlockingRpcCallback<OewcResponse>();
+				BlockingRpcCallback<OewcProtos2.OewcResponse> done = new BlockingRpcCallback<OewcProtos2.OewcResponse>();
 				RpcController controller = new ServerRpcController();
 				//this part is our point to implement packaging the data(request) and calling the customized method(getRowCount).
-				OewcRequest request = IMCLROE.setupRequest(src, robotMeasurements, orientation);
-				endpoint.getRowCount(controller, request, done);
+				
+				//build src
+				ArrayList<OewcProtos2.Particle> ps = new ArrayList<OewcProtos2.Particle>();
+				for(Particle p : src){
+					ps.add(
+						OewcProtos2.Particle.newBuilder()
+							.setX((float)p.getDX())
+							.setY((float)p.getDY())
+							.setZ(Transformer.th2Z(p.getTh(), orientation)).build()
+					);
+				}
+				List<Float> Zt = new ArrayList<Float>();
+				for(float f: robotMeasurements){
+					Zt.add(new Float(f));
+				}
+				
+				OewcProtos2.OewcRequest.Builder builder = OewcProtos2.OewcRequest.newBuilder();
+				builder.addAllParticles(ps);
+				builder.addAllMeasurements(Zt);
+				
+				endpoint.getCalculationResult(controller, builder.build(), done);
 				//get the results.
 				return done.get();
 			}	
-		};*/
+		};
 		
 		
 		times.add(System.currentTimeMillis());
@@ -168,9 +196,9 @@ public class IMCLROE extends SAMCL{
 		 * stop row key("1000".getBytes())
 		 * batch call object(b)
 		 * */
-		Map<byte[], OewcResponse> results=null;
+		Map<byte[], OewcProtos2.OewcResponse> results=null;
 		try {
-			results = table.coprocessorService(OewcService.class, "0000".getBytes(), "1000".getBytes(), b);
+			results = table.coprocessorService(RpcProxyProtos.RpcProxyService.class, "0000".getBytes(), "1000".getBytes(), b);
 		} catch (ServiceException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -182,14 +210,21 @@ public class IMCLROE extends SAMCL{
 		
 		//setup weight and orientatin to the particles(src)
 		times.add(System.currentTimeMillis());
-		List<Long> durations = new ArrayList<Long>();
+		List<Integer> durations = new ArrayList<Integer>();
 		List<Particle> result = new ArrayList<Particle>();
-		for(Entry<byte[], OewcResponse> entry:results.entrySet()){
+		for(Entry<byte[], OewcProtos2.OewcResponse> entry:results.entrySet()){
 			durations.add(entry.getValue().getCount());
 			Transformer.debugMode(mode, "getCount:"+entry.getValue().getCount());
 			Transformer.debugMode(mode, entry.getValue().getStr());
-			for(OewcProtos.Particle op : entry.getValue().getParticlesList()){
-				result.add(IMCLROE.ParticleFromO(op, orientation));
+			for(OewcProtos2.Particle op : entry.getValue().getParticlesList()){
+				result.add(
+						new Particle(
+								op.getX(), 
+								op.getY(), 
+								// TODO change Z of OewcProtos2.OewcResponse into Integer. 
+								Transformer.Z2Th((int)op.getZ(), orientation), 
+								op.getW())
+						);
 			}
 		}
 		times.add(System.currentTimeMillis());
@@ -206,7 +241,105 @@ public class IMCLROE extends SAMCL{
 		}
 	}
 
-
+	private void oewc2Endpoint(final List<Particle> src, final float[] robotMeasurements) {
+		// TODO oewc version 2 endpoint
+		List<Long> times = new ArrayList<Long>();
+		times.add(System.currentTimeMillis());
+		
+		/**
+		 * replaceable
+		 */
+/*		Batch.Call<OewcService,OewcResponse> b = new OewcCall( src, robotMeasurements, orientation);
+		*/
+		Batch.Call<OewcProtos2.Oewc2Service, OewcProtos2.OewcResponse> b = 
+				new Batch.Call<OewcProtos2.Oewc2Service, OewcProtos2.OewcResponse>() {
+			@Override
+			public OewcProtos2.OewcResponse call(OewcProtos2.Oewc2Service endpoint) throws IOException {
+				//initialize the tow objects.(not important)
+				BlockingRpcCallback<OewcProtos2.OewcResponse> done = new BlockingRpcCallback<OewcProtos2.OewcResponse>();
+				RpcController controller = new ServerRpcController();
+				//this part is our point to implement packaging the data(request) and calling the customized method(getRowCount).
+				
+				
+				//build src
+				ArrayList<OewcProtos2.Particle> ps = new ArrayList<OewcProtos2.Particle>();
+				for(Particle p : src){
+					ps.add(
+						OewcProtos2.Particle.newBuilder()
+							.setX((float)p.getDX())
+							.setY((float)p.getDY())
+							.setZ(Transformer.th2Z(p.getTh(), orientation)).build()
+					);
+				}
+				List<Float> Zt = new ArrayList<Float>();
+				for(float f: robotMeasurements){
+					Zt.add(new Float(f));
+				}
+				
+				OewcProtos2.OewcRequest.Builder builder = OewcProtos2.OewcRequest.newBuilder();
+				builder.addAllParticles(ps);
+				builder.addAllMeasurements(Zt);
+				
+				endpoint.getOewc2Result(controller, builder.build(), done);
+				//get the results.
+				return done.get();
+			}	
+		};
+		
+		
+		times.add(System.currentTimeMillis());
+		/**
+		 * first:create Map<byte[], OewcResponse> results to store the results.
+		 * second: execute the coprocessor with the arguments which are 
+		 * RPC type(OewcService.class)
+		 * start row key("0000".getBytes()) 
+		 * stop row key("1000".getBytes())
+		 * batch call object(b)
+		 * */
+		Map<byte[], OewcProtos2.OewcResponse> results=null;
+		try {
+			results = table.coprocessorService(OewcProtos2.Oewc2Service.class, "0000".getBytes(), "1000".getBytes(), b);
+		} catch (ServiceException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (Throwable e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
+		//setup weight and orientatin to the particles(src)
+		times.add(System.currentTimeMillis());
+		List<Integer> durations = new ArrayList<Integer>();
+		List<Particle> result = new ArrayList<Particle>();
+		for(Entry<byte[], OewcProtos2.OewcResponse> entry:results.entrySet()){
+			durations.add(entry.getValue().getCount());
+			Transformer.debugMode(mode, "getCount:"+entry.getValue().getCount());
+			Transformer.debugMode(mode, entry.getValue().getStr());
+			for(OewcProtos2.Particle op : entry.getValue().getParticlesList()){
+				result.add(
+						new Particle(
+								op.getX(), 
+								op.getY(), 
+								// TODO change Z of OewcProtos2.OewcResponse into Integer. 
+								Transformer.Z2Th((int)op.getZ(), orientation), 
+								op.getW())
+						);
+			}
+		}
+		times.add(System.currentTimeMillis());
+		//change the result to src
+		src.clear();
+		src.addAll(result);
+		times.add(System.currentTimeMillis());
+		int counter = 0;
+		System.out.print("longest weighting\t"+Collections.max(durations)+"\t");
+		Transformer.debugMode(mode, "-----------------------------");
+		for(Long time: times){
+			counter++;
+			Transformer.debugMode(mode, "\t"+counter + "\t:"+ time);
+		}
+	}
 
 	private void oewcEndpoint(final List<Particle> src, final float[] robotMeasurements) 
 			throws Throwable {
@@ -276,7 +409,7 @@ public class IMCLROE extends SAMCL{
 	
 	
 	public static Particle ParticleFromO(
-			enpoint.services.generated.OewcProtos.Particle op, int orientation) {
+			endpoint.services.generated.OewcProtos.Particle op, int orientation) {
 		Particle p = new Particle(op.getX(), op.getY(), Transformer.Z2Th(op.getZ(), orientation));
 		p.setWeight(op.getW());
 		return p;

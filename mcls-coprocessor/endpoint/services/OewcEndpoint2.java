@@ -22,14 +22,14 @@ import com.google.protobuf.RpcCallback;
 import com.google.protobuf.RpcController;
 import com.google.protobuf.Service;
 
-import enpoint.services.generated.OewcProtos;
-import enpoint.services.generated.OewcProtos2;
-import enpoint.services.generated.OewcProtos2.OewcRequest;
-import enpoint.services.generated.OewcProtos2.OewcResponse;
-import enpoint.services.generated.OewcProtos2.Particle;
-import enpoint.services.generated.OewcProtos2.OewcResponse.Builder;
+import endpoint.services.generated.OewcProtos;
+import endpoint.services.generated.OewcProtos2;
+import endpoint.services.generated.OewcProtos2.OewcRequest;
+import endpoint.services.generated.OewcProtos2.OewcResponse;
+import endpoint.services.generated.OewcProtos2.Particle;
+import endpoint.services.generated.OewcProtos2.OewcResponse.Builder;
 
-public class OewcEndpoint2 extends OewcProtos2.OewcService implements
+public class OewcEndpoint2 extends OewcProtos2.Oewc2Service implements
 		Coprocessor, CoprocessorService {
 
 	@Override
@@ -41,8 +41,8 @@ public class OewcEndpoint2 extends OewcProtos2.OewcService implements
 
 	@Override
 	public void start(CoprocessorEnvironment arg0) throws IOException {
-		if (env instanceof RegionCoprocessorEnvironment) {
-			this.env = (RegionCoprocessorEnvironment) env;
+		if (arg0 instanceof RegionCoprocessorEnvironment) {
+			this.env = (RegionCoprocessorEnvironment) arg0;
 		} else {
 			throw new CoprocessorException("Must be loaded on a table region!");
 		}
@@ -53,12 +53,12 @@ public class OewcEndpoint2 extends OewcProtos2.OewcService implements
 	}
 
 	@Override
-	public void getRowCount(RpcController controller, OewcRequest request,
+	public void getOewc2Result(RpcController controller, OewcRequest request,
 			RpcCallback<OewcResponse> done) {
 		this.env.getRegion().getTableDesc().getTableName().toString();
 
 		// initial and get the data from client
-		String message = "start, ";
+		String message = "\n=========start, \n";
 		OewcResponse.Builder responseBuilder = OewcResponse.newBuilder();
 		long start = System.currentTimeMillis();
 		long initial = 0, step1 = 0, step2 = 0, step3 = 0, end = 0;
@@ -79,23 +79,23 @@ public class OewcEndpoint2 extends OewcProtos2.OewcService implements
 				// Step 2: Orientation Estimation and setup response
 				message = message
 						+ orientationEstimate(this.env.getRegion(),
-								responseBuilder, existParticles, Zt);
+								responseBuilder, existParticles, Zt)+"\n";
 				step2 = System.currentTimeMillis();
 				// Step 3: Send back the response
 				responseBuilder.setWeight(1.0f);
 				message = message + "Particle number: "
-						+ String.valueOf(existParticles.size());
+						+ String.valueOf(existParticles.size())+"\n";
 				step3 = System.currentTimeMillis();
 			} else {
 				step1 = System.currentTimeMillis();
 				responseBuilder.setWeight(-1.0f).build();
-				message = "no OEWC" + requsetParts.size();
+				message = "no OEWC" + requsetParts.size()+"\n";
 			}
 			end = System.currentTimeMillis();
 
 		} catch (Exception e) {
 			responseBuilder.setWeight(-1.0f).build();
-			message = "failed:" + e.toString();
+			message = "failed:" + e.toString()+"\n";
 
 			e.printStackTrace();
 		} finally {
@@ -110,7 +110,7 @@ public class OewcEndpoint2 extends OewcProtos2.OewcService implements
 							+ String.valueOf(step1) + "\n" + "step2  :"
 							+ String.valueOf(step2) + "\n" + "step3  :"
 							+ String.valueOf(step3) + "\n" + "end    :"
-							+ String.valueOf(end) + "\n" + message);
+							+ String.valueOf(end) + "\n" + message+"\n");
 			responseBuilder.setCount((int) (end - start));
 			done.run(responseBuilder.build());
 		}

@@ -364,8 +364,8 @@ public class Grid extends MouseAdapter {
 		// HTable, Particles
 		List<Get> gets = new ArrayList<Get>();
 		byte[] fam = Bytes.toBytes("distance");
-		for (Particle p : src) {
-			String str = Transformer.xy2RowkeyString((int)Math.round(p.getX()), (int)Math.round(p.getY()));
+		for (Particle p : src) {//TODO check
+			String str = Transformer.xy2RowkeyString(p.getDX(), p.getDY());
 			Get get = new Get(Bytes.toBytes(str));
 			get.addFamily(fam);
 			gets.add(get);
@@ -420,7 +420,7 @@ public class Grid extends MouseAdapter {
 		List<Get> gets = new ArrayList<Get>();
 		byte[] fam = Bytes.toBytes("distance");
 		for (Particle p : src) {
-			String str = Transformer.xy2RowkeyString((int)Math.round(p.getX()), (int)Math.round(p.getY()));
+			String str = Transformer.xy2RowkeyString(p.getDX(), p.getDY());
 			Get get = new Get(Bytes.toBytes(str));
 			get.addFamily(fam);
 			gets.add(get);

@@ -15,6 +15,10 @@ public class Pose {
 		H = h;
 	}
 
+	public Pose(Pose pose) {
+		this(pose.X, pose.Y, pose.H);
+	}
+
 	public boolean equalsPose(Pose p) {
 		double a = Math.sqrt((p.X - this.X)*( p.X - this.X) + (p.Y - this.Y)*( p.Y - this.Y ));
 		if(a<0.5)

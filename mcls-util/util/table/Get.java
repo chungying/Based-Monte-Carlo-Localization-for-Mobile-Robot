@@ -95,7 +95,6 @@ public class Get {
 				Thread.sleep(65000);
 				System.out.println("stop sleep");
 			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 			System.out.println("check htable if disconnect");

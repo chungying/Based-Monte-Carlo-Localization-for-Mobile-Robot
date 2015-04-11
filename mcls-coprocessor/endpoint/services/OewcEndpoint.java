@@ -22,11 +22,11 @@ import com.google.protobuf.RpcCallback;
 import com.google.protobuf.RpcController;
 import com.google.protobuf.Service;
 
-import enpoint.services.generated.*;
-import enpoint.services.generated.OewcProtos.OewcRequest;
-import enpoint.services.generated.OewcProtos.OewcResponse;
-import enpoint.services.generated.OewcProtos.Particle;
-import enpoint.services.generated.OewcProtos.OewcResponse.Builder;
+import endpoint.services.generated.*;
+import endpoint.services.generated.OewcProtos.OewcRequest;
+import endpoint.services.generated.OewcProtos.OewcResponse;
+import endpoint.services.generated.OewcProtos.Particle;
+import endpoint.services.generated.OewcProtos.OewcResponse.Builder;
 
 public class OewcEndpoint extends OewcProtos.OewcService
 implements Coprocessor, CoprocessorService{

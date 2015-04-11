@@ -31,12 +31,12 @@ import com.google.protobuf.RpcController;
 import com.google.protobuf.Service;
 import com.google.protobuf.ServiceException;
 
-import enpoint.services.generated.*;
-import enpoint.services.generated.OewcProtos2.OewcRequest;
-import enpoint.services.generated.OewcProtos2.OewcResponse;
-import enpoint.services.generated.OewcProtos2.OewcService;
-import enpoint.services.generated.RpcProxyProtos.ProxyRequest;
-import enpoint.services.generated.RpcProxyProtos.ProxyResponse;
+import endpoint.services.generated.*;
+import endpoint.services.generated.OewcProtos2.OewcRequest;
+import endpoint.services.generated.OewcProtos2.OewcResponse;
+import endpoint.services.generated.OewcProtos2.Oewc2Service;
+import endpoint.services.generated.RpcProxyProtos.ProxyRequest;
+import endpoint.services.generated.RpcProxyProtos.ProxyResponse;
 
 public class RpcProxyEndpoint extends RpcProxyProtos.RpcProxyService
 implements Coprocessor, CoprocessorService{
@@ -51,9 +51,9 @@ implements Coprocessor, CoprocessorService{
 	private HTable table;
 	@Override
 	public void start(CoprocessorEnvironment arg0) throws IOException {
-		if(env instanceof RegionCoprocessorEnvironment){
+		if(arg0 instanceof RegionCoprocessorEnvironment){
 //			this.region = ((RegionCoprocessorEnvironment)env).getRegion();
-			this.env = (RegionCoprocessorEnvironment)env;
+			this.env = (RegionCoprocessorEnvironment)arg0;
 		} else {
 			throw new CoprocessorException("Must be loaded on a table region!");
 		}	
@@ -65,11 +65,12 @@ implements Coprocessor, CoprocessorService{
 	@Override
 	public void stop(CoprocessorEnvironment arg0) throws IOException {
 		// TODO Auto-generated method stub
-		
+		this.table.close();
+		this.connection.close();
 	}
 
 	
-	private class ProxyBatchCall implements Batch.Call<OewcService, OewcResponse> {
+	private class ProxyBatchCall implements Batch.Call<Oewc2Service, OewcResponse> {
 
 		private OewcRequest request = null;
 		ProxyBatchCall( OewcRequest request){
@@ -77,7 +78,7 @@ implements Coprocessor, CoprocessorService{
 		}
 		
 		@Override
-		public OewcResponse call(OewcService endpoint) throws IOException {
+		public OewcResponse call(Oewc2Service endpoint) throws IOException {
 			//initialize the tow objects.(not important)
 			BlockingRpcCallback<OewcResponse> done = new BlockingRpcCallback<OewcResponse>();
 			RpcController controller = new ServerRpcController();
@@ -85,7 +86,7 @@ implements Coprocessor, CoprocessorService{
 			//TODO passing through whole request directly.
 			OewcRequest request = OewcRequest.newBuilder(this.request).build(); 
 //			IMCLROE.setupRequest(src, robotMeasurements, orientation);
-			endpoint.getRowCount(controller, request, done);
+			endpoint.getOewc2Result(controller, request, done);
 			//get the results.
 			return done.get();
 		}
@@ -99,7 +100,7 @@ implements Coprocessor, CoprocessorService{
 		List<Long> times = new ArrayList<Long>();
 		times.add(System.currentTimeMillis());
 		//Batch.Call<OewcService,OewcResponse> b = new OewcCall( src, robotMeasurements, orientation);
-		Call<OewcService, OewcResponse> b = new ProxyBatchCall(request);
+		Call<Oewc2Service, OewcResponse> b = new ProxyBatchCall(request);
 /*				new Batch.Call<OewcService, OewcResponse>() {
 			@Override
 			public OewcResponse call(OewcService endpoint) throws IOException {
@@ -127,7 +128,7 @@ implements Coprocessor, CoprocessorService{
 		Map<byte[], OewcResponse> results=null;
 		try {
 			//proxy is not client end. it needs to distribute the one request over all of region server on Gigabit Network.
-			results = table.coprocessorService(OewcService.class, "0000".getBytes(), "1000".getBytes(), b);
+			results = table.coprocessorService(Oewc2Service.class, "0000".getBytes(), "1000".getBytes(), b);
 		} catch (ServiceException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
