@@ -46,7 +46,7 @@ public class RobotController extends JFrame implements ActionListener{
 			else if(btn==B[2]){
 				//terminate
 				System.out.println("terminate the localization method");
-				this.samcl.setTerminated(true);
+				this.samcl.setTerminating(true);
 			}
 			else if(btn==B[3]){
 				//force converge
@@ -119,11 +119,11 @@ public class RobotController extends JFrame implements ActionListener{
 								"v:"+Double.toString(robot.getVt())+
 								",w:"+Double.toString(robot.getWt()));
 						label[0].setText(
-								Double.toString(robot.getPose().X).substring(0, 5));
+								String.format("%.2f", robot.X));
 						label[1].setText(
-								Double.toString(robot.getPose().Y).substring(0, 5));
+								String.format("%.2f", robot.Y));
 						label[2].setText(
-								Double.toString(robot.getHead()));
+								String.format("%.2f", robot.H));
 					}
 					Thread.sleep(33);
 				}
@@ -201,24 +201,24 @@ public class RobotController extends JFrame implements ActionListener{
 		
 		
 		label[0] = new Label(
-				Double.toString(this.robot.getPose().X));
+				Double.toString(this.robot.X));
 		label[1] = new Label(
-				Double.toString(this.robot.getPose().Y));
+				Double.toString(this.robot.Y));
 		label[2] = new Label(
-				Double.toString(this.robot.getHead()));
+				Double.toString(this.robot.H));
 		control_panel.add(label[0]);
 		control_panel.add(label[1]);
 		control_panel.add(label[2]);
 		textPose[0] = new TextField();
-		textPose[0].setText(String.valueOf(this.robot.getX()));
+		textPose[0].setText(String.format("%.2f", robot.X));
 		control_panel.add(textPose[0]);
 		textPose[0].addActionListener(this);
 		textPose[1] = new TextField();
-		textPose[1].setText(String.valueOf(this.robot.getY()));
+		textPose[1].setText(String.format("%.2f", robot.Y));
 		control_panel.add(textPose[1]);
 		textPose[1].addActionListener(this);
 		textPose[2] = new TextField();
-		textPose[2].setText(String.valueOf(this.robot.getHead()));
+		textPose[2].setText(String.format("%.2f", robot.H));
 		control_panel.add(textPose[2]);
 		textPose[2].addActionListener(this);
 		

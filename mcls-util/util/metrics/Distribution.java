@@ -20,20 +20,10 @@ import util.robot.VelocityModel;
 public class Distribution {
 	
 	public static void main(String[] args){
-		Particle p = new Particle(50,50,0);
-		Pose currentPose = new Pose(50,50,0);
-		Pose previousPose = new Pose(60,60,0);
-		double duration = 1;
-		Random random = new Random();
-		
-		System.out.println(p);
-		System.out.println(currentPose);
-		System.out.println(previousPose);
-		
-//		Distribution.OdemetryMotionSampling(p, currentPose, previousPose, duration, random, al);
-		System.out.println(p);
-		System.out.println(currentPose);
-		System.out.println(previousPose);
+		double x = 1235.00000012;
+		System.out.println(x);
+		System.out.println(Double.toString(x).substring(0, 5));
+		System.out.println(String.format("%.0f", x));
 		
 /*		Map<Integer,Integer> map = new TreeMap<Integer, Integer>();
 		int n = 1000000;
@@ -108,7 +98,7 @@ public class Distribution {
 	}
 	
 	public static double sample_normal_distribution(double b, Random random){
-		double upper = Math.sqrt(b);
+		double upper = Math.sqrt(Math.abs(b));
 		//double lower = 0-upper;
 		
 		double rand;
@@ -237,15 +227,19 @@ public class Distribution {
 	public static void OdemetryMotionSampling(Particle p, Pose currentPose, Pose previousPose, double deltaT, Random random, double[] al) throws Exception{
 //		double deltax = u.getVelocity()*Math.cos()
 		double xbardelta = currentPose.X-previousPose.X;
+		double ybardelta = currentPose.Y-previousPose.Y;
 		if(xbardelta==0)
 			xbardelta = Double.MIN_VALUE;
-		double rot1 = Math.atan2(currentPose.Y-previousPose.Y,xbardelta)-previousPose.H;
+		if(ybardelta==0)
+			ybardelta = Double.MIN_VALUE;
+		double rot1 = Transformer.checkHeadRange(Math.toDegrees(Math.atan2(ybardelta,xbardelta)))
+				-previousPose.H;
 		double rot2 = currentPose.H-previousPose.H-rot1;
-		double trans= Math.sqrt(xbardelta*xbardelta+(currentPose.Y-previousPose.Y)*(currentPose.Y-previousPose.Y));
+		double trans= Math.sqrt(xbardelta*xbardelta+ybardelta*ybardelta);
 		
-		double rot1c = rot1 - sample_normal_distribution(al[0] * Math.abs(rot1) + al[1] * Math.abs(trans), random);
-		double transc= trans- sample_normal_distribution(al[2] * Math.abs(trans) + al[3] * Math.abs( rot1 + rot2), random);
-		double rot2c = rot2 - sample_normal_distribution(al[0] * Math.abs(rot2) + al[1] * Math.abs(trans), random);
+		double rot1c = rot1 - sample_normal_distribution(al[0] * rot1 + al[1] * trans, random);
+		double transc= trans- sample_normal_distribution(al[2] * trans + al[3] * (rot1 + rot2), random);
+		double rot2c = rot2 - sample_normal_distribution(al[0] * rot2 + al[1] * trans, random);
 		
 		if(Double.isNaN(rot1c) || Double.isNaN(transc) || Double.isNaN(rot2c))
 			throw new Exception("there is NaN!!!!!!!");

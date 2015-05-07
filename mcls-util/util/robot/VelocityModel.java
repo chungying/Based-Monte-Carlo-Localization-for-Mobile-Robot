@@ -33,4 +33,10 @@ public class VelocityModel {
 		this.angular_velocity = w;
 		
 	}
+	
+	@Override
+	public String toString(){
+		return "Velocity Model["+ String.format("%.2f",this.velocity) + "\t" 
+				+ String.format("%.2f",this.angular_velocity) + "\t]";
+	}
 }

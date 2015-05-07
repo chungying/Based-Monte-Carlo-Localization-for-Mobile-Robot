@@ -14,6 +14,7 @@ import com.beust.jcommander.JCommander;
 public class Main {
 
 	public static void main(String[] args) throws Throwable {
+		
 		//for debug mode
 		if(args.length==0){
 			String[] targs = {
@@ -88,7 +89,7 @@ public class Main {
 		jc.parse(args);
 		//TODO setup robot
 		robot.setInitModel(robot.getUt());
-		robot.setInitPose(robot.getPose());
+		robot.setInitPose((Pose)robot);
 		@SuppressWarnings("unused")
 		RobotController robotController = new RobotController("robot controller", robot,imclroe);
 		VariablesController vc = new VariablesController(imclroe);
@@ -103,14 +104,17 @@ public class Main {
 		
 		//TODO test 2014/06/19
 		int counter = 0;
-		while(true){
+		while(!imclroe.isClosing()){
 			counter++;
 			window.setTitle("samcl image:"+String.valueOf(counter));
 			robot.goStraight();
 			imclroe.run(robot, window);
 			robot.lock();
 			robot.initRobot();
-		}		
+		}
+		
+		imclroe.close();
+		robot.close();
 	}
 	
 }

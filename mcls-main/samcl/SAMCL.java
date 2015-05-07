@@ -7,12 +7,19 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.Closeable;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.net.MalformedURLException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Random;
+import java.util.TreeMap;
+import java.util.Map.Entry;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.swing.JFrame;
@@ -20,6 +27,8 @@ import javax.swing.JFrame;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.HTable;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 
 import util.grid.Grid;
 import util.gui.Panel;
@@ -48,19 +57,59 @@ public class SAMCL implements Closeable{
 	public boolean help;
 
 	
-	private boolean terminated = false;
-	public void setTerminated(boolean terminated) {
-		this.terminated = terminated;
+	private boolean terminating = false;
+	public void setTerminating(boolean terminate) {
+		this.terminating = terminate;
+	}
+	public boolean isTerminating() {
+		return this.terminating ;
 	}
 
+	private boolean terminated = false;
+	private void setTerminated(boolean terminated) {
+		this.terminated = terminated;
+	}
+	public boolean hasTerminated() {
+		return this.terminated ;
+	}
 	
+	private boolean closing = false;
+	public void setClosing(boolean isClosing){
+		this.closing = isClosing;
+	}
+	public boolean isClosing(){
+		return this.closing;
+	}
 	
-	//	public boolean isClosing;
+	private boolean closed = false;
+	public boolean hasClosed(){
+		return this.closed;
+	}
+	
+	@Override
+	public void close() throws IOException {
+		if(!isClosing())
+			setClosing(true);
+		if(!isTerminating())
+			setTerminating(true);
+		while(!this.hasTerminated())
+			;
+		if(this.onCloud){
+			this.table.close();
+			this.grid.closeTable();
+		}
+		
+		this.customizedClose();
+		
+		this.closed = true;
+	}
+	
 	/**
 	 * run SAMCL
 	 * @throws Throwable 
 	 */
 	public void run(RobotState robot, JFrame samcl_window) throws Throwable{
+		this.setTerminating(false);
 		this.setTerminated(false);
 		
 		System.out.println("press enter to continue.");
@@ -91,9 +140,26 @@ public class SAMCL implements Closeable{
 		int counter = 0;
 		long time = 0;
 		long duration = 0;
-		Pose previousPose = new Pose(robot.getPose());
+		Pose previousPose = new Pose((Pose)robot);
 		Pose currentPose = null;
-		while(!this.isTerminated()){
+		LinkedHashMap<String, Object> logInfo = new LinkedHashMap<String, Object>();
+		logInfo.put("counter", counter);
+		logInfo.put("time",time);
+		logInfo.put("duration",duration);
+		logInfo.put("weight time",0);
+		logInfo.put("SER time", 0);
+		logInfo.put("best X", 0.0);
+		logInfo.put("best Y", 0.0);
+		logInfo.put("best H", 0.0);
+		logInfo.put("best W", 0.0);
+		logInfo.put("robot X", robot.X);
+		logInfo.put("robot Y", robot.Y);
+		logInfo.put("robot H", robot.H);
+		for(Entry<String,Object> entry: logInfo.entrySet()){
+    		System.out.print(entry.getKey()+"\t");
+    	}
+		System.out.println();
+		while(!this.isTerminating()){
 			
 			if(this.convergeFlag){
 				this.converge(last_set, robot);
@@ -111,7 +177,7 @@ public class SAMCL implements Closeable{
 			long sampleTime = System.currentTimeMillis();
 			//TODO Particle
 			current_set.clear();
-			currentPose = robot.getPose();
+			currentPose = new Pose(robot);
 			current_set.addAll(this.Prediction_total_particles(last_set, robot.getUt(), currentPose, previousPose, duration));
 			previousPose = currentPose;
 			sampleTime = System.currentTimeMillis() - sampleTime;
@@ -184,10 +250,10 @@ public class SAMCL implements Closeable{
 			image_panel.repaint();
 			duration = System.currentTimeMillis() - time;
 			
-			//Transformer.log(this.isTerminated());
+
 			Transformer.debugMode(mode,
 					"Best position          :"+bestParticle.toString()+"\n",
-					"Robot position         : \t"+robot.getPose().toString()+"\n",
+					"Robot position         : \t" + robot+"\n",
 					"Sensitive              : \t" + this.XI+"\n",
 					"RPC counter            : \t" + this.grid.RPCcount+"\n",
 					"Sampling Time	        : \t" + sampleTime + "\tms"+"\n",
@@ -205,28 +271,38 @@ public class SAMCL implements Closeable{
 					);
 			
 			this.grid.RPCcount = 0;
+			logInfo.put("counter", counter);
+			logInfo.put("time",time);
+			logInfo.put("duration",duration);
+			logInfo.put("weight time",weightTime);
+			logInfo.put("SER time", serTime);
+			logInfo.put("best X", bestParticle.getDX());
+			logInfo.put("best Y", bestParticle.getDY());
+			logInfo.put("best H", bestParticle.getTh());
+			logInfo.put("best W", bestParticle.getWeight());
+			logInfo.put("robot X", robot.X);
+			logInfo.put("robot Y", robot.Y);
+			logInfo.put("robot H", robot.H);
 			
-			Transformer.log(
-					"counter:", counter,
-					"time", time,
-					"duration:", duration,
-					"batch weight time: ", weightTime,
-					"SER duration", serTime,
-					bestParticle, 
-					robot.getPose(), 
-					averagePose);
+			for(Entry<String,Object> entry: logInfo.entrySet()){
+	    		System.out.print(entry.getValue()+"\t");
+	    	}
+			System.out.println();
 			
 //			Transformer.log(
-//					"batch weight time: " + weightTime
-//					);
-//			System.gc();
+//					"counter:", counter,
+//					"time", time,
+//					"duration:", duration,
+//					"batch weight time: ", weightTime,
+//					"SER duration", serTime,
+//					bestParticle, 
+//					robot, 
+//					averagePose);
+		
 		}
+		this.setTerminated(true);
 	}
 	
-	private boolean isTerminated() {
-		return this.terminated ;
-	}
-
 	private Particle averagePose(List<Particle> src_set) {
 		double xSum = 0;
 		double ySum = 0;
@@ -271,6 +347,7 @@ public class SAMCL implements Closeable{
 			this.localSetup();
 		}
 		
+		
 	}
 		private void localSetup(){
 		grid.readmap();
@@ -285,6 +362,7 @@ public class SAMCL implements Closeable{
 	
 	public HTable table = null;
 	private void cloudSetup() throws Exception{
+		Logger.getRootLogger().setLevel(Level.WARN);
 		Configuration conf = HBaseConfiguration.create();
 		grid.setupTable(conf);
 		grid.readmap(this.mapFilename, conf);
@@ -302,7 +380,9 @@ public class SAMCL implements Closeable{
 	
 	public void customizedSetup(Configuration conf) throws Exception{ 
 	}
-
+	
+	
+	
 	//check the parameters 
 	@Parameter(names = {"--showser"}, description = "if show the SER or not, default is false", required = false)
 	public boolean ifShowSER = false;
@@ -335,7 +415,7 @@ public class SAMCL implements Closeable{
 			}
 			
 			//Robot
-			Tools.drawRobot(grap, robot.getX(), robot.getY(), robot.getHead(), 10, Color.RED);
+			Tools.drawRobot(grap, (int)Math.round(robot.X), (int)Math.round(robot.Y), robot.H, 10, Color.RED);
 			
 			//Best Particle
 			Tools.drawRobot(grap, bestParticle.getX(), bestParticle.getY(), bestParticle.getTh(), 8, Color.GREEN);
@@ -760,16 +840,6 @@ public class SAMCL implements Closeable{
 		}
 	}
 	
-	@Override
-	public void close() throws IOException {
-		if(this.onCloud){
-			this.table.close();
-			this.grid.closeTable();
-		}
-		
-		this.customizedClose();
-	}
-	
 	@Parameter(names = {"-c","--converge"}, description = "start up/stop debug mode, default is to start up", required = false, arity = 1)
 	private boolean convergeFlag = false;
 	public void forceConverge(){
@@ -779,7 +849,7 @@ public class SAMCL implements Closeable{
 	private void converge(List<Particle> current, RobotState robot){
 		current.clear();
 		for(int i = 0;i< this.Nt;i++){
-			current.add(new Particle(robot.getX(), robot.getY(), robot.getHead()));
+			current.add(new Particle(robot.X, robot.Y, robot.H));
 		}
 		this.convergeFlag = false;
 	}

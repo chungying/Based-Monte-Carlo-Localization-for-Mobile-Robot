@@ -91,7 +91,7 @@ public class Main {
 		jc.parse(args);
 		//TODO setup robot
 		robot.setInitModel(robot.getUt());
-		robot.setInitPose(robot.getPose());
+		robot.setInitPose((Pose)robot);
 		@SuppressWarnings("unused")
 		RobotController robotController = new RobotController("robot controller", robot,samcl);
 		VariablesController vc = new VariablesController(samcl);
@@ -107,13 +107,15 @@ public class Main {
 		//TODO test 2014/06/19
 		int counter = 0;
 		System.out.println(System.currentTimeMillis());
-		while(true){
+		while(!samcl.isClosing()){
 			window.setTitle("samcl image:"+String.valueOf(counter));
 			robot.goStraight();
 			samcl.run(robot, window);
 			robot.lock();
 			robot.initRobot();
 		}
+		samcl.close();
+		robot.close();
 	}
 	
 }

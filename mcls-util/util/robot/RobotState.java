@@ -28,8 +28,8 @@ import util.gui.Window;
 import util.metrics.Distribution;
 import util.metrics.Particle;
 import util.metrics.Transformer;
-
-public class RobotState implements Runnable,Closeable{
+//TODO why don't extends Pose.class? A: Because this class is combined with JCommander, there is no way to assign pose without JCommander. 
+public class RobotState extends Pose implements Runnable,Closeable{
 	
 	public static final double standardAngularVelocity = 15;// degree/second
 	public static final double standardVelocity = 10;// pixel/second
@@ -65,7 +65,7 @@ public class RobotState implements Runnable,Closeable{
 		for(int i = 0 ; i < 1000; i++){
 			parts.add(new Particle(0, 0, 0));
 		}
-		int rx=0, ry=0,px=0, py=0;
+		double rx=0, ry=0,px=0, py=0;
 		double rh=0.0;
 		int i = 0;
 		double[] al = Distribution.al.clone();
@@ -84,13 +84,13 @@ public class RobotState implements Runnable,Closeable{
 			Thread.sleep(20);
 			grap.drawImage(samcl.grid.map_image, null, 0, 0);
 			//System.out.println(robot.toString());
-//			px = robot.getX();
-//			py = robot.getY();
+//			px = robot.X;
+//			py = robot.Y;
 			//time = System.currentTimeMillis()/1000 - time;
 			time = i*0.001;
-			rx = robot.getX();
-			ry = robot.getY();
-			rh = robot.getHead();
+			rx = robot.X;
+			ry = robot.Y;
+			rh = robot.H;
 			//System.out.println(robot);
 //			System.out.println("counter"+i);
 //			System.out.println("time="+time+"s");
@@ -108,28 +108,28 @@ public class RobotState implements Runnable,Closeable{
 //				System.out.println(p.toString());
 			}
 			
-			Tools.drawRobot(grap,  robot.getX(),  robot.getY(), robot.getHead(), 20, Color.ORANGE);
+			Tools.drawRobot(grap,  (int)Math.round(robot.X),  (int)Math.round(robot.Y), robot.H, 20, Color.ORANGE);
 			
 			double r  =( robot.getVt()/Math.toRadians(robot.getWt()) );
 			if(robot.getWt()!=0){
-				nextRobot.setX((robot.getX() +  
-						time*r *(+Math.sin( Math.toRadians( robot.getHead() + robot.getWt()*time ) ) 
-								-  Math.sin( Math.toRadians( robot.getHead() ) ) 
+				nextRobot.setX((robot.X +  
+						time*r *(+Math.sin( Math.toRadians( robot.H + robot.getWt()*time ) ) 
+								-  Math.sin( Math.toRadians( robot.H ) ) 
 								)));
-				nextRobot.setY((robot.getY() +  
-						time*r *(+Math.cos( Math.toRadians( robot.getHead() ) ) 
-								-  Math.cos( Math.toRadians( robot.getHead() + robot.getWt()*time ) )  
+				nextRobot.setY((robot.Y +  
+						time*r *(+Math.cos( Math.toRadians( robot.H ) ) 
+								-  Math.cos( Math.toRadians( robot.H + robot.getWt()*time ) )  
 								)));
-				nextRobot.setTh(Transformer.checkHeadRange( robot.getHead() +
+				nextRobot.setTh(Transformer.checkHeadRange( robot.H +
 						robot.getWt()*time
 						));
 			}else{
 				r=robot.getVt();
-				nextRobot.setX(robot.getX() +  
-						time*r *( Math.cos( Math.toRadians(robot.getHead()) ) ));
-				nextRobot.setY(robot.getY() +  
-						time*r *(  Math.sin( Math.toRadians(robot.getHead()) ) ));
-				nextRobot.setTh(Transformer.checkHeadRange( robot.getHead() +
+				nextRobot.setX(robot.X +  
+						time*r *( Math.cos( Math.toRadians(robot.H) ) ));
+				nextRobot.setY(robot.Y +  
+						time*r *(  Math.sin( Math.toRadians(robot.H) ) ));
+				nextRobot.setTh(Transformer.checkHeadRange( robot.H +
 						robot.getWt()*time
 						));
 			}
@@ -280,7 +280,7 @@ public class RobotState implements Runnable,Closeable{
 		
 		if(!path.isEmpty()){//do update target
 			
-			if(ifArrive(this.getPose(), path.get(target))){//if arrive the target, update target and VelocityModel
+			if(ifArrive((Pose)this, path.get(target))){//if arrive the target, update target and VelocityModel
 				this.stop();
 				if(target < path.size() -1 ){//if it is not finished, do update target
 					//update robot pose to current target
@@ -288,7 +288,7 @@ public class RobotState implements Runnable,Closeable{
 					//update target
 					this.target++;
 					//update VelocityModel
-					updateVelocityModel(this.getPose(), path.get(target));
+					updateVelocityModel((Pose)this, path.get(target));
 				}else if(target == path.size() - 1){//finished then lock robot
 					//update robot pose to current target
 					this.setPose(path.get(target));
@@ -305,9 +305,9 @@ public class RobotState implements Runnable,Closeable{
 
 	public void update(double t) throws IOException{
 		//update pose
-		this.x = this.x +  ( ut.getVelocity() * t * Math.cos( Math.toRadians(head) ) ) /*+ (int)(Math.round(Wt))*/;
-		this.y = this.y +  ( ut.getVelocity() * t * Math.sin( Math.toRadians(head) ) ) /*+ (int)(Math.round(Wt))*/;
-		this.head = Transformer.checkHeadRange((ut.getAngular_velocity() * t) + this.head);
+		this.X = this.X +  ( ut.getVelocity() * t * Math.cos( Math.toRadians(this.H) ) ) /*+ (int)(Math.round(Wt))*/;
+		this.Y = this.Y +  ( ut.getVelocity() * t * Math.sin( Math.toRadians(this.H) ) ) /*+ (int)(Math.round(Wt))*/;
+		this.H = Transformer.checkHeadRange((ut.getAngular_velocity() * t) + this.H);
 //		update2(t);
 		
 	}
@@ -319,23 +319,23 @@ public class RobotState implements Runnable,Closeable{
 		
 		double r = this.ut.getVelocity()/Math.toRadians(w);
 		
-		this.x = this.x + r * ( 0 
-					+ Math.cos(Math.toRadians(this.head)) 
+		this.X = this.X + r * ( 0 
+					+ Math.cos(Math.toRadians(this.H)) 
 					- Math.cos( 
-						Math.toRadians(	this.head + w * t )
+						Math.toRadians(	this.H + w * t )
 					) 
 				);
-		this.y = this.y + r * ( 0
-					- Math.sin(Math.toRadians(this.head))
+		this.Y = this.Y + r * ( 0
+					- Math.sin(Math.toRadians(this.H))
 					+ Math.sin( 
-						Math.toRadians(	this.head + w * t )
+						Math.toRadians(	this.H + w * t )
 					) 
 				);
-		this.head = Transformer.checkHeadRange( this.head + w * t);
+		this.H = Transformer.checkHeadRange( this.H + w * t);
 	}
 
 	private void updateSensor() throws Exception {
-		this.setMeasurements(this.grid.getMeasurementsAnyway(this.table , onCloud, this.x, this.y, this.head));
+		this.setMeasurements(this.grid.getMeasurementsAnyway(this.table , onCloud, this.X, this.Y, this.H));
 	}
 
 	private void updateVelocityModel(Pose current, Pose goal) {
@@ -378,22 +378,17 @@ public class RobotState implements Runnable,Closeable{
 		return true;
 	}
 
-	@Override
-	public String toString() {
-		return "RobotState (" + String.format("% 3.3f", x) + "\t," + String.format("% 3.3f", y) + "\t," + String.format("% 3.3f", head) + "\t),\n"+
-					"state : "+(this.isLock()? "  lock":"unlock")+"["+ ut.getVelocity() + "\t," + ut.getAngular_velocity() + "\t]\n"+
-					Arrays.toString(measurements);
-	}
+
 	@Parameter(names = {"-cl","--cloud"}, description = "if be on the cloud, default is false", required = false)
 	private boolean onCloud;
 	@Parameter(names = {"-rl","--robotlock"}, description = "initialize robot's lock", required = false, arity = 1)
 	private boolean lock = true;
-	@Parameter(names = {"-rx","--robotx"}, description = "initialize robot's X-Axis", required = false, converter = DoubleConverter.class)
-	private double x;
+/*	@Parameter(names = {"-rx","--robotx"}, description = "initialize robot's X-Axis", required = false, converter = DoubleConverter.class)
+	public double x;
 	@Parameter(names = {"-ry","--roboty"}, description = "initialize robot's Y-Axis", required = false, converter = DoubleConverter.class)
-	private double y;
+	public double y;
 	@Parameter(names = {"-rh","--robothead"}, description = "initialize robot's Head", required = false, converter = DoubleConverter.class)
-	private double head;
+	public double head;*/
 	@Parameter(names = {"-t","--table"}, description = "name of table", required = false)
 	private String tableName;
 	private VelocityModel ut = new VelocityModel();
@@ -477,9 +472,9 @@ public class RobotState implements Runnable,Closeable{
 	public RobotState(int x, int y, double head, Grid grid, String tableName, List<Pose> path) throws IOException {
 		super();
 		System.out.println("initial robot");
-		this.x = x;
-		this.y = y;
-		this.head = Transformer.checkHeadRange(head);
+		this.X = x;
+		this.Y = y;
+		this.H = Transformer.checkHeadRange(head);
 		ut.setVelocity(0);
 		ut.setAngular_velocity(0);
 		
@@ -499,7 +494,7 @@ public class RobotState implements Runnable,Closeable{
 	private Pose initRobot = null;
 	private VelocityModel initModel = null;
 	public void setInitPose(Pose p) {
-		this.initRobot = p;
+		this.initRobot = new Pose(p);
 	}
 	public void setInitModel(VelocityModel m){
 		this.initModel = new VelocityModel(m);
@@ -543,28 +538,28 @@ public class RobotState implements Runnable,Closeable{
 		ut.setAngular_velocity(wt);
 	}
 
-	public int getX() {
-		return (int)Math.round(x);
-	}
+//	public int getX() {
+//		return (int)Math.round(this.X);
+//	}
 	
 	public void setX(double X) {
-		this.x = X;
+		this.X = X;
 	}
 
 	public int getY() {
-		return (int)Math.round(y);
+		return (int)Math.round(this.Y);
 	}
 	
 	public void setY(double Y) {
-		this.y = Y;
+		this.Y = Y;
 	}
 	
 	public double getHead() {
-		return head;
+		return this.H;
 	}
 	
 	public void setHead(double Head) {
-		this.head = Head;
+		this.H = Head;
 	}
 
 	public float[] getMeasurements() {
@@ -589,14 +584,10 @@ public class RobotState implements Runnable,Closeable{
 			table.close();
 	}
 
-	public Pose getPose() {
-		return new Pose(this.x,this.y,this.head);
-	}
-
 	public void setPose(Pose pose) {
-		this.x = pose.X;
-		this.y = pose.Y;
-		this.head = pose.H;
+		this.X = pose.X;
+		this.Y = pose.Y;
+		this.H = pose.H;
 	}
 
 

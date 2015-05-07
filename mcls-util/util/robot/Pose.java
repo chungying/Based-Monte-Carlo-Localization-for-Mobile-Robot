@@ -1,12 +1,22 @@
 package util.robot;
 
+import com.beust.jcommander.Parameter;
+import com.beust.jcommander.converters.DoubleConverter;
+
 import util.metrics.Transformer;
 
 public class Pose {
 	public static final double ERROR = 0.15;
+	@Parameter(names = {"-rx","--robotx"}, description = "initialize robot's X-Axis", required = false, converter = DoubleConverter.class)
 	public double X;
+	@Parameter(names = {"-ry","--roboty"}, description = "initialize robot's Y-Axis", required = false, converter = DoubleConverter.class)
 	public double Y;
+	@Parameter(names = {"-rh","--robothead"}, description = "initialize robot's Head", required = false, converter = DoubleConverter.class)
 	public double H;
+	
+	public Pose(){
+		super();
+	}
 	
 	public Pose(double x, double y, double h) {
 		super();
@@ -73,19 +83,4 @@ public class Pose {
 		return "Pose [\t" + X + "\t" + Y + "\t" + H + "\t]";
 	}
 
-	public static void main(String[] args){
-		System.out.println(System.getProperty("user.name"));
-		System.setProperty("user.name", "hbase");
-		System.out.println(System.getProperty("user.name"));
-//		Transformer.log(
-//		Pose.compareToOrientation(	new Pose(0,0,0), new Pose(0,-1,359)),"\n",
-//		Pose.compareToOrientation( new Pose(0,0,90), new Pose(0,1,270)),"\n",
-//		Pose.compareToOrientation( new Pose(0,0,90), new Pose(1,0,180)),"\n",
-//		Pose.compareToOrientation( new Pose(0,0,90), new Pose(-1,0,90)),"\n",
-//		Pose.compareToOrientation(	new Pose(0,0,1), new Pose(1,1,1)),"\n",
-//		Pose.compareToOrientation( new Pose(0,0,271), new Pose(1,-1,1)),"\n",
-//		Pose.compareToOrientation( new Pose(0,0,181), new Pose(-1,1,1)),"\n",
-//		Pose.compareToOrientation( new Pose(0,0,91), new Pose(-1,-1,1)));
-		
-	}
 }

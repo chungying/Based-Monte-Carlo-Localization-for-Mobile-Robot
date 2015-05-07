@@ -1,6 +1,7 @@
 package util.metrics;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -10,6 +11,10 @@ import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
+
+import com.beust.jcommander.JCommander;
+
+import util.robot.Pose;
 
 public class Transformer {
 	
@@ -74,11 +79,17 @@ public class Transformer {
 	}
 	
 	static public void log(Object... obs){
-		for(Object ob: obs){
-			System.out.print(ob.toString()+"\t");
-		}
-		System.out.println();
+		log(System.out, obs);
 	}
+	
+	static public void log(PrintStream ps, Object... obs){
+
+			for(Object ob: obs){
+				ps.print(ob.toString()+"\t");
+			}
+			ps.println();
+	}
+	
 	
 	static public int th2Z(double head, int orientation){
 		return ((int) Math.round( head/(360/orientation) ) )% orientation;
@@ -344,14 +355,23 @@ public class Transformer {
 		return Integer.valueOf(rowkey.replaceAll("...."+separator, "").substring(5, 10));
 	}
 	
+	
 	public static void main(String[] args) throws IOException{
-
-		double xd = (double) 100.5001;
-		double yd = (double) 100.5001;
-		int xi =  100;
-		int yi =  100;
-		System.out.println(xy2RowkeyString(xd,yd));
-		System.out.println(xy2RowkeyString(xi,yi));
+		String[] test = {
+				"-rx","25"
+				,"-ry","50"
+				};
+		PoseTest pt = new PoseTest();
+		
+		JCommander jc = new JCommander();
+		jc.setAcceptUnknownOptions(true);
+		jc.addObject(pt);
+		jc.parse(test);
+		System.out.println(pt);
+		System.out.println((Pose)pt.getPose());
+		
+		double x = 12345.12345;
+		System.out.println(String.format("%.4f",x));
 
 		//System.out.println(String.format("%05d", Math.round(x)));
 		

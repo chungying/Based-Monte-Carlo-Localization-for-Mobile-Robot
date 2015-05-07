@@ -7,14 +7,7 @@ import java.util.Map.Entry;
 import util.metrics.Transformer;
 
 public class Oewc {
-	public static void main(String[] args){
-		for(int i =0; i<=18;i++){
-		Transformer.log("local="+i+"=>"+Transformer.local2global(i,0,36));
-	}
-//	for(int i = 90 ; i<=180 ; i++){
-//		log("global="+i+"=>"+global2local(i,180,360));
-//	}
-	}
+
 	
 	static public Entry<Integer, Float> singleParticleModified(List<Float> Zt, List<Float> circles){
 		float weight;

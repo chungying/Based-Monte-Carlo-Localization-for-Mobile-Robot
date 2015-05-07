@@ -23,10 +23,11 @@ public class Main {
 					,"-rl","true"
 //							,"-rx","30"
 //							,"-ry","30"
-					,"-p","10"
+					,"-p","20"
 //							,"-cl"
 					,"-D","false"
 					,"-c","true"
+					,"--logfile"
 					};
 			args = targs;
 		}
@@ -85,7 +86,7 @@ public class Main {
 		jc.parse(args);
 		//TODO setup robot
 		robot.setInitModel(robot.getUt());
-		robot.setInitPose(robot.getPose());
+		robot.setInitPose((Pose)robot);
 		@SuppressWarnings("unused")
 		RobotController robotController = new RobotController("robot controller", robot,mcl);
 		VariablesController vc = new VariablesController(mcl);
@@ -100,7 +101,7 @@ public class Main {
 		
 		//TODO test 2014/06/19
 		int counter = 0;
-		while(true){
+		while(!mcl.isClosing()){
 			counter++;
 			window.setTitle("mcl image:"+String.valueOf(counter));
 			robot.goStraight();
@@ -108,6 +109,8 @@ public class Main {
 			robot.lock();
 			robot.initRobot();
 		}	
+		mcl.close();
+		robot.close();
 	}
 	
 }

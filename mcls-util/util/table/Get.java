@@ -13,6 +13,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.filter.RandomRowFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import util.metrics.Transformer;
@@ -88,20 +89,29 @@ public class Get {
 			}
 			System.out.println(result.toString());
 			
-			
+			/*
 			try {
 				//System.out.println("constant:"+conf.getInt(HConstants.HBASE_REGIONSERVER_LEASE_PERIOD_KEY, -1));
 				System.out.println("start sleep");
-				Thread.sleep(65000);
+				Thread.sleep(600);
 				System.out.println("stop sleep");
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
 			System.out.println("check htable if disconnect");
 			
-			org.apache.hadoop.hbase.client.Get get2 = new org.apache.hadoop.hbase.client.Get(Bytes.toBytes(rowKeyStr2));
-			Result result2 = table.get(get2);
-			
+			String startkey = "0.8", endkey = "0.9";
+			org.apache.hadoop.hbase.client.Scan scan = new org.apache.hadoop.hbase.client.Scan(Bytes.toBytes(startkey),Bytes.toBytes(endkey));
+			float chance = 0.1f;
+			scan.setFilter(new RandomRowFilter(chance));
+			ResultScanner scanner = table.getScanner(scan);
+			int count = 0;
+			for(Result result2 = scanner.next(); result2 != null; result2 = scanner.next()){
+				count = count + result2.size();
+				System.out.println(result2.toString());
+			}
+			System.out.println("count:"+ count);*/
+			/*
 			for(Entry<byte[], NavigableMap<byte[], byte[]>>  entry1: result2.getNoVersionMap().entrySet()){
 				for(Entry<byte[], byte[]> entry2: entry1.getValue().entrySet()){
 					System.out.println("(\t"+
@@ -111,8 +121,8 @@ public class Get {
 							Bytes.toString(entry2.getValue())
 							);
 				}
-			}
-			System.out.println(result2.toString());
+			}*/
+			
 			
 		} finally{
 			System.out.println("get operation timeout:"+table.getOperationTimeout());

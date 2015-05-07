@@ -9,8 +9,8 @@ import javax.swing.WindowConstants;
 
 import samcl.SAMCL;
 import util.robot.RobotState;
-
-public class Window extends JFrame{
+//TODO implement Window.class with Runnable interface in order to independently monitoring.
+public class Window extends JFrame implements Runnable{
 	/**
 	 * 
 	 */
@@ -35,8 +35,11 @@ public class Window extends JFrame{
 		            JOptionPane.YES_NO_OPTION,
 		            JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION){
 				try {
-					samcl.close();
-					robot.close();
+					samcl.setTerminating(true);
+					samcl.setClosing(true);
+					
+//					samcl.close();
+//					robot.close();
 					
 				} catch (Exception e1) {
 					e1.printStackTrace();
@@ -46,6 +49,12 @@ public class Window extends JFrame{
 			
 			super.windowClosing(e);
 		}
+		
+	}
+
+	@Override
+	public void run() {
+		// TODO Auto-generated method stub
 		
 	}
 	
