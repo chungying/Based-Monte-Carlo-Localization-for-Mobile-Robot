@@ -15,6 +15,8 @@ import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.filter.RandomRowFilter;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 
 import util.metrics.Transformer;
 
@@ -49,8 +51,8 @@ public class Get {
 				"-y","190",
 				""
 		};
-		
-		args = test;
+		if(args.length == 0)
+			args = test;
 		
 		CommandLine cmd = parseArgs(args);
 		
@@ -72,6 +74,7 @@ public class Get {
 		System.out.println("Start to get table");
 		HTable table = null;
 		try{
+			Logger.getRootLogger().setLevel(Level.WARN);
 			Configuration conf = HBaseConfiguration.create();
 			table = new HTable(conf , tableName);
 			

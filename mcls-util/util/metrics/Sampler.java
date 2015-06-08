@@ -8,6 +8,7 @@ import javax.swing.JFrame;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Random;
@@ -41,46 +42,46 @@ public class Sampler {
 		
 
 		long time = System.currentTimeMillis();
-		List<Float> result = sampler(imagePath, distribution, samples, orientation, orientation/2+1);
+		sampler(imagePath, distribution, samples, orientation, orientation/2+1);
 		time = System.currentTimeMillis() - time;
-		for(Float f: result){
-			System.out.println(f);
-		}
 		System.out.println("time: "+ time +" ms");
 		
 	}
 
-	public static List<Float> sampler(String imagePath, int distribution, int samples, 
+	public static Map<Float, Integer> sampler(String imagePath, int distribution, int samples, 
 			int orientation, int sensorNumber, int statisticsRange, int imageHeight, int bandWidth
 			) throws IOException{
 
 		int columnWidth = Math.round(samples/distribution);
 		NavigableMap<Float, Integer> map = new TreeMap<Float, Integer>();
 		int[] list = new int[statisticsRange];
-		List<Float> splitKeys = new ArrayList<Float>();
+		Map<Float, Integer> splitKeysMap = new TreeMap<Float, Integer>();
+//		List<Float> splitKeys = new ArrayList<Float>();
 		
 		sampling(map, new Grid(orientation, sensorNumber, imagePath), samples);
 		
-		statistic(splitKeys, list, map, columnWidth, statisticsRange);
+		//statistic(splitKeysMap, list, map, columnWidth, statisticsRange);
+		statistic(splitKeysMap, list, map, columnWidth, statisticsRange);
 		
-		for(Float key: splitKeys){
-			System.out.println(key);
+		for(Entry<Float, Integer> entry: splitKeysMap.entrySet()){
+			System.out.print(entry.getKey()+":");
+			System.out.println(entry.getValue());
 		}
 		
 		drawImage(list, statisticsRange, imageHeight, bandWidth);
 		
-		return splitKeys;
+		return splitKeysMap;
 	}
 	
-	public static List<Float> sampler(String imagePath, int distribution, int samples) throws IOException {
+	public static Map<Float, Integer> sampler(String imagePath, int distribution, int samples) throws IOException {
 		return sampler(imagePath, distribution, samples, orientation, sensorNumber, statisticsRange, imageHeight, bandWidth);
 	}
 	
-	public static List<Float> sampler(String imagePath, int distribution, int samples, int orientation, int sensorNumber) throws IOException {
+	public static Map<Float, Integer> sampler(String imagePath, int distribution, int samples, int orientation, int sensorNumber) throws IOException {
 		return sampler(imagePath, distribution, samples, orientation, sensorNumber, statisticsRange, imageHeight, bandWidth);
 	}
 	
-	public static void statistic(List<Float> splitKeys, int[] list, NavigableMap<Float,Integer> map, int columnWidth, int statisticsRange){
+	public static void statistic(Map<Float, Integer> splitKeysMap/*, List<Float> splitKeys*/, int[] list, NavigableMap<Float,Integer> map, int columnWidth, int statisticsRange){
 		int i  = 1;
 		Float lastKey = 0.0f;
 		Integer lastValue = 0;
@@ -93,7 +94,8 @@ public class Sampler {
 				Integer deltaValue = currentValue - lastValue;
 				Integer diff = i*columnWidth - lastValue;
 				Float splitKey = lastKey + (diff/deltaValue) * deltaKey;
-				splitKeys.add(splitKey);
+				splitKeysMap.put(splitKey, currentValue);
+//				splitKeys.add(splitKey);
 				i++;
 			}
 			
@@ -106,22 +108,23 @@ public class Sampler {
 	}
 	
 	public static void drawImage(int[] list, int statisticsRange, int imageHeight, int bandWidth){
+		//initialize new image
 		BufferedImage image = new BufferedImage(statisticsRange*bandWidth, imageHeight, BufferedImage.TYPE_INT_BGR);
 		Graphics2D graph = (Graphics2D) image.getGraphics();
-		
+		//find the max height value
 		int maxHeight = 0;
 		for(int value:list){
 			if(value > maxHeight)
 				maxHeight = value;
 		}
-		
+		//draw each histogram
 		for(int j = 0; j < list.length; j++){
 			int h = (int) Math.round( ( (double)list[j] / (double)maxHeight ) * imageHeight);
 			int y = imageHeight-h;
 			int x = j*bandWidth;
 			graph.drawRect(x, y, bandWidth, h);
 		}
-		
+		//update frame
 		JFrame frame = new JFrame("distergram");
 		frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 		Panel panel = new Panel(image);

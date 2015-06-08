@@ -17,6 +17,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.TreeMap;
 import java.util.Map.Entry;
@@ -104,6 +105,34 @@ public class SAMCL implements Closeable{
 		this.closed = true;
 	}
 	
+	static class MyEntry<K, V> implements Map.Entry<K, V>{
+		private final K key;
+		private V value;
+		
+		MyEntry(K key, V value){
+			this.key = key;
+			this.value = value;
+		}
+		
+		@Override
+		public K getKey() {
+			return this.key;
+		}
+
+		@Override
+		public V getValue() {
+			return this.value;
+		}
+
+		@Override
+		public V setValue(V value) {
+			V old = this.value;
+			this.value = value;
+			return old;
+		}
+		
+	}
+	
 	/**
 	 * run SAMCL
 	 * @throws Throwable 
@@ -138,27 +167,24 @@ public class SAMCL implements Closeable{
 		}
 		
 		int counter = 0;
-		long time = 0;
-		long duration = 0;
+		long time = 0, duration = 0, startTime = System.currentTimeMillis();
 		Pose previousPose = new Pose((Pose)robot);
 		Pose currentPose = null;
-		LinkedHashMap<String, Object> logInfo = new LinkedHashMap<String, Object>();
-		logInfo.put("counter", counter);
-		logInfo.put("time",time);
-		logInfo.put("duration",duration);
-		logInfo.put("weight time",0);
-		logInfo.put("SER time", 0);
-		logInfo.put("best X", 0.0);
-		logInfo.put("best Y", 0.0);
-		logInfo.put("best H", 0.0);
-		logInfo.put("best W", 0.0);
-		logInfo.put("robot X", robot.X);
-		logInfo.put("robot Y", robot.Y);
-		logInfo.put("robot H", robot.H);
-		for(Entry<String,Object> entry: logInfo.entrySet()){
-    		System.out.print(entry.getKey()+"\t");
-    	}
+		
+		System.out.print("counter\t");
+		System.out.print("time\t");
+		System.out.print("duration\t");
+		System.out.print("weight time\t");
+		System.out.print("SER time\t");
+		System.out.print("best X\t");
+		System.out.print("best Y\t");
+		System.out.print("best H\t");
+		System.out.print("best W\t");
+		System.out.print("robot X\t");
+		System.out.print("robot Y\t");
+		System.out.print("robot H\t");
 		System.out.println();
+		
 		while(!this.isTerminating()){
 			
 			if(this.convergeFlag){
@@ -173,7 +199,7 @@ public class SAMCL implements Closeable{
 			
 			//Setp 1: Sampling
 //			System.out.println("(1)\tSampling\t");
-			Transformer.debugMode(mode, "(1)\tSampling\n");
+			Transformer.debugMode(mode, "(1) Sampling\t");
 			long sampleTime = System.currentTimeMillis();
 			//TODO Particle
 			current_set.clear();
@@ -184,7 +210,7 @@ public class SAMCL implements Closeable{
 			
 			//Step 2: Weighting
 //			System.out.println("(2)\tWeighting\t");
-			Transformer.debugMode(mode, "(2)\tWeighting\n");
+			Transformer.debugMode(mode, "(2) Weighting\t");
 			long weightTime = System.currentTimeMillis();
 			//TODO Particle
 			this.batchWeight(current_set, Zt);
@@ -192,19 +218,19 @@ public class SAMCL implements Closeable{
 			
 			//Step 3: Determining size
 //			System.out.println("(3)\tDetermining size\t");
-			Transformer.debugMode(mode, "(3)\tDetermining size\n");
+			Transformer.debugMode(mode, "(3) Determining size\t");
 			long determiningTime = System.currentTimeMillis();
 			Particle bestParticle = this.Determining_size(current_set);
 			determiningTime = System.currentTimeMillis() - determiningTime;
 			//Step 3-1: Calculating SER
-			Transformer.debugMode(mode, "(3-1)\tCalculating SER\n");
+			Transformer.debugMode(mode, "(3-1) Calculating SER\t");
 			long serTime = System.currentTimeMillis();
 			this.Caculating_SER(bestParticle.getWeight(), Zt, SER_set, global_set);
 			serTime = System.currentTimeMillis() - serTime;
 			
 			//Step 4: Local resampling
 //			System.out.println("(4)\tLocal resampling\t");
-			Transformer.debugMode(mode, "(4)\tLocal resampling\n");
+			Transformer.debugMode(mode, "(4) Local resampling\t");
 			long localResamplingTime = System.currentTimeMillis();
 			this.Local_resampling(current_set, local_set, bestParticle);
 			localResamplingTime = System.currentTimeMillis() - localResamplingTime;
@@ -212,7 +238,7 @@ public class SAMCL implements Closeable{
 			
 			//Step 5: Combimining
 //			System.out.println("(5)\tCombimining\t");
-			Transformer.debugMode(mode, "(5)\tCombimining\n");
+			Transformer.debugMode(mode, "(5) Combimining\n");
 			long combiminingTime = System.currentTimeMillis();
 			last_set.clear();
 			last_set.addAll(this.Combining_sets(local_set, global_set));
@@ -251,7 +277,7 @@ public class SAMCL implements Closeable{
 			duration = System.currentTimeMillis() - time;
 			
 
-			Transformer.debugMode(mode,
+			Transformer.debugMode(false,
 					"Best position          :"+bestParticle.toString()+"\n",
 					"Robot position         : \t" + robot+"\n",
 					"Sensitive              : \t" + this.XI+"\n",
@@ -271,22 +297,35 @@ public class SAMCL implements Closeable{
 					);
 			
 			this.grid.RPCcount = 0;
-			logInfo.put("counter", counter);
-			logInfo.put("time",time);
-			logInfo.put("duration",duration);
-			logInfo.put("weight time",weightTime);
-			logInfo.put("SER time", serTime);
-			logInfo.put("best X", bestParticle.getDX());
-			logInfo.put("best Y", bestParticle.getDY());
-			logInfo.put("best H", bestParticle.getTh());
-			logInfo.put("best W", bestParticle.getWeight());
-			logInfo.put("robot X", robot.X);
-			logInfo.put("robot Y", robot.Y);
-			logInfo.put("robot H", robot.H);
 			
-			for(Entry<String,Object> entry: logInfo.entrySet()){
-	    		System.out.print(entry.getValue()+"\t");
-	    	}
+			
+			if(this.mode){
+				System.out.print("counter\t");
+				System.out.print("time\t");
+				System.out.print("duration\t");
+				System.out.print("weight time\t");
+				System.out.print("SER time\t");
+				System.out.print("best X\t");
+				System.out.print("best Y\t");
+				System.out.print("best H\t");
+				System.out.print("best W\t");
+				System.out.print("robot X\t");
+				System.out.print("robot Y\t");
+				System.out.print("robot H\t");
+				System.out.println();
+			}
+			System.out.format("%5d\t",counter);
+			System.out.format("\t",time-startTime);
+			System.out.format("%5d\t",duration);
+			System.out.format("%5d\t",weightTime);
+			System.out.format("%5d\t",serTime);
+			System.out.format("%.5f\t",bestParticle.getDX());
+			System.out.format("%.5f\t",bestParticle.getDY());
+			System.out.format("%.5f\t",bestParticle.getTh());
+			System.out.format("%.5f\t",bestParticle.getWeight());
+			System.out.format("%.5f\t",robot.X);
+			System.out.format("%.5f\t",robot.Y);
+			System.out.format("%.5f\t",robot.H);
 			System.out.println();
 			
 //			Transformer.log(

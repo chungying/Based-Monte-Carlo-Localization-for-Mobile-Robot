@@ -428,4 +428,14 @@ public class Transformer {
 		return checkHeadRange(z*360/orientation);
 	}
 	
+	public static int Energy2Count(float energy, List<Float> curve){
+		int i = 0;
+		for(Float f: curve){
+			if(f>energy)
+				;
+//			i
+		}
+		return 0;
+	}
+	
 }
