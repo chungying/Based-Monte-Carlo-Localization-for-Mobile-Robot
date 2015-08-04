@@ -1,13 +1,11 @@
 package endpoint.services;
 
-import imclroe.IMCLROE;
-
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
@@ -22,9 +20,7 @@ import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
 import org.apache.hadoop.hbase.util.Bytes;
-
-import util.metrics.Particle;
-import util.metrics.Transformer;
+import org.apache.hadoop.hbase.util.Threads;
 
 import com.google.protobuf.RpcCallback;
 import com.google.protobuf.RpcController;
@@ -35,8 +31,6 @@ import endpoint.services.generated.*;
 import endpoint.services.generated.OewcProtos2.OewcRequest;
 import endpoint.services.generated.OewcProtos2.OewcResponse;
 import endpoint.services.generated.OewcProtos2.Oewc2Service;
-import endpoint.services.generated.RpcProxyProtos.ProxyRequest;
-import endpoint.services.generated.RpcProxyProtos.ProxyResponse;
 
 public class RpcProxyEndpoint extends RpcProxyProtos.RpcProxyService
 implements Coprocessor, CoprocessorService{
@@ -57,8 +51,20 @@ implements Coprocessor, CoprocessorService{
 		} else {
 			throw new CoprocessorException("Must be loaded on a table region!");
 		}	
+		//avoid accessing hbase:meta and hbase:namespace
+		byte[] thisTable = this.env.getRegion().getTableDesc().getTableName().getName();
+		if(	thisTable=="hbase:meta".getBytes() || thisTable=="hbase:namespace".getBytes()){
+			return ;
+		}
+		
+		//create HTableConnection
 		this.connection = HConnectionManager.createConnection(this.env.getConfiguration());
-		this.table = (HTable) this.connection.getTable( this.env.getRegion().getTableDesc().getName());
+		
+		ThreadPoolExecutor pool = new ThreadPoolExecutor(32,  Integer.MAX_VALUE, 60l, TimeUnit.SECONDS,
+				new SynchronousQueue<Runnable>(), Threads.newDaemonThreadFactory("htable"));
+		pool.allowCoreThreadTimeOut(true);
+		
+		this.table = (HTable) this.connection.getTable( this.env.getRegion().getTableDesc().getName(), pool);
 //		this.table = new HTable(this.env.getConfiguration(), this.env.getRegion().getTableDesc().getName());
 	}
 
@@ -97,9 +103,7 @@ implements Coprocessor, CoprocessorService{
 	public void getCalculationResult(RpcController controller,
 			OewcRequest request, RpcCallback<OewcResponse> done) {
 		
-		List<Long> times = new ArrayList<Long>();
-		times.add(System.currentTimeMillis());
-		//Batch.Call<OewcService,OewcResponse> b = new OewcCall( src, robotMeasurements, orientation);
+		
 		Call<Oewc2Service, OewcResponse> b = new ProxyBatchCall(request);
 /*				new Batch.Call<OewcService, OewcResponse>() {
 			@Override
@@ -116,7 +120,8 @@ implements Coprocessor, CoprocessorService{
 				return done.get();
 			}	
 		};*/
-		times.add(System.currentTimeMillis());
+		
+		
 		/*
 		 * first:create Map<byte[], OewcResponse> results to store the results.
 		 * second: execute the coprocessor with the arguments which are 
@@ -127,67 +132,40 @@ implements Coprocessor, CoprocessorService{
 		 * */
 		Map<byte[], OewcResponse> results=null;
 		try {
-			//proxy is not client end. it needs to distribute the one request over all of region server on Gigabit Network.
 			results = table.coprocessorService(Oewc2Service.class, "0000".getBytes(), "1000".getBytes(), b);
 		} catch (ServiceException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (Throwable e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
-		//setup weight and orientatin to the particles(src)
-		times.add(System.currentTimeMillis());
+		//package results into proxy response
 		OewcResponse.Builder oewcResponseBuilder = OewcResponse.newBuilder();
-		int countOfResults = 0;
+		int maxCountOfResults = 0;
 		String strOfResults = "";
-		float weightOfResults = 0;
-//		List<Long> durations = new ArrayList<Long>();
-		List<Particle> result = new ArrayList<Particle>();
+		float maxWeightOfResults = 0;
 		for(Entry<byte[], OewcResponse> entry:results.entrySet()){
-//			durations.add((long) entry.getValue().getCount());
-//			Transformer.debugMode(mode, "getCount:"+entry.getValue().getCount());
-//			Transformer.debugMode(mode, entry.getValue().getStr());
-//			for(OewcProtos.Particle op : entry.getValue().getParticlesList()){
-//				result.add(IMCLROE.ParticleFromO(op, orientation));
-//			}
-			//TODO combine all of response into one!
-			//only the Particles list can be appended so next paragraph will assgin the remains message.
-			//TODO check this function whether works.
+			
+			//parse entry's value
+			//the Particles list can be appended directly.
 			oewcResponseBuilder.addAllParticles(entry.getValue().getParticlesList());
-			if(entry.getValue().getCount()>countOfResults)
-				countOfResults = entry.getValue().getCount();
-			if(entry.getValue().getWeight()>weightOfResults)
-				weightOfResults = entry.getValue().getWeight();
-			strOfResults = strOfResults
-					+Bytes.toString(entry.getKey())+"\n"
-					+entry.getValue().getStr() + "\n";
+			if(entry.getValue().getCount()>maxCountOfResults)
+				maxCountOfResults = entry.getValue().getCount();
+			if(entry.getValue().getWeight()>maxWeightOfResults)
+				maxWeightOfResults = entry.getValue().getWeight();
+			strOfResults = strOfResults	+ 
+					"{" + Bytes.toString(entry.getKey())+", " + 
+					entry.getValue().getStr() + "}\t";
 		}
-		oewcResponseBuilder.setCount(countOfResults);
-		oewcResponseBuilder.setWeight(weightOfResults);
 		
-		times.add(System.currentTimeMillis());
 		strOfResults = strOfResults
-				+"processing period on sending oewc."+"\n";
-		for(Long time:times){
-			strOfResults = strOfResults
-					+(time-times.get(0))+"\t";
-		}
+				+"End of Proxy Endpoint\t";
 		oewcResponseBuilder.setStr(strOfResults);
+		oewcResponseBuilder.setCount(maxCountOfResults);
+		oewcResponseBuilder.setWeight(maxWeightOfResults);
+		
 		//response is done!!!!!
-		done.run(oewcResponseBuilder.build());
-		
-		//change the result to src
-//		src.clear();
-//		src.addAll(result);
-//		times.add(System.currentTimeMillis());
-//		System.out.print("longest weighting\t"+Collections.max(durations)+"\t");
-//		Transformer.debugMode(mode, "-----------------------------");
-//		for(Long time: times){
-//			Transformer.debugMode(mode, "\t"+counter + "\t:"+ time);
-//		}
-		
+		done.run(oewcResponseBuilder.build());		
 	}
 
 	

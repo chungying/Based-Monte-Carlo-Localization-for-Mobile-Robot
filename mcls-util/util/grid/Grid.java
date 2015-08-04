@@ -19,6 +19,12 @@ import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.TreeMap;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
@@ -31,7 +37,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
-import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.HConnectionManager;
@@ -45,6 +50,7 @@ import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.filter.RowFilter;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.Threads;
 import org.apache.hadoop.mapreduce.Reducer.Context;
 
 import util.gui.MouseListener;
@@ -285,7 +291,11 @@ public class Grid extends MouseAdapter {
 	public HTable getTable(String tablename) throws IOException{
 		if(tablename != null){
 			System.out.println("get new HTable from Grid.");
-			return (HTable)this.connection.getTable(tablename);
+			ThreadPoolExecutor pool = new ThreadPoolExecutor(3,  Integer.MAX_VALUE, 60l, TimeUnit.SECONDS,
+					new SynchronousQueue<Runnable>(), Threads.newDaemonThreadFactory("htable"));
+			pool.allowCoreThreadTimeOut(true);
+			return (HTable)this.connection.getTable(tablename, pool );
+//			return (HTable)this.connection.getTable(tablename);
 		}
 		else{
 			System.out.println("tablename is null.Cannot get HTable from Grid.");
@@ -595,15 +605,13 @@ public class Grid extends MouseAdapter {
 	public float[] getMeasurements(HTable table, boolean oncloud, int x, int y, int z)
 			throws Exception {
 		if (oncloud) {
-			// System.out.println("get from CLOUD!!!!!");
-			// System.out.println("(X,Y,Z) = ("+X+","+Y+","+Z+")");
-			//return this.getFromCloud(table, x, y, z);
 			return this.getFromCloud2(table, x, y, z);
-		} else {
-			// System.out.println("get from local!!!!!");
-			// System.out.println("(X,Y,Z) = ("+X+","+Y+","+Z+")");
+		} 
+		else// if( this.map_array(x,y)==Grid.GRID_EMPTY ) {
 			return this.G[x][y].getMeasurements(z);
-		}
+//		} else{
+//			return null;
+//		}
 	}
 
 	public void readmap() {
@@ -679,18 +687,23 @@ public class Grid extends MouseAdapter {
 		this.totalProgress = this.width*this.height;
 		int progress = 0;
 		this.G = new position[this.width][this.height];
-		for (int x = 1; x < this.width - 1; x++) {
-			for (int y = 1; y < this.height - 1; y++) {
+		for (int x = 0; x < this.width ; x++) {
+			for (int y = 0; y < this.height ; y++) {
 				this.currentProgress = x*y;
 				if(Math.round(this.currentProgress/this.totalProgress)>progress){
 					progress++;
 					System.out.println("pre-caching progress"+progress+"%");
 				}
+				
+				float[] temp = new float[this.orientation];
+				Point[] measurement_points = new Point[this.orientation];
 				if (x == 0) {
-					this.G[x][y] = new position();
+					for (int k = 0; k < measurement_points.length; k++) {
+						measurement_points[k] = new Point(x, y);
+					}
+					this.G[x][y] = new position(temp, measurement_points);
 				} else {
-					float[] temp = new float[this.orientation];
-					Point[] measurement_points = new Point[this.orientation];
+					
 
 					this.getlaserdist(x, y, temp, measurement_points);
 					this.G[x][y] = new position(temp, measurement_points);
@@ -709,12 +722,10 @@ public class Grid extends MouseAdapter {
 					if (i + x == 0 || i + x >= this.width || j + y == 0
 							|| j + y >= this.height) {//edge of the picture would not be calculated.
 						for (int k = 0; k < measurement_points.length; k++) {
-							// System.out.println("i+x = "+(i+x));
-							// System.out.println("j+y = "+(j+y));
-							// System.out.println("k   = "+k);
 							measurement_points[k] = new Point(i + x, j + y);
 						}
 						this.G[i][j] = new position(temp, measurement_points);
+						
 					} else {
 						this.getlaserdist(i + x, j + y, temp,
 								measurement_points);
@@ -849,7 +860,44 @@ public class Grid extends MouseAdapter {
 	}
 
 	public static void main(String[] args) throws IOException{
-		Configuration conf = HBaseConfiguration.create();
+
+		//test distribution
+		Grid grid = new Grid(4,4,"file:///home/wuser/backup/jpg/sim_map.jpg");
+		grid.readmap();
+		
+		int situation[] = {1,2,4,8,16};
+			for (int j : situation) {
+				int number = j;
+				List<Integer> list = new ArrayList<Integer>();
+				for (int i = 0; i <= number; i++) {
+					list.add(i * (1000 / number));
+				}
+				Map<Integer, Integer> map = new TreeMap<Integer, Integer>();
+				for (int i = 0; i < number; i++) {
+					map.put(i, 0);
+				}
+				Random rand = new Random();
+				for (int x = 0; x < grid.width; x++) {
+					for (int y = 0; y < grid.height; y++) {
+						if (grid.map_array(x, y) == Grid.GRID_EMPTY) {
+							rand.setSeed(Long.parseLong(Transformer.xy2String(
+									x, y)));
+
+							for (int i = 0; i < number; i++) {
+								int r = rand.nextInt(1000);
+								if (r >= list.get(i) && r < list.get(i + 1)) {
+									map.put(i, map.get(i) + 1);
+								}
+							}
+						}
+					}
+
+				}
+				System.out.println(map);
+			}
+		
+		//test getTable time period
+		/*Configuration conf = HBaseConfiguration.create();
 		Grid grid = new Grid(4,4,"file:///home/wuser/backup/jpg/test6.jpg");
 		grid.readmap();
 		HTable[] tables = new HTable[10];
@@ -860,8 +908,8 @@ public class Grid extends MouseAdapter {
 			long time = System.currentTimeMillis();
 			for(int i = 0 ; i < n; i++){
 				tables[i] = grid.getTable("test6.18.split");
-				/*Result r = tables[i].get(new Get(Bytes.toBytes("r1")));
-				System.out.println(r.toString());*/
+				Result r = tables[i].get(new Get(Bytes.toBytes("r1")));
+				System.out.println(r.toString());
 			}
 			time = System.currentTimeMillis() - time;
 			System.out.println("time : " + time +" ms");
@@ -871,6 +919,6 @@ public class Grid extends MouseAdapter {
 			for(HTable t: tables)
 				t.close();
 			grid.closeTable();
-		}
+		}*/
 	}
 }

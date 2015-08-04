@@ -21,18 +21,19 @@ public class Main {
 //					"--help",
 //					"-i","file:///Users/ihsumlee/Jolly/jpg/sim_map.jpg"
 					"-i","file:///home/wuser/backup/jpg/test6.jpg"
-					,"-o","36"
+					,"-t","test6.18.split"
+					,"-cl"
+					,"-o","18"
 //					,"-rl","true"
 					,"-rx","150"
-					,"-ry","90"
-					,"-rh","90"
-					,"-n","50"
-//					,"-cl"
+					,"-ry","80"
+					,"-rh","50"
+//					,"-n","50"
 					,"-d","0.001"
 					,"-x","0.05"
-//					,"-t map.512.4.split"
+					
 					,"--showparticles"
-					,"--period","500"
+//					,"--period","500"
 					
 					};
 			args = targs;
@@ -94,6 +95,7 @@ public class Main {
 		robot.setInitPose((Pose)robot);
 		@SuppressWarnings("unused")
 		RobotController robotController = new RobotController("robot controller", robot,samcl);
+		@SuppressWarnings("unused")
 		VariablesController vc = new VariablesController(samcl);
 		Thread t = new Thread(robot);
 		t.start();

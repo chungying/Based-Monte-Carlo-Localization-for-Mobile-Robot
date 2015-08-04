@@ -82,7 +82,8 @@ public final class OewcProtos2 {
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
       initFields();
-      int mutable_bitField0_ = 0;
+      @SuppressWarnings("unused")
+	int mutable_bitField0_ = 0;
       com.google.protobuf.UnknownFieldSet.Builder unknownFields =
           com.google.protobuf.UnknownFieldSet.newBuilder();
       try {
@@ -1172,7 +1173,8 @@ public final class OewcProtos2 {
 
       public endpoint.services.generated.OewcProtos2.OewcRequest buildPartial() {
         endpoint.services.generated.OewcProtos2.OewcRequest result = new endpoint.services.generated.OewcProtos2.OewcRequest(this);
-        int from_bitField0_ = bitField0_;
+        @SuppressWarnings("unused")
+		int from_bitField0_ = bitField0_;
         if (particlesBuilder_ == null) {
           if (((bitField0_ & 0x00000001) == 0x00000001)) {
             particles_ = java.util.Collections.unmodifiableList(particles_);

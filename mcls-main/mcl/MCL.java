@@ -6,6 +6,7 @@ import java.util.List;
 import samcl.SAMCL;
 import util.metrics.Particle;
 import util.metrics.Transformer;
+import util.robot.RobotState;
 
 public class MCL extends SAMCL{
 	
@@ -30,13 +31,14 @@ public class MCL extends SAMCL{
 	}
 
 	@Override
-	public void batchWeight(List<Particle> src, float[] robotMeasurements)
+	public long batchWeight(RobotState robot, List<Particle> src, float[] robotMeasurements)
 			throws Exception {
 		for(Particle p : src){
 			float[] m = this.grid.getMeasurementsOnTime(p.getX(), p.getY(), Transformer.th2Z(p.getTh(), this.orientation));
 			p.setMeasurements(m);
 			this.WeightParticle(p, robotMeasurements);
 		}
+		return -1;
 	}
 
 	public MCL(boolean cloud, int orientation, String mapFilename,

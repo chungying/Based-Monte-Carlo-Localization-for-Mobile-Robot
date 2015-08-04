@@ -7,20 +7,13 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.Closeable;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.net.MalformedURLException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.TreeMap;
-import java.util.Map.Entry;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.swing.JFrame;
@@ -138,6 +131,7 @@ public class SAMCL implements Closeable{
 	 * @throws Throwable 
 	 */
 	public void run(RobotState robot, JFrame samcl_window) throws Throwable{
+		boolean mode = false;
 		this.setTerminating(false);
 		this.setTerminated(false);
 		
@@ -168,22 +162,25 @@ public class SAMCL implements Closeable{
 		
 		int counter = 0;
 		long time = 0, duration = 0, startTime = System.currentTimeMillis();
+		long transmission = 0;
 		Pose previousPose = new Pose((Pose)robot);
 		Pose currentPose = null;
 		
-		System.out.print("counter\t");
-		System.out.print("time\t");
-		System.out.print("duration\t");
-		System.out.print("weight time\t");
-		System.out.print("SER time\t");
-		System.out.print("best X\t");
-		System.out.print("best Y\t");
-		System.out.print("best H\t");
-		System.out.print("best W\t");
-		System.out.print("robot X\t");
-		System.out.print("robot Y\t");
-		System.out.print("robot H\t");
-		System.out.println();
+		System.out.print(
+						"counter\t"	+
+						"time\t"+
+						"duration\t"+
+						"weight time\t"+
+						"SER time\t"+
+						"transmission time\t"+
+						"best X\t"+
+						"best Y\t"+
+						"best H\t"+
+						"best W\t"+
+						"robot X\t"+
+						"robot Y\t"+
+						"robot H\t"+
+						"\n");
 		
 		while(!this.isTerminating()){
 			
@@ -198,7 +195,6 @@ public class SAMCL implements Closeable{
 			float[] Zt = robot.getMeasurements();
 			
 			//Setp 1: Sampling
-//			System.out.println("(1)\tSampling\t");
 			Transformer.debugMode(mode, "(1) Sampling\t");
 			long sampleTime = System.currentTimeMillis();
 			//TODO Particle
@@ -209,15 +205,13 @@ public class SAMCL implements Closeable{
 			sampleTime = System.currentTimeMillis() - sampleTime;
 			
 			//Step 2: Weighting
-//			System.out.println("(2)\tWeighting\t");
 			Transformer.debugMode(mode, "(2) Weighting\t");
 			long weightTime = System.currentTimeMillis();
 			//TODO Particle
-			this.batchWeight(current_set, Zt);
+			transmission = this.batchWeight(robot, current_set, Zt);
 			weightTime = System.currentTimeMillis() - weightTime;
 			
 			//Step 3: Determining size
-//			System.out.println("(3)\tDetermining size\t");
 			Transformer.debugMode(mode, "(3) Determining size\t");
 			long determiningTime = System.currentTimeMillis();
 			Particle bestParticle = this.Determining_size(current_set);
@@ -229,7 +223,6 @@ public class SAMCL implements Closeable{
 			serTime = System.currentTimeMillis() - serTime;
 			
 			//Step 4: Local resampling
-//			System.out.println("(4)\tLocal resampling\t");
 			Transformer.debugMode(mode, "(4) Local resampling\t");
 			long localResamplingTime = System.currentTimeMillis();
 			this.Local_resampling(current_set, local_set, bestParticle);
@@ -237,7 +230,6 @@ public class SAMCL implements Closeable{
 //			System.out.println("\tlocal set size : \t" + local_set.size());
 			
 			//Step 5: Combimining
-//			System.out.println("(5)\tCombimining\t");
 			Transformer.debugMode(mode, "(5) Combimining\n");
 			long combiminingTime = System.currentTimeMillis();
 			last_set.clear();
@@ -249,7 +241,8 @@ public class SAMCL implements Closeable{
 			
 			//TODO Particle
 			long averageTime = System.currentTimeMillis();
-			Particle averagePose = this.averagePose(current_set);
+//			@SuppressWarnings("unused")
+//			Particle averagePose = this.averagePose(current_set);
 			averageTime = System.currentTimeMillis() - averageTime;
 			//show out the information
 			/**
@@ -274,7 +267,10 @@ public class SAMCL implements Closeable{
 			
 			//update image
 			image_panel.repaint();
-			duration = System.currentTimeMillis() - time;
+			if(this.ignore)
+				duration = System.currentTimeMillis() - time - weightTime + transmission;
+			else
+				duration = System.currentTimeMillis() - time;
 			
 
 			Transformer.debugMode(false,
@@ -300,25 +296,28 @@ public class SAMCL implements Closeable{
 			
 			
 			if(this.mode){
-				System.out.print("counter\t");
-				System.out.print("time\t");
-				System.out.print("duration\t");
-				System.out.print("weight time\t");
-				System.out.print("SER time\t");
-				System.out.print("best X\t");
-				System.out.print("best Y\t");
-				System.out.print("best H\t");
-				System.out.print("best W\t");
-				System.out.print("robot X\t");
-				System.out.print("robot Y\t");
-				System.out.print("robot H\t");
-				System.out.println();
+				System.out.print(
+						"counter\t"	+
+						"time\t"+
+						"duration\t"+
+						"weight time\t"+
+						"SER time\t"+
+						"transmission time\t"+
+						"best X\t"+
+						"best Y\t"+
+						"best H\t"+
+						"best W\t"+
+						"robot X\t"+
+						"robot Y\t"+
+						"robot H\t"+
+						"\n");
 			}
 			System.out.format("%5d\t",counter);
-			System.out.format("\t",time-startTime);
+			System.out.format("%5d\t",time-startTime);
 			System.out.format("%5d\t",duration);
 			System.out.format("%5d\t",weightTime);
 			System.out.format("%5d\t",serTime);
+			System.out.format("%5d\t",transmission);
 			System.out.format("%.5f\t",bestParticle.getDX());
 			System.out.format("%.5f\t",bestParticle.getDY());
 			System.out.format("%.5f\t",bestParticle.getTh());
@@ -342,6 +341,7 @@ public class SAMCL implements Closeable{
 		this.setTerminated(true);
 	}
 	
+	@SuppressWarnings("unused")
 	private Particle averagePose(List<Particle> src_set) {
 		double xSum = 0;
 		double ySum = 0;
@@ -527,6 +527,9 @@ public class SAMCL implements Closeable{
 		
 	}
 	
+	@Parameter(names = "--ignore", description = "robot and mcls ignore network letancy, default is false to consider it.", required = false, arity = 1)
+	public boolean ignore = false;
+	
 	@Parameter(names = {"-D","--debug"}, description = "start up/stop debug mode, default is to start up", required = false, arity = 1)
 	public boolean mode = true;
 	
@@ -677,7 +680,7 @@ public class SAMCL implements Closeable{
 		return result;
 	}
 	
-	public void batchWeight(List<Particle> src, float[] robotMeasurements) throws IOException, ServiceException, Throwable {
+	public long batchWeight(RobotState robot, List<Particle> src, float[] robotMeasurements) throws IOException, ServiceException, Throwable {
 		if (robotMeasurements!=null) {
 			//get sensor data of all particles.
 			if (this.onCloud) {
@@ -708,6 +711,7 @@ public class SAMCL implements Closeable{
 		}else{
 			throw new Exception("robot didn't get the sensor data!!!");
 		}
+		return -1;
 	}
 
 	/**
@@ -830,7 +834,7 @@ public class SAMCL implements Closeable{
 		return p;
 	}
 	
-	@Deprecated
+	/*@Deprecated
 	private void pixel_sampling(
 			Particle p, 
 			int radius, 
@@ -853,14 +857,14 @@ public class SAMCL implements Closeable{
 			py = p.getY() + r;
 		}
 		r = random.nextInt(angular)-( angular - 1 )/2;
-		int pz = (/*p.getZ()*/Transformer.th2Z(p.getTh(), this.orientation)
+		int pz = (p.getZ()Transformer.th2Z(p.getTh(), this.orientation)
 				+ r + this.orientation) 
 				% this.orientation;
 		
 		p.setX(px);
 		p.setY(py);
 		p.setTh(Transformer.Z2Th(pz, this.orientation));
-	}
+	}*/
 	
 	public void WeightParticle(Particle p, float[] robotMeasurements) throws Exception{
 		//if the position is occupied.

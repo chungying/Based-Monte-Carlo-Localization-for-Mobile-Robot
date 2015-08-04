@@ -6,7 +6,6 @@ import java.awt.image.BufferedImage;
 import javax.swing.JFrame;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -20,7 +19,7 @@ import util.metrics.Transformer;
 
 
 public class Sampler {
-	private static int distribution = 10;
+	private static int distribution = 30;
 	private static int samples = 1000;
 	
 	private static int statisticsRange = 100;

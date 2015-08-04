@@ -89,6 +89,7 @@ public class Main {
 		robot.setInitPose((Pose)robot);
 		@SuppressWarnings("unused")
 		RobotController robotController = new RobotController("robot controller", robot,mcl);
+		@SuppressWarnings("unused")
 		VariablesController vc = new VariablesController(mcl);
 		Thread t = new Thread(robot);
 		t.start();

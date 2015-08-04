@@ -5,7 +5,6 @@ import java.awt.Button;
 import java.awt.GridLayout;
 import java.awt.HeadlessException;
 import java.awt.Label;
-import java.awt.TextComponent;
 import java.awt.TextField;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -31,7 +30,7 @@ public class RobotController extends JFrame implements ActionListener{
 		Object object = e.getSource();
 		if(object instanceof Button){
 			Button btn = (Button) object;
-			System.out.println("Action!!!");
+//			System.out.println("Action!!!");
 			
 			if(btn==B[0]){
 				//Pause/Continue
@@ -39,13 +38,13 @@ public class RobotController extends JFrame implements ActionListener{
 			}
 			else if(btn==B[1]){
 				//Stop
-				System.out.println("Stop");
+				//System.out.println("Stop");
 				this.robot.setVt(0);
 				this.robot.setWt(0);
 			}
 			else if(btn==B[2]){
 				//terminate
-				System.out.println("terminate the localization method");
+				//System.out.println("terminate the localization method");
 				this.samcl.setTerminating(true);
 			}
 			else if(btn==B[3]){
@@ -53,55 +52,55 @@ public class RobotController extends JFrame implements ActionListener{
 				samcl.forceConverge();
 			}
 			else if(btn==B[4]){//Forward
-				System.out.println("Forward");
+				//System.out.println("Forward");
 				this.robot.setVt(this.robot.getVt() + 1);
 			}
 			else if(btn==B[5]){
 				//Initialize
-				System.out.println("Initialize robot");
+				//System.out.println("Initialize robot");
 				this.robot.lock();
 				this.robot.initRobot();
 				
 			}
 			else if(btn==B[6]){
 				//Turnleft
-				System.out.println("Turnleft");
+				//System.out.println("Turnleft");
 				this.robot.setWt(this.robot.getWt() - 1);
 			}
 			else if(btn==B[7]){
 				//Backward
-				System.out.println("Backward");
+				//System.out.println("Backward");
 				this.robot.setVt(this.robot.getVt() - 1);
 			}
 			else if(btn==B[8]){
 				//Turnright
-				System.out.println("Turnright");
+				//System.out.println("Turnright");
 				this.robot.setWt(this.robot.getWt() + 1);
 			}
 		}else if(object instanceof TextField){
 			TextField text = (TextField) object;
 			if(text==textU[0]){
-				System.out.println("update velocity");
+				//System.out.println("update velocity");
 				if(text.getText().length()!=0)
 					this.robot.setVt(Double.parseDouble(text.getText()));
 			}
 			else if(text==textU[1]){
-				System.out.println("update angular velocity");
+				//System.out.println("update angular velocity");
 				if(text.getText().length()!=0)
 					this.robot.setWt(Double.parseDouble(text.getText()));
 			}
 			else if(text==textPose[0]){
-				System.out.println("update robot X");
+				//System.out.println("update robot X");
 				if(text.getText().length()!=0)
 					this.robot.setX(Double.parseDouble(text.getText()));
 			}
 			else if(text==textPose[1]){
-				System.out.println("update robot Y");
+				//System.out.println("update robot Y");
 				if(text.getText().length()!=0)
 					this.robot.setY(Double.parseDouble(text.getText()));
 			}
 			else if(text==textPose[2]){
-				System.out.println("update robot Head");
+				//System.out.println("update robot Head");
 				if(text.getText().length()!=0)
 					this.robot.setHead(Double.parseDouble(text.getText()));
 			}

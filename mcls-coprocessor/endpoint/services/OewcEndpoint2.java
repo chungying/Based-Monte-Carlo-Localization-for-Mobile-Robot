@@ -14,6 +14,7 @@ import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.Pair;
 
 import util.metrics.Transformer;
 import util.oewc.Oewc;
@@ -22,7 +23,6 @@ import com.google.protobuf.RpcCallback;
 import com.google.protobuf.RpcController;
 import com.google.protobuf.Service;
 
-import endpoint.services.generated.OewcProtos;
 import endpoint.services.generated.OewcProtos2;
 import endpoint.services.generated.OewcProtos2.OewcRequest;
 import endpoint.services.generated.OewcProtos2.OewcResponse;
@@ -55,15 +55,17 @@ public class OewcEndpoint2 extends OewcProtos2.Oewc2Service implements
 	@Override
 	public void getOewc2Result(RpcController controller, OewcRequest request,
 			RpcCallback<OewcResponse> done) {
+		long start = System.currentTimeMillis();
 		this.env.getRegion().getTableDesc().getTableName().toString();
 
 		// initial and get the data from client
-		String message = "\n=========start, \n";
+		String message = "";
 		OewcResponse.Builder responseBuilder = OewcResponse.newBuilder();
-		long start = System.currentTimeMillis();
-		long initial = 0, step1 = 0, step2 = 0, step3 = 0, end = 0;
+		
+		long initial = -1, step1 = -1, step2 = -1, step3 = -1, end = -1;
 		List<OewcProtos2.Particle> requsetParts = request.getParticlesList();
 		List<OewcProtos2.Particle> existParticles = new ArrayList<OewcProtos2.Particle>();
+		Pair<Long, Long> times = null;
 		try {
 			List<Float> Zt = request.getMeasurementsList();
 			if (Zt.isEmpty()) {
@@ -77,41 +79,34 @@ public class OewcEndpoint2 extends OewcProtos2.Oewc2Service implements
 					.getStartKey(), this.env.getRegion().getEndKey())) {
 				step1 = System.currentTimeMillis();
 				// Step 2: Orientation Estimation and setup response
-				message = message
-						+ orientationEstimate(this.env.getRegion(),
-								responseBuilder, existParticles, Zt)+"\n";
+				times = orientationEstimate(this.env.getRegion(),
+								responseBuilder, existParticles, Zt);
 				step2 = System.currentTimeMillis();
 				// Step 3: Send back the response
-				responseBuilder.setWeight(1.0f);
-				message = message + "Particle number: "
-						+ String.valueOf(existParticles.size())+"\n";
+				message = message + "Particle number is "
+						+ String.valueOf(existParticles.size())+".\t";
 				step3 = System.currentTimeMillis();
 			} else {
 				step1 = System.currentTimeMillis();
-				responseBuilder.setWeight(-1.0f).build();
-				message = "no OEWC" + requsetParts.size()+"\n";
+				message = "Particle number is" + requsetParts.size()+".\t";
 			}
 			end = System.currentTimeMillis();
 
 		} catch (Exception e) {
-			responseBuilder.setWeight(-1.0f).build();
-			message = "failed:" + e.toString()+"\n";
-
-			e.printStackTrace();
+			message = "FAILED:" + e.toString()+"\t";
 		} finally {
 			responseBuilder.setStr(
-			// "start k:"+Bytes.toString(scan.getStartRow())+"\n"+
-			// "stop k :"+Bytes.toString(scan.getStopRow())+"\n"+
-			// "cells  :"+cells.size()+"\n"+
-			// "rows   :"+rowMap.size()+"\n"+
-			// "rowkey1:"+Bytes.toString(rowMap.keySet().iterator().next())+"\n"+
-					"start  :" + String.valueOf(start) + "\n" + "initial:"
-							+ String.valueOf(initial) + "\n" + "step1  :"
-							+ String.valueOf(step1) + "\n" + "step2  :"
-							+ String.valueOf(step2) + "\n" + "step3  :"
-							+ String.valueOf(step3) + "\n" + "end    :"
-							+ String.valueOf(end) + "\n" + message+"\n");
-			responseBuilder.setCount((int) (end - start));
+							"start  :" + String.valueOf(start)	+ "\t" + 
+							"initial:" + String.valueOf(initial)+ "\t" + 
+							"step1  :" + String.valueOf(step1)	+ "\t" + 
+							"step2  :" + String.valueOf(step2)	+ "\t" + 
+							"step3  :" + String.valueOf(step3) 	+ "\t" + 
+							"end    :" + String.valueOf(end)	+ "\t" + 
+							message + "\n");
+			if(times!=null){
+				responseBuilder.setWeight(times.getFirst().floatValue());
+				responseBuilder.setCount( times.getSecond().intValue());
+			}
 			done.run(responseBuilder.build());
 		}
 	}
@@ -165,51 +160,38 @@ public class OewcEndpoint2 extends OewcProtos2.Oewc2Service implements
 
 	static byte[] family = Bytes.toBytes("distance");
 
-	static public String orientationEstimate(HRegion region,
+	static public Pair<Long, Long> orientationEstimate(HRegion region,
 			Builder responseBuilder, List<Particle> existParticles,
 			List<Float> zt) throws IOException {
-		String message = "OEWC223 start, ";
-		try {
-			/**
-			 * 
-			 * */
-
-			Result result = null;
-			for (Particle p : existParticles) {
-				// get the round measurements to circleMeasure
-				// message = message +"1,";
-				Get get = new Get(Bytes.toBytes(Transformer.xy2RowkeyString(
-						p.getX(), p.getY())));
-				// message = message +"2,";
-				get.addColumn(family, "data".getBytes());
-				// message = message +"3,";
-				result = region.get(get);
-				// result = this.env.getRegion().get(get);
-				// message = message +"4,";
-				// List<Float> circleMeasurements = drawMeasurements(result);
-				List<Float> circleMeasurements = new ArrayList<Float>();
-				message = message
-						+ Transformer.result2Array(family, result,
-								circleMeasurements);
-				// message = message +"5,";
-				if (circleMeasurements.size() == 0) {
-					throw new Exception("there is no circle measurements! ");
-				}
+		long readTime = 0, weightTime = 0, time;
+		Result result = null;
+		for (Particle p : existParticles) {
+			time = System.nanoTime();
+			// get the round measurements to circleMeasure
+			Get get = new Get(Bytes.toBytes(Transformer.xy2RowkeyString(
+					p.getX(), p.getY())));
+			get.addColumn(family, "data".getBytes());
+			result = region.get(get);
+			List<Float> circleMeasurements = new ArrayList<Float>();
+			Transformer.result2Array(family, result,
+							circleMeasurements);
+			readTime = readTime + System.nanoTime()-time;
+			time = System.nanoTime();
+			//Orientation Estimation and Weight Calculation
+			if (circleMeasurements.size() != 0) {
 				// OE of a particle
 				Entry<Integer, Float> entry = Oewc.singleParticleModified(zt,
 						circleMeasurements);
-				// message = message +"6,";
 				// output the best weight
 				Particle.Builder outputP = Particle.newBuilder().setX(p.getX())
 						.setY(p.getY()).setZ(entry.getKey())
 						.setW(entry.getValue());
-				// message = message +"7,";
 				responseBuilder.addParticles(outputP);
 			}
-		} catch (Exception e) {
-			message = message + "OEWC failed, " + e.toString();
+			weightTime = weightTime + System.nanoTime() - time;
 		}
-		return message;
+	
+		return new Pair<Long, Long>(Math.round(readTime/1000000.0), Math.round(weightTime/1000000.0));
 	}
 
 }

@@ -3,14 +3,14 @@ package util.gui;
 import java.awt.BorderLayout;
 import java.awt.Checkbox;
 import java.awt.Component;
-import java.awt.FlowLayout;
 import java.awt.GridLayout;
+import java.awt.Label;
+import java.awt.TextField;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
@@ -25,8 +25,15 @@ import javax.swing.event.ChangeListener;
 
 import samcl.SAMCL;
 
+
 public class VariablesController extends JFrame {
 	
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -6900761245686028716L;
+
+
 	private SAMCL mcl;
 	
 	public static final int DEFAULT_WIDTH = 350;
@@ -112,6 +119,86 @@ public class VariablesController extends JFrame {
 		
 	}
 	
+	@SuppressWarnings("serial")
+	class PopulationListener extends JPanel implements ActionListener{
+		
+		@Override
+		public void actionPerformed(ActionEvent e) {
+			Object obj = e.getSource();
+			if(obj instanceof TextField){
+				TextField tf = (TextField)obj;
+				int nt = Integer.parseInt(tf.getText());
+				if(nt>0 && nt <=10000){
+					mcl.Nt = nt;
+					this.lb2.setText(String.valueOf(mcl.Nt));
+					System.out.println("Population is set to\t"+nt);
+				}else{
+					tf.setText(String.valueOf(mcl.Nt));
+				}
+			}
+		}
+
+		private SAMCL mcl;
+		TextField tf;
+		Label lb;
+		Label lb2;
+		public PopulationListener(SAMCL mcl, TextField tf){
+			super();
+			this.mcl = mcl;
+			
+			this.setLayout(new GridLayout(1,3));
+			
+			this.lb = new Label("particle NO.:");
+			this.add(lb);
+			this.lb2 = new Label(String.valueOf(mcl.Nt));
+			this.add(lb2);
+			this.tf = tf;
+			this.tf.addActionListener(this);
+			this.add(tf);
+		}
+		
+	}
+	
+	@SuppressWarnings("serial")
+	class DeltaListener extends JPanel implements ActionListener{
+		
+		@Override
+		public void actionPerformed(ActionEvent e) {
+			Object obj = e.getSource();
+			if(obj instanceof TextField){
+				TextField tf = (TextField)obj;
+				float delta = Float.parseFloat(tf.getText());
+				if(delta>0 && delta <=1.0f){
+					mcl.deltaEnergy = delta;
+					this.lb2.setText(String.format("%.6f",delta));
+					System.out.println("Energy delta is set to\t"+delta);
+				}else{
+					tf.setText(String.format("%.6f",mcl.deltaEnergy));
+				}
+			}
+		}
+
+		private SAMCL mcl;
+		TextField tf;
+		Label lb;
+		Label lb2;
+		public DeltaListener(SAMCL mcl, TextField tf){
+			super();
+			this.mcl = mcl;
+			
+			this.setLayout(new GridLayout(1,3));
+			
+			this.lb = new Label("delta:");
+			this.add(lb);
+			this.lb2 = new Label(String.format("%.6f",mcl.deltaEnergy));
+			this.add(lb2);
+			this.tf = tf;
+			this.tf.addActionListener(this);
+			this.add(tf);
+		}
+		
+	}
+	
 	public VariablesController(double[] inputAl){
 		setTitle("Variables Controller with alpha only");
 	    setSize(DEFAULT_WIDTH, DEFAULT_HEIGHT);
@@ -176,20 +263,28 @@ public class VariablesController extends JFrame {
 		
 		
 		this.mcl = mcl;
-		
+		//layout grid
 		JPanel checkPanel = new JPanel();
-		checkPanel.setLayout(new GridLayout(1,2));
+		checkPanel.setLayout(new GridLayout(2,2));
 		
+		//add showing particles
 		Checkbox checkParticles = new Checkbox("show particles",null,mcl.ifShowParticles);
 		checkParticles.addItemListener(new ShowParticlesListener(this.mcl,checkParticles));
 		checkPanel.add(checkParticles);
-		
+		//add showing SER
 		Checkbox checkSER = new Checkbox("show SER",null,mcl.ifShowSER);
 		checkSER.addItemListener(new ShowSERListener(this.mcl, checkSER));
 		checkPanel.add(checkSER);
 		
-		add(checkPanel,BorderLayout.SOUTH);
+		//...
+		PopulationListener pl = new PopulationListener(mcl, new TextField());
+		checkPanel.add(pl);
 		
+		DeltaListener dl = new DeltaListener(mcl, new TextField());
+		checkPanel.add(dl);
+		//
+		
+		add(checkPanel,BorderLayout.SOUTH);
 		this.pack();
 		this.setVisible(true);
 	}

@@ -1,8 +1,6 @@
 package util.robot;
 
 import java.awt.Color;
-import java.awt.Component;
-import java.awt.Container;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.Closeable;
@@ -16,7 +14,6 @@ import org.apache.hadoop.hbase.client.HTable;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
-import com.beust.jcommander.converters.DoubleConverter;
 
 import samcl.SAMCL;
 import util.grid.Grid;
@@ -31,9 +28,10 @@ import util.metrics.Transformer;
 //TODO why don't extends Pose.class? A: Because this class is combined with JCommander, there is no way to assign pose without JCommander. 
 public class RobotState extends Pose implements Runnable,Closeable{
 	
-	public static final double standardAngularVelocity = 15;// degree/second
+	public static final double standardAngularVelocity = 30;// degree/second
 	public static final double standardVelocity = 10;// pixel/second
 	
+	@SuppressWarnings({ "unused" })
 	public static void main(String[] args) throws Exception{
 		//test for the sample motion model
 		RobotState robot = new RobotState(100,100,0);
@@ -202,6 +200,7 @@ public class RobotState extends Pose implements Runnable,Closeable{
 	}
 
 	
+	@SuppressWarnings("unused")
 	private VelocityModel getModel() {
 		return this.ut;
 	}
@@ -312,6 +311,7 @@ public class RobotState extends Pose implements Runnable,Closeable{
 		
 	}
 	
+	@SuppressWarnings("unused")
 	private void update2(double t){
 		double w = this.ut.getAngular_velocity();
 		if(w==0)

@@ -22,13 +22,14 @@ public class Main {
 					"-i","file:///home/wuser/backup/jpg/test6.jpg"
 					,"-o","18"
 					,"-rl","true"
-					,"-rx","25"
-					,"-ry","25"
-					,"-n","50"
-					,"-cl"
+					,"-rx","80"
+					,"-ry","50"
+					,"-n","100"
+					,"-D","false"
 //					,"-d", "0.0001"
 					,"-x", "0.05"
 					,"--showparticles"
+					,"-cl"
 					,"-t","test6.18.split"
 //					,"--period","500"
 					};
@@ -91,6 +92,7 @@ public class Main {
 		robot.setInitPose((Pose)robot);
 		@SuppressWarnings("unused")
 		RobotController robotController = new RobotController("robot controller", robot,samclroe);
+		@SuppressWarnings("unused")
 		VariablesController vc = new VariablesController(samclroe);
 		Thread t = new Thread(robot);
 		t.start();

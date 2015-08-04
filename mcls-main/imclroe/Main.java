@@ -22,15 +22,16 @@ public class Main {
 					"-i","file:///home/wuser/backup/jpg/test6.jpg"
 					,"-o","18"
 					,"-rl","true"
-					,"-rx","25"
+					,"-rx","80"
 					,"-ry","50"
-//					,"-n","10"
+					,"-n","500"
 					,"-cl"
 					,"-t", "test6.18.split"
 					,"-d","0.0001"
 					,"-x","0.03"
-//					,"--period","500"
+//					,"--period","200"
 					,"-E","2"
+					,"-D","false"
 					};
 			args = targs;
 		}
@@ -92,6 +93,7 @@ public class Main {
 		robot.setInitPose((Pose)robot);
 		@SuppressWarnings("unused")
 		RobotController robotController = new RobotController("robot controller", robot,imclroe);
+		@SuppressWarnings("unused")
 		VariablesController vc = new VariablesController(imclroe);
 		Thread t = new Thread(robot);
 		t.start();

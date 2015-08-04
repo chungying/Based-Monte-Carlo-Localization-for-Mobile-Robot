@@ -1,29 +1,21 @@
 package util.metrics;
 
-import java.awt.Color;
-import java.awt.Graphics2D;
-import java.awt.image.BufferedImage;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Random;
-import java.util.TreeMap;
-
-import javax.swing.JFrame;
-import javax.swing.JPanel;
-
 import util.grid.Grid;
-import util.gui.Panel;
-import util.gui.Tools;
 import util.robot.Pose;
 import util.robot.VelocityModel;
 
 public class Distribution {
 	
 	public static void main(String[] args){
-		double x = 1235.00000012;
+		
+		
+		
+		//test word convertor
+		/*double x = 1235.00000012;
 		System.out.println(x);
 		System.out.println(Double.toString(x).substring(0, 5));
-		System.out.println(String.format("%.0f", x));
+		System.out.println(String.format("%.0f", x));*/
 		
 /*		Map<Integer,Integer> map = new TreeMap<Integer, Integer>();
 		int n = 1000000;
@@ -119,8 +111,8 @@ public class Distribution {
 	}
 	
 	public static double[] al = {
-		100,100,
-		100,100,
+		10,10,
+		10,10,
 		10,10
 		};
 	
@@ -232,9 +224,8 @@ public class Distribution {
 			xbardelta = Double.MIN_VALUE;
 		if(ybardelta==0)
 			ybardelta = Double.MIN_VALUE;
-		double rot1 = Transformer.checkHeadRange(Math.toDegrees(Math.atan2(ybardelta,xbardelta)))
-				-previousPose.H;
-		double rot2 = currentPose.H-previousPose.H-rot1;
+		double rot1 = Pose.deltaTheta(Transformer.checkHeadRange(Math.toDegrees(Math.atan2(ybardelta,xbardelta))),previousPose.H);
+		double rot2 = Pose.deltaTheta(currentPose.H, previousPose.H)-rot1;
 		double trans= Math.sqrt(xbardelta*xbardelta+ybardelta*ybardelta);
 		
 		double rot1c = rot1 - sample_normal_distribution(al[0] * rot1 + al[1] * trans, random);

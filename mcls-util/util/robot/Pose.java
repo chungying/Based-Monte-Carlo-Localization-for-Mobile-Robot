@@ -11,8 +11,11 @@ public class Pose {
 	public double X;
 	@Parameter(names = {"-ry","--roboty"}, description = "initialize robot's Y-Axis", required = false, converter = DoubleConverter.class)
 	public double Y;
+	
+	//unit:degree
 	@Parameter(names = {"-rh","--robothead"}, description = "initialize robot's Head", required = false, converter = DoubleConverter.class)
 	public double H;
+	
 	
 	public Pose(){
 		super();
@@ -76,6 +79,10 @@ public class Pose {
 			else
 				return d;
 		}
+	}
+	
+	public static double deltaTheta(double currentTh, double previousTh){
+		return (Transformer.checkHeadRange(currentTh-previousTh)+180)%360-180;
 	}
 	
 	@Override

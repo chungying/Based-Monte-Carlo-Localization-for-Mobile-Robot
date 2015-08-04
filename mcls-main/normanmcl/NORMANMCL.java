@@ -3,12 +3,10 @@ package normanmcl;
 import java.io.IOException;
 import java.util.List;
 
-import com.google.protobuf.ServiceException;
-
 import samcl.SAMCL;
 import util.metrics.Particle;
 import util.metrics.Transformer;
-import util.robot.VelocityModel;
+import util.robot.RobotState;
 
 public class NORMANMCL extends SAMCL{
 	
@@ -34,13 +32,14 @@ public class NORMANMCL extends SAMCL{
 	}
 
 	@Override
-	public void batchWeight(List<Particle> src, float[] robotMeasurements)
+	public long batchWeight(RobotState robot, List<Particle> src, float[] robotMeasurements)
 			throws Exception {
 		for(Particle p : src){
 			float[] m = this.grid.getMeasurementsOnTime(p.getX(), p.getY(), Transformer.th2Z(p.getTh(), this.orientation));
 			p.setMeasurements(m);
 			this.WeightParticle(p, robotMeasurements);
 		}
+		return -1;
 	}
 
 	public NORMANMCL(boolean cloud, int orientation, String mapFilename,

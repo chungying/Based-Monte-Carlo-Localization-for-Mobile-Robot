@@ -6,15 +6,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
+import java.util.TreeMap;
 
 import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
-
-import com.beust.jcommander.JCommander;
-
-import util.robot.Pose;
 
 public class Transformer {
 	
@@ -297,6 +294,16 @@ public class Transformer {
 		return getHash(Long.parseLong(xy2String(p.getX(),p.getY())), random);
 	}
 	
+	public static void filterParticle(List<Particle> src){
+		Random random = new Random();
+		TreeMap<String, Particle> map = new TreeMap<String, Particle>();
+		for(Particle p: src){
+			map.put(xy2RowkeyString(p.getDX(),p.getDY(), random), p);
+		}
+		src.clear();
+		src.addAll(map.values());
+	}
+	
 	static final String separator = ":";
 	public static String getHash(long l, Random random){
 		random.setSeed(l);
@@ -357,7 +364,29 @@ public class Transformer {
 	
 	
 	public static void main(String[] args) throws IOException{
-		String[] test = {
+		double t1, t2, t3;
+		
+		//checkHeadRange(double) test
+		t1 = 359;
+		t2 = 1; 
+//		System.out.println(checkHeadRange(t2-t1));//-358, ans: 2
+		System.out.println(((t2-t1)+180)%360-180);//1-359, 2
+		System.out.println((checkHeadRange(t2-t1)+180)%360-180);//1-359, 2
+		System.out.println((checkHeadRange(checkHeadRange(t2)-checkHeadRange(t1))+180)%360-180);//1-359, 2
+		
+		System.out.println();
+		t3 = t1;
+		t1 = t2;
+		t2 = t3;
+//		System.out.println(checkHeadRange(t2-t1));//358, ans: -2
+		System.out.println(((t2-t1)+180)%360-180);//359-1, -2
+		System.out.println((checkHeadRange(t2-t1)+180)%360-180);//359-1, -2
+		System.out.println((checkHeadRange(checkHeadRange(t2)-checkHeadRange(t1))+180)%360-180);//359-1, -2
+					
+		
+		
+		//extends test
+		/*String[] test = {
 				"-rx","25"
 				,"-ry","50"
 				};
@@ -368,10 +397,12 @@ public class Transformer {
 		jc.addObject(pt);
 		jc.parse(test);
 		System.out.println(pt);
-		System.out.println((Pose)pt.getPose());
+		System.out.println((Pose)pt.getPose());*/
 		
-		double x = 12345.12345;
-		System.out.println(String.format("%.4f",x));
+		
+		//string test
+		/*double x = 12345.12345;
+		System.out.println(String.format("%.4f",x));*/
 
 		//System.out.println(String.format("%05d", Math.round(x)));
 		
@@ -428,12 +459,13 @@ public class Transformer {
 		return checkHeadRange(z*360/orientation);
 	}
 	
+	//TODO what's this?
 	public static int Energy2Count(float energy, List<Float> curve){
 		int i = 0;
 		for(Float f: curve){
 			if(f>energy)
 				;
-//			i
+			i=i+1;
 		}
 		return 0;
 	}

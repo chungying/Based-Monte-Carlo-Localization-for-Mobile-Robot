@@ -9,19 +9,29 @@ import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.HConnectionManager;
 import org.apache.hadoop.hbase.client.HTable;
 
+import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 
 abstract public class Base implements Closeable, Runnable{
 	
-	@Parameter(names = {"-t","--tableName"}, description = "the name of HBase table, default is \"map.512.4.split\"", required = true)
-	public String tableName = "map.512.4.split";
+	public Base(){
+		super();
+	}
+	
+	@Parameter(names = {"-t","--tableName"}, description = "the name of HBase table, default is \"map.512.4.split\"", required = false)
+	public String tableName = "test5.18.split";
 	
 	protected HTable table = null;
 	protected Configuration conf = null;
 	public HConnection connection = null;
 	
-	public void setup() throws IOException{
-		System.out.println("getting the connection manager.....");
+	public void setup(String... args) throws IOException{
+		JCommander jc = new JCommander();
+		jc.setAcceptUnknownOptions(true);
+		jc.addObject(this);
+		jc.parse(args);
+		
+		System.out.println("getting the connection manager from "+this.tableName);
 		conf = HBaseConfiguration.create();
 		this.connection = HConnectionManager.createConnection(conf);
 		
@@ -34,6 +44,10 @@ abstract public class Base implements Closeable, Runnable{
 				System.out.println("the table had assigned.");
 		}else
 			throw new NullPointerException("there is no table name. Should assign the table name");
+	}
+	
+	public HTable getTable() throws IOException{
+		return this.getTable(this.tableName);
 	}
 	
 	public HTable getTable(String tableName) throws IOException{

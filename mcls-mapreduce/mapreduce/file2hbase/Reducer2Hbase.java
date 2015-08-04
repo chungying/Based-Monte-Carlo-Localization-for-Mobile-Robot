@@ -20,7 +20,6 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.io.*;
 import org.apache.hadoop.mapreduce.Reducer;
 
-import samcl.*;
 import util.grid.Grid;
 import util.metrics.Transformer;
 
