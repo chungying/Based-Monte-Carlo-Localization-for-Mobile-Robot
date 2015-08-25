@@ -14,24 +14,29 @@ import com.beust.jcommander.JCommander;
 public class Main {
 
 	public static void main(String[] args) throws Throwable {
-		
 		//for debug mode
 		if(args.length==0){
 			String[] targs = {
-					//"-i","file:///Users/ihsumlee/Jolly/jpg/white.jpg"
+//					"-i","file:///Users/ihsumlee/Jolly/jpg/sim_map.jpg"
 					"-i","file:///home/wuser/backup/jpg/test6.jpg"
 					,"-o","18"
-					,"-rl","true"
+//					,"-rl","true"
 					,"-rx","80"
 					,"-ry","50"
-					,"-n","500"
-					,"-cl"
-					,"-t", "test6.18.split"
-					,"-d","0.0001"
-					,"-x","0.03"
-//					,"--period","200"
-					,"-E","2"
+//					,"-rh","50"
+//					,"-n","50"
+//					,"-p","20"
 					,"-D","false"
+					,"-c","true"
+//					,"--ignore", "true"
+					,"--showparticles"
+//					,"--period","500"
+					,"--logfile"
+					,"-d","0.001"
+					,"-x","0.05"
+					,"-t","test6.18.split"
+					,"-cl"
+					,"-E","2"
 					};
 			args = targs;
 		}
@@ -111,7 +116,7 @@ public class Main {
 			window.setTitle("samcl image:"+String.valueOf(counter));
 			robot.goStraight();
 			imclroe.run(robot, window);
-			robot.lock();
+			robot.lock2();
 			robot.initRobot();
 		}
 		

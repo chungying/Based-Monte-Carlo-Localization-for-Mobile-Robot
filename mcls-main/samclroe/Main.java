@@ -17,21 +17,26 @@ public class Main {
 	public static void main(String[] args) throws ServiceException, Throwable {
 		//for debug mode
 		if(args.length==0){
-			String[] targs = {/*"-cl",*/
-					//"-i","file:///Users/ihsumlee/Jolly/jpg/sim_map.jpg"
+			String[] targs = {
+//					"-i","file:///Users/ihsumlee/Jolly/jpg/sim_map.jpg"
 					"-i","file:///home/wuser/backup/jpg/test6.jpg"
 					,"-o","18"
-					,"-rl","true"
+//					,"-rl","true"
 					,"-rx","80"
 					,"-ry","50"
-					,"-n","100"
+//					,"-rh","50"
+//					,"-n","50"
+//					,"-p","20"
 					,"-D","false"
-//					,"-d", "0.0001"
-					,"-x", "0.05"
+					,"-c","true"
+//					,"--ignore", "true"
 					,"--showparticles"
-					,"-cl"
-					,"-t","test6.18.split"
 //					,"--period","500"
+					,"--logfile"
+					,"-d","0.001"
+					,"-x","0.05"
+					,"-t","test6.18.split"
+					,"-cl"
 					};
 			args = targs;
 		}
@@ -110,7 +115,7 @@ public class Main {
 			window.setTitle("samcl image:"+String.valueOf(counter));
 			robot.goStraight();
 			samclroe.run(robot, window);
-			robot.lock();
+			robot.lock2();
 			robot.initRobot();
 		}
 		samclroe.close();

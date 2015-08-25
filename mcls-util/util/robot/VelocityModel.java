@@ -16,6 +16,7 @@ public class VelocityModel {
 	}
 	public double velocity;// pixel/s
 	public double angular_velocity;// degree/s
+	
 	public double getVelocity() {
 		return velocity;
 	}
@@ -28,10 +29,13 @@ public class VelocityModel {
 	public void setAngular_velocity(double angular_velocity) {
 		this.angular_velocity = angular_velocity;
 	}
-	public void reset(double v, double w) {
+	public void set(double v, double w) {
 		this.velocity = v;
-		this.angular_velocity = w;
-		
+		this.angular_velocity = w;	
+	}
+	
+	public void setModel(VelocityModel u){
+		this.set(u.getVelocity(), u.getAngular_velocity());
 	}
 	
 	@Override

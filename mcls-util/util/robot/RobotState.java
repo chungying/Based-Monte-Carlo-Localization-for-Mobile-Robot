@@ -200,30 +200,51 @@ public class RobotState extends Pose implements Runnable,Closeable{
 	}
 
 	
-	@SuppressWarnings("unused")
-	private VelocityModel getModel() {
-		return this.ut;
-	}
 
+	@Parameter(names = {"-rl","--robotlock"}, description = "initialize robot's lock", required = false, arity = 1)
+	private boolean lock1 = false;
 
-	public void reverseLock(){
-		this.setLock(!this.isLock());
+	public void reverseLock1(){
+		this.setLock1(!this.isLock1());
 	}
 	
-	public boolean isLock() {
-		return lock;
+	public boolean isLock1() {
+		return lock1;
 	}
 
-	public void lock() {
-		this.setLock(true);
+	public void lock1() {
+		this.setLock1(true);
 	}
 	
-	public void unlock() {
-		this.setLock(false);
+	public void unlock1() {
+		this.setLock1(false);
 	}
 	
-	private void setLock(boolean lock) {
-		this.lock = lock;
+	public void setLock1(boolean lock) {
+		this.lock1 = lock;
+	}
+
+	@Parameter(names = {"-rl2","--robotlock2"}, description = "initialize robot's lock2", required = false, arity = 1)
+	private boolean lock2 = true;
+	
+	public void reverseLock2(){
+		this.setLock2(!this.isLock2());
+	}
+	
+	public boolean isLock2() {
+		return lock2;
+	}
+
+	public void lock2() {
+		this.setLock2(true);
+	}
+	
+	public void unlock2() {
+		this.setLock2(false);
+	}
+	
+	public void setLock2(boolean lock) {
+		this.lock2 = lock;
 	}
 
 	@Override
@@ -232,7 +253,6 @@ public class RobotState extends Pose implements Runnable,Closeable{
 				try {
 					this.table = this.grid.getTable(tableName);
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			}
@@ -247,18 +267,19 @@ public class RobotState extends Pose implements Runnable,Closeable{
 					//delay
 					time = System.currentTimeMillis();
 					try {
-						if(!this.isLock()){
+						if(!this.isLock2()){
 							updateTarget(path);
-							this.update(duration / 1000.0);
+							if(!this.isLock1()){
+//								updateTarget(path);
+								this.update(duration / 1000.0);
+							}
 						}
-						
 						Thread.sleep(10);
 						//update sensor data 
 						if(this.grid!=null){
 							try {
 								this.updateSensor();
 							} catch (Exception e) {
-								// TODO Auto-generated catch block
 								e.printStackTrace();
 							}
 						}
@@ -291,7 +312,7 @@ public class RobotState extends Pose implements Runnable,Closeable{
 				}else if(target == path.size() - 1){//finished then lock robot
 					//update robot pose to current target
 					this.setPose(path.get(target));
-					this.setLock(false);
+					this.setLock1(false);
 				}
 					
 				
@@ -381,9 +402,7 @@ public class RobotState extends Pose implements Runnable,Closeable{
 
 	@Parameter(names = {"-cl","--cloud"}, description = "if be on the cloud, default is false", required = false)
 	private boolean onCloud;
-	@Parameter(names = {"-rl","--robotlock"}, description = "initialize robot's lock", required = false, arity = 1)
-	private boolean lock = true;
-/*	@Parameter(names = {"-rx","--robotx"}, description = "initialize robot's X-Axis", required = false, converter = DoubleConverter.class)
+	/*	@Parameter(names = {"-rx","--robotx"}, description = "initialize robot's X-Axis", required = false, converter = DoubleConverter.class)
 	public double x;
 	@Parameter(names = {"-ry","--roboty"}, description = "initialize robot's Y-Axis", required = false, converter = DoubleConverter.class)
 	public double y;
@@ -508,9 +527,15 @@ public class RobotState extends Pose implements Runnable,Closeable{
 		}
 	}
 
+	
+	private VelocityModel getModel() {
+		return this.ut;
+	}
+
 	static public VelocityModel ZEROU = new VelocityModel(0.0,0.0); 
+
 	public VelocityModel getUt() {
-		if(lock)
+		if(lock1)
 			return ZEROU;
 		else
 			return ut;
@@ -592,7 +617,7 @@ public class RobotState extends Pose implements Runnable,Closeable{
 
 
 	public void stop() {
-		this.ut.reset(0.0, 0.0);
+		this.ut.set(0.0, 0.0);
 	}
 	
 

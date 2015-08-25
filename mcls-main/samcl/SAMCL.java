@@ -126,221 +126,6 @@ public class SAMCL implements Closeable{
 		
 	}
 	
-	/**
-	 * run SAMCL
-	 * @throws Throwable 
-	 */
-	public void run(RobotState robot, JFrame samcl_window) throws Throwable{
-		boolean mode = false;
-		this.setTerminating(false);
-		this.setTerminated(false);
-		
-		System.out.println("press enter to continue.");
-		System.in.read();
-		System.out.println("start!");
-
-		List<Particle> local_set = new ArrayList<Particle>();
-		List<Particle> global_set = new ArrayList<Particle>();
-		//in order to be thread-safe, use CopyOnWriteArrayList.
-		List<Particle> current_set = new CopyOnWriteArrayList<Particle>();
-		List<Particle> last_set = new CopyOnWriteArrayList<Particle>();
-		List<Particle> SER_set = new CopyOnWriteArrayList<Particle>();		
-		
-		//Drawing the image
-		BufferedImage samcl_image = new BufferedImage(this.grid.width,this.grid.height, BufferedImage.TYPE_INT_ARGB);
-		Graphics2D grap = samcl_image.createGraphics();
-		grap.drawImage(this.grid.map_image, null, 0, 0);
-		//TODO WINDOW
-		Panel image_panel = new Panel(samcl_image);
-		samcl_window.add(image_panel);
-		samcl_window.setVisible(true);
-		
-		//Initial Particles and Painting
-		for (int i = 0; i < this.Nt; i++) {
-			last_set.add(this.global_sampling());
-		}
-		
-		int counter = 0;
-		long time = 0, duration = 0, startTime = System.currentTimeMillis();
-		long transmission = 0;
-		Pose previousPose = new Pose((Pose)robot);
-		Pose currentPose = null;
-		
-		System.out.print(
-						"counter\t"	+
-						"time\t"+
-						"duration\t"+
-						"weight time\t"+
-						"SER time\t"+
-						"transmission time\t"+
-						"best X\t"+
-						"best Y\t"+
-						"best H\t"+
-						"best W\t"+
-						"robot X\t"+
-						"robot Y\t"+
-						"robot H\t"+
-						"\n");
-		
-		while(!this.isTerminating()){
-			
-			if(this.convergeFlag){
-				this.converge(last_set, robot);
-			}
-			
-			time = System.currentTimeMillis();
-			counter = counter +1;
-			
-			//update robot's sensor
-			float[] Zt = robot.getMeasurements();
-			
-			//Setp 1: Sampling
-			Transformer.debugMode(mode, "(1) Sampling\t");
-			long sampleTime = System.currentTimeMillis();
-			//TODO Particle
-			current_set.clear();
-			currentPose = new Pose(robot);
-			current_set.addAll(this.Prediction_total_particles(last_set, robot.getUt(), currentPose, previousPose, duration));
-			previousPose = currentPose;
-			sampleTime = System.currentTimeMillis() - sampleTime;
-			
-			//Step 2: Weighting
-			Transformer.debugMode(mode, "(2) Weighting\t");
-			long weightTime = System.currentTimeMillis();
-			//TODO Particle
-			transmission = this.batchWeight(robot, current_set, Zt);
-			weightTime = System.currentTimeMillis() - weightTime;
-			
-			//Step 3: Determining size
-			Transformer.debugMode(mode, "(3) Determining size\t");
-			long determiningTime = System.currentTimeMillis();
-			Particle bestParticle = this.Determining_size(current_set);
-			determiningTime = System.currentTimeMillis() - determiningTime;
-			//Step 3-1: Calculating SER
-			Transformer.debugMode(mode, "(3-1) Calculating SER\t");
-			long serTime = System.currentTimeMillis();
-			this.Caculating_SER(bestParticle.getWeight(), Zt, SER_set, global_set);
-			serTime = System.currentTimeMillis() - serTime;
-			
-			//Step 4: Local resampling
-			Transformer.debugMode(mode, "(4) Local resampling\t");
-			long localResamplingTime = System.currentTimeMillis();
-			this.Local_resampling(current_set, local_set, bestParticle);
-			localResamplingTime = System.currentTimeMillis() - localResamplingTime;
-//			System.out.println("\tlocal set size : \t" + local_set.size());
-			
-			//Step 5: Combimining
-			Transformer.debugMode(mode, "(5) Combimining\n");
-			long combiminingTime = System.currentTimeMillis();
-			last_set.clear();
-			last_set.addAll(this.Combining_sets(local_set, global_set));
-			local_set.clear();
-			global_set.clear();
-			combiminingTime = System.currentTimeMillis() - combiminingTime;
-//			System.out.println("\tnext set size: \t" + last_set.size());
-			
-			//TODO Particle
-			long averageTime = System.currentTimeMillis();
-//			@SuppressWarnings("unused")
-//			Particle averagePose = this.averagePose(current_set);
-			averageTime = System.currentTimeMillis() - averageTime;
-			//show out the information
-			/**
-			 * best particle
-			 * average position
-			 * robot position
-			 * time
-			 * is succeeded?
-			 * */
-			//log()
-			
-			
-			
-			
-			this.delay(this.period);
-			
-			//draw image 
-			//TODO Particle
-			long drawingTime = System.currentTimeMillis();
-			this.Drawing(grap, samcl_window, robot, bestParticle, current_set, SER_set);
-			drawingTime = System.currentTimeMillis() - drawingTime;
-			
-			//update image
-			image_panel.repaint();
-			if(this.ignore)
-				duration = System.currentTimeMillis() - time - weightTime + transmission;
-			else
-				duration = System.currentTimeMillis() - time;
-			
-
-			Transformer.debugMode(false,
-					"Best position          :"+bestParticle.toString()+"\n",
-					"Robot position         : \t" + robot+"\n",
-					"Sensitive              : \t" + this.XI+"\n",
-					"RPC counter            : \t" + this.grid.RPCcount+"\n",
-					"Sampling Time	        : \t" + sampleTime + "\tms"+"\n",
-					"Weighting Time	        : \t" + weightTime + "\tms"+"\n",
-					"Determing Size Time    : \t" + determiningTime + "\tms"+"\n",
-					"Caculating SER Time    : \t" + serTime + "\tms"+"\n",
-					"Local Resampling Time  : \t" + localResamplingTime + "\tms"+"\n",
-					"Combining Time	        : \t" + combiminingTime + "\tms"+"\n",
-					"Averaging Time	        : \t" + averageTime + "\tms"+"\n",
-					"Drawing Time	        : \t" + drawingTime + "\tms"+"\n",
-					"Default Delay Time     : \t" + this.period + "\tms"+"\n",
-					"Alpha argument         : \t" + Arrays.toString(this.al) + "\n",
-					
-					"*************************\n"
-					);
-			
-			this.grid.RPCcount = 0;
-			
-			
-			if(this.mode){
-				System.out.print(
-						"counter\t"	+
-						"time\t"+
-						"duration\t"+
-						"weight time\t"+
-						"SER time\t"+
-						"transmission time\t"+
-						"best X\t"+
-						"best Y\t"+
-						"best H\t"+
-						"best W\t"+
-						"robot X\t"+
-						"robot Y\t"+
-						"robot H\t"+
-						"\n");
-			}
-			System.out.format("%5d\t",counter);
-			System.out.format("%5d\t",time-startTime);
-			System.out.format("%5d\t",duration);
-			System.out.format("%5d\t",weightTime);
-			System.out.format("%5d\t",serTime);
-			System.out.format("%5d\t",transmission);
-			System.out.format("%.5f\t",bestParticle.getDX());
-			System.out.format("%.5f\t",bestParticle.getDY());
-			System.out.format("%.5f\t",bestParticle.getTh());
-			System.out.format("%.5f\t",bestParticle.getWeight());
-			System.out.format("%.5f\t",robot.X);
-			System.out.format("%.5f\t",robot.Y);
-			System.out.format("%.5f\t",robot.H);
-			System.out.println();
-			
-//			Transformer.log(
-//					"counter:", counter,
-//					"time", time,
-//					"duration:", duration,
-//					"batch weight time: ", weightTime,
-//					"SER duration", serTime,
-//					bestParticle, 
-//					robot, 
-//					averagePose);
-		
-		}
-		this.setTerminated(true);
-	}
-	
 	@SuppressWarnings("unused")
 	private Particle averagePose(List<Particle> src_set) {
 		double xSum = 0;
@@ -534,7 +319,7 @@ public class SAMCL implements Closeable{
 	public boolean mode = true;
 	
 	@Parameter(names = "--period", description = "the period of an executed time.", required = false)
-	private int period = 3;
+	private int period = 0;
 
 	//check the parameters 
 	@Parameter(names = {"-cl","--cloud"}, description = "if there on the cloud is or not, default is false", required = false)
@@ -586,6 +371,231 @@ public class SAMCL implements Closeable{
 
 
 	public double[] al;
+	/**
+		 * run SAMCL
+		 * @throws Throwable 
+		 */
+		public void run(RobotState robot, JFrame samcl_window) throws Throwable{
+			boolean mode = false;
+			this.setTerminating(false);
+			this.setTerminated(false);
+			
+			System.out.println("press enter to continue.");
+			System.in.read();
+			System.out.println("start!");
+	
+			List<Particle> local_set = new ArrayList<Particle>();
+			List<Particle> global_set = new ArrayList<Particle>();
+			//in order to be thread-safe, use CopyOnWriteArrayList.
+			List<Particle> current_set = new CopyOnWriteArrayList<Particle>();
+			List<Particle> last_set = new CopyOnWriteArrayList<Particle>();
+			List<Particle> SER_set = new CopyOnWriteArrayList<Particle>();		
+			
+			//Drawing the image
+			BufferedImage samcl_image = new BufferedImage(this.grid.width,this.grid.height, BufferedImage.TYPE_INT_ARGB);
+			Graphics2D grap = samcl_image.createGraphics();
+			grap.drawImage(this.grid.map_image, null, 0, 0);
+			//TODO WINDOW
+			Panel image_panel = new Panel(samcl_image);
+			samcl_window.add(image_panel);
+			samcl_window.setVisible(true);
+			
+			//Initial Particles and Painting
+			for (int i = 0; i < this.Nt; i++) {
+				last_set.add(this.global_sampling());
+			}
+			
+			int counter = 0;
+			long time = 0, duration = 0, startTime = System.currentTimeMillis();
+			
+			Pose previousPose = new Pose((Pose)robot);
+			Pose currentPose = null;
+			VelocityModel u = new VelocityModel();
+			
+			System.out.print(
+							"counter\t"	+
+							"time\t"+
+							"duration\t"+
+							"weight time\t"+
+							"SER time\t"+
+							"transmission time\t"+
+							"best X\t"+
+							"best Y\t"+
+							"best H\t"+
+							"best W\t"+
+							"robot X\t"+
+							"robot Y\t"+
+							"robot H\t"+
+							"\n");
+			
+			while(!this.isTerminating()){
+				
+				if(this.convergeFlag){
+					this.converge(last_set, robot);
+				}
+				
+				time = System.currentTimeMillis();
+				counter = counter +1;
+				
+				//Setp 1: Prediction
+				Transformer.debugMode(mode, "(1) Sampling\t");
+				currentPose = new Pose(robot);
+				u.setModel(robot.getUt());
+				long sampleTime = this.Prediction_total_particles(last_set, current_set, u, currentPose, previousPose, duration);
+				previousPose = currentPose;
+				
+				
+				//Step 2: Weighting
+				Transformer.debugMode(mode, "(2) Weighting\t");
+				long transmission1, weightTime, transmission2;
+				float[] Zt = null;
+				//TODO update particles' measurement
+//				boolean previousState = robot.isLock1();	
+//				if(ignore)
+//					robot.lock1();
+//				transmission = this.updateParticle(current_set);
+//				if(ignore)
+//					robot.setLock1(previousState);
+//				//update robot's sensor
+//				Zt = robot.getMeasurements();
+//				//Particle
+//				weightTime = this.batchWeight(robot, current_set, Zt);
+				
+				long[] times = this.weightAssignment(current_set, Zt, ignore, robot);
+				transmission1 = times[0];
+				weightTime = times[1];
+				transmission2 = times[2];
+				//Step 3: Determining size
+				Transformer.debugMode(mode, "(3) Determining size\t");
+				long determiningTime = System.currentTimeMillis();
+				Particle bestParticle = this.Determining_size(current_set);
+				determiningTime = System.currentTimeMillis() - determiningTime;
+				//Step 3-1: Calculating SER
+				Transformer.debugMode(mode, "(3-1) Calculating SER\t");
+				long serTime = System.currentTimeMillis();
+				this.Caculating_SER(bestParticle.getWeight(), Zt, SER_set, global_set);
+				serTime = System.currentTimeMillis() - serTime;
+				
+				//Step 4: Local resampling
+				Transformer.debugMode(mode, "(4) Local resampling\t");
+				long localResamplingTime = System.currentTimeMillis();
+				this.Local_resampling(current_set, local_set, bestParticle);
+				localResamplingTime = System.currentTimeMillis() - localResamplingTime;
+	//			System.out.println("\tlocal set size : \t" + local_set.size());
+				
+				//Step 5: Combimining
+				Transformer.debugMode(mode, "(5) Combimining\n");
+				long combiminingTime = System.currentTimeMillis();
+				last_set.clear();
+				last_set.addAll(this.Combining_sets(local_set, global_set));
+				local_set.clear();
+				global_set.clear();
+				combiminingTime = System.currentTimeMillis() - combiminingTime;
+	//			System.out.println("\tnext set size: \t" + last_set.size());
+				
+				//TODO Particle
+				long averageTime = System.currentTimeMillis();
+	//			@SuppressWarnings("unused")
+	//			Particle averagePose = this.averagePose(current_set);
+				averageTime = System.currentTimeMillis() - averageTime;
+				//show out the information
+				/**
+				 * best particle
+				 * average position
+				 * robot position
+				 * time
+				 * is succeeded?
+				 * */
+				//log()
+				
+				
+				
+				
+				this.delay(this.period);
+				
+				//draw image 
+				//TODO Particle
+				long drawingTime = System.currentTimeMillis();
+				this.Drawing(grap, samcl_window, robot, bestParticle, current_set, SER_set);
+				drawingTime = System.currentTimeMillis() - drawingTime;
+				
+				//update image
+				image_panel.repaint();
+				if(this.ignore)
+					duration = System.currentTimeMillis() - time - transmission1;
+				else
+					duration = System.currentTimeMillis() - time;
+				
+	
+				Transformer.debugMode(false,
+						"Best position          :"+bestParticle.toString()+"\n",
+						"Robot position         : \t" + robot+"\n",
+						"Sensitive              : \t" + this.XI+"\n",
+						"RPC counter            : \t" + this.grid.RPCcount+"\n",
+						"Sampling Time	        : \t" + sampleTime + "\tms"+"\n",
+						"Weighting Time	        : \t" + weightTime + "\tms"+"\n",
+						"Determing Size Time    : \t" + determiningTime + "\tms"+"\n",
+						"Caculating SER Time    : \t" + serTime + "\tms"+"\n",
+						"Local Resampling Time  : \t" + localResamplingTime + "\tms"+"\n",
+						"Combining Time	        : \t" + combiminingTime + "\tms"+"\n",
+						"Averaging Time	        : \t" + averageTime + "\tms"+"\n",
+						"Drawing Time	        : \t" + drawingTime + "\tms"+"\n",
+						"Default Delay Time     : \t" + this.period + "\tms"+"\n",
+						"Alpha argument         : \t" + Arrays.toString(this.al) + "\n",
+						
+						"*************************\n"
+						);
+				
+				this.grid.RPCcount = 0;
+				
+				
+				if(this.mode){
+					System.out.print(
+							"counter\t"	+
+							"time\t"+
+							"duration\t"+
+							"weight time\t"+
+							"SER time\t"+
+							"transmission time\t"+
+							"best X\t"+
+							"best Y\t"+
+							"best H\t"+
+							"best W\t"+
+							"robot X\t"+
+							"robot Y\t"+
+							"robot H\t"+
+							"\n");
+				}
+				System.out.format("%5d\t",counter);
+				System.out.format("%5d\t",time-startTime);
+				System.out.format("%5d\t",duration);
+				System.out.format("%5d\t",weightTime);
+				System.out.format("%5d\t",duration - weightTime - transmission1 - transmission2);
+				System.out.format("%5d\t",serTime);
+				System.out.format("%5d\t",transmission1);
+				System.out.format("%5d\t",transmission2);
+				System.out.format("%.5f\t",bestParticle.getDX());
+				System.out.format("%.5f\t",bestParticle.getDY());
+				System.out.format("%.5f\t",bestParticle.getTh());
+				System.out.format("%.5f\t",bestParticle.getWeight());
+				System.out.format("%.5f\t",robot.X);
+				System.out.format("%.5f\t",robot.Y);
+				System.out.format("%.5f\t",robot.H);
+				System.out.println();
+				
+	//			Transformer.log(
+	//					"counter:", counter,
+	//					"time", time,
+	//					"duration:", duration,
+	//					"batch weight time: ", weightTime,
+	//					"SER duration", serTime,
+	//					bestParticle, 
+	//					robot, 
+	//					averagePose);
+			
+			}
+			this.setTerminated(true);
+		}
 	//for Local_resampling()
 	
 	
@@ -614,7 +624,7 @@ public class SAMCL implements Closeable{
 	 * @param weight 
 	 * @throws IOException 
 	 */
-	public void Caculating_SER(float weight, float[] Zt, List<Particle> SER_set, List<Particle> global_set) throws IOException{
+	public void Caculating_SER(float weight, float[] Zt, List<Particle> SER_set, List<Particle> global_set) throws Exception{
 		if (weight>this.XI) {//if do calculate SER or not?
 			/*Get the reference energy*/
 			float energy = Transformer.CalculateEnergy(Zt);
@@ -646,13 +656,15 @@ public class SAMCL implements Closeable{
 	 * @param duration 
 	 * @throws Exception 
 	 */
-	public List<Particle> Prediction_total_particles(
-			List<Particle> src, 
+	public long Prediction_total_particles(
+			List<Particle> src,
+			List<Particle> dst,
 			VelocityModel u, 
 			Pose currentPose,
 			Pose previousPose,
 			long duration) throws Exception{
-		List<Particle> result = new ArrayList<Particle>();
+		long sampleTime = System.currentTimeMillis();
+		dst.clear();
 		Random random = new Random();
 		if(!src.isEmpty()){
 			first:
@@ -666,7 +678,7 @@ public class SAMCL implements Closeable{
 						Distribution.OdemetryMotionSampling(p, currentPose, previousPose, duration, random, al);
 					}while(!Distribution.boundaryCheck(p, this.grid));
 					
-					result.add(p.clone());
+					dst.add(p.clone());
 					
 					//this.pixel_sampling(p, 11, 7, random);
 				}
@@ -675,45 +687,85 @@ public class SAMCL implements Closeable{
 			System.out.println("*********the src_set is empty!!!!!!");
 //			throw new Exception("The set is empty!\n");
 		}
-		if(result.size()==0)
+		if(dst.size()==0)
 			throw new Exception("there is no result!!!!");
-		return result;
+		return System.currentTimeMillis() - sampleTime;
 	}
 	
-	public long batchWeight(RobotState robot, List<Particle> src, float[] robotMeasurements) throws IOException, ServiceException, Throwable {
+	public long[] weightAssignment( List<Particle> src, float[] robotMeasurements, boolean ignore, RobotState robot) throws Exception{
+		boolean previousState = robot.isLock1();
+		long[] timers = new long[3];
+		
+		if(ignore)
+			robot.lock1();
+		
+		timers[0] = this.updateParticle(src);
+		
+		if(ignore)
+			robot.setLock1(previousState);
+		//update robot's sensor
+		robotMeasurements = robot.getMeasurements();
+		
+		timers[1] = this.batchWeight(robot, src, robotMeasurements);
+		timers[2] = 0;
+		return timers;
+	}
+	
+	public long updateParticle( List<Particle> src) throws Exception {
+		long trasmission = System.currentTimeMillis();
+		//get sensor data of all particles.
+		if (this.onCloud) {
+			//get measurements from cloud  and weight
+			try {
+				this.grid.getBatchFromCloud2(this.table, src);
+			} catch (Exception e) {
+				System.out.println(e.getMessage());
+				e.printStackTrace();
+				for(Particle p: src){
+					System.out.println(Transformer.xy2RowkeyString(p.getDX(), p.getDY()));
+				}
+				System.exit(1);
+			}
+		} else {
+			//get measurements from local database and weight
+			for (Particle p : src) {
+				p.setMeasurements(this.grid.getMeasurements(
+						this.table, this.onCloud, p.getX(), p.getY(), p.getTh())
+						);
+			}
+		}
+		return System.currentTimeMillis() - trasmission;
+	}
+	
+	public long batchWeight(RobotState robot, List<Particle> src, float[] robotMeasurements) throws Exception {
+		long weightTime = System.currentTimeMillis();
 		if (robotMeasurements!=null) {
-			//get sensor data of all particles.
-			if (this.onCloud) {
-				//get measurements from cloud  and weight
-				try {
-					this.grid.getBatchFromCloud2(this.table, src);
-				} catch (Exception e) {
-					System.out.println(e.getMessage());
-					e.printStackTrace();
-					for(Particle p: src){
-						System.out.println(Transformer.xy2RowkeyString(p.getDX(), p.getDY()));
-					}
-					System.exit(1);
-				}
-				//this.grid.getBatchFromCloud2(this.table, src);
-				for (Particle p : src) {
-					this.WeightParticle(p, robotMeasurements);
-				}
-			} else {
-				//get measurements from local database and weight
-				for (Particle p : src) {
-					p.setMeasurements(this.grid.getMeasurements(
-							this.table, this.onCloud, p.getX(), p.getY(),
-							p.getTh()));
-					this.WeightParticle(p, robotMeasurements);
-				}
+			for (Particle p : src) {
+				this.WeightParticle(p, robotMeasurements);
 			}
 		}else{
 			throw new Exception("robot didn't get the sensor data!!!");
 		}
-		return -1;
+		
+		return System.currentTimeMillis() - weightTime;
 	}
 
+	public void WeightParticle(Particle p, float[] robotMeasurements) throws Exception{
+		//if the position is occupied.
+		if( this.grid.map_array(p.getX(), p.getY())==Grid.GRID_EMPTY ) {
+			//if the particle has got the measurements or would get measurements from Grid
+			if(p.isIfmeasurements()){//FIXME
+				p.setWeight(Transformer.WeightFloat(p.getMeasurements(), robotMeasurements));
+			}else{
+				//Cloud , Grid class------done
+				float[] measurements = this.grid.getMeasurements(this.table, onCloud, p.getX(), p.getY(), p.getTh());
+				p.setWeight(Transformer.WeightFloat(measurements, robotMeasurements));
+			}
+		}else{
+			//if the position is occupied, then assign the worst weight.
+			p.setWeight(1);
+		}
+	}
 	/**
 	 * parameters:sensitive coefficient(Threshold),the ratio of the global samples and local samples(Alpha)
 	 * input:the maximum of weight(wmax),total number of particles(NT)
@@ -865,23 +917,6 @@ public class SAMCL implements Closeable{
 		p.setY(py);
 		p.setTh(Transformer.Z2Th(pz, this.orientation));
 	}*/
-	
-	public void WeightParticle(Particle p, float[] robotMeasurements) throws Exception{
-		//if the position is occupied.
-		if( this.grid.map_array(p.getX(), p.getY())==Grid.GRID_EMPTY ) {
-			//if the particle has got the measurements or would get measurements from Grid
-			if(p.isIfmeasurements()){//FIXME
-				p.setWeight(Transformer.WeightFloat(p.getMeasurements(), robotMeasurements));
-			}else{
-				//Cloud , Grid class------done
-				float[] measurements = this.grid.getMeasurements(this.table, onCloud, p.getX(), p.getY(), p.getTh());
-				p.setWeight(Transformer.WeightFloat(measurements, robotMeasurements));
-			}
-		}else{
-			//if the position is occupied, then assign the worst weight.
-			p.setWeight(1);
-		}
-	}
 	
 	@Parameter(names = {"-c","--converge"}, description = "start up/stop debug mode, default is to start up", required = false, arity = 1)
 	private boolean convergeFlag = false;

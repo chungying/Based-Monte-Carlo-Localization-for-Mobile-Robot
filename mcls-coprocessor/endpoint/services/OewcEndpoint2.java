@@ -104,8 +104,8 @@ public class OewcEndpoint2 extends OewcProtos2.Oewc2Service implements
 							"end    :" + String.valueOf(end)	+ "\t" + 
 							message + "\n");
 			if(times!=null){
-				responseBuilder.setWeight(times.getFirst().floatValue());
-				responseBuilder.setCount( times.getSecond().intValue());
+				responseBuilder.setWeight(times.getFirst().floatValue());//reading HDFS time 
+				responseBuilder.setCount( times.getSecond().intValue());//OEWC time and reading HDFS time
 			}
 			done.run(responseBuilder.build());
 		}
@@ -162,10 +162,12 @@ public class OewcEndpoint2 extends OewcProtos2.Oewc2Service implements
 
 	static public Pair<Long, Long> orientationEstimate(HRegion region,
 			Builder responseBuilder, List<Particle> existParticles,
-			List<Float> zt) throws IOException {
-		long readTime = 0, weightTime = 0, time;
+			List<Float> zt) throws Exception {
+		long readTime = 0, time;
+		long oewcTime = System.nanoTime();
 		Result result = null;
 		for (Particle p : existParticles) {
+			
 			time = System.nanoTime();
 			// get the round measurements to circleMeasure
 			Get get = new Get(Bytes.toBytes(Transformer.xy2RowkeyString(
@@ -176,22 +178,27 @@ public class OewcEndpoint2 extends OewcProtos2.Oewc2Service implements
 			Transformer.result2Array(family, result,
 							circleMeasurements);
 			readTime = readTime + System.nanoTime()-time;
-			time = System.nanoTime();
+			
+			
 			//Orientation Estimation and Weight Calculation
-			if (circleMeasurements.size() != 0) {
-				// OE of a particle
-				Entry<Integer, Float> entry = Oewc.singleParticleModified(zt,
-						circleMeasurements);
-				// output the best weight
-				Particle.Builder outputP = Particle.newBuilder().setX(p.getX())
-						.setY(p.getY()).setZ(entry.getKey())
-						.setW(entry.getValue());
-				responseBuilder.addParticles(outputP);
-			}
-			weightTime = weightTime + System.nanoTime() - time;
+			// OE of a particle
+			Entry<Integer, Float> entry = Oewc.singleParticleModified(zt, circleMeasurements);
+			// output the best weight
+			Particle.Builder outputP = Particle.newBuilder()
+					.setX(p.getX())
+					.setY(p.getY())
+					.setZ(entry.getKey())
+					.setW(entry.getValue());
+			responseBuilder.addParticles(outputP);
+			
+			
 		}
-	
-		return new Pair<Long, Long>(Math.round(readTime/1000000.0), Math.round(weightTime/1000000.0));
+		oewcTime = System.nanoTime() - oewcTime;
+		
+		return new Pair<Long, Long>(
+				Math.round(readTime/1000000.0), //reading HDFS time
+				Math.round(oewcTime/1000000.0)//OEWC time and reading HDFS time
+				);
 	}
 
 }

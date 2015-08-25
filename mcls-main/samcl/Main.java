@@ -18,22 +18,25 @@ public class Main {
 		//for debug mode
 		if(args.length==0){
 			String[] targs = {
-//					"--help",
 //					"-i","file:///Users/ihsumlee/Jolly/jpg/sim_map.jpg"
 					"-i","file:///home/wuser/backup/jpg/test6.jpg"
-					,"-t","test6.18.split"
-					,"-cl"
 					,"-o","18"
 //					,"-rl","true"
-					,"-rx","150"
-					,"-ry","80"
-					,"-rh","50"
+					,"-rx","80"
+					,"-ry","50"
+//					,"-rh","50"
 //					,"-n","50"
+//					,"-p","20"
+					,"-D","false"
+					,"-c","true"
+//					,"--ignore", "true"
+					,"--showparticles"
+//					,"--period","50"
+					,"--logfile"
 					,"-d","0.001"
 					,"-x","0.05"
-					
-					,"--showparticles"
-//					,"--period","500"
+					,"-t","test6.18.split"
+					,"-cl"
 					
 					};
 			args = targs;
@@ -113,7 +116,7 @@ public class Main {
 			window.setTitle("samcl image:"+String.valueOf(counter));
 			robot.goStraight();
 			samcl.run(robot, window);
-			robot.lock();
+			robot.lock2();
 			robot.initRobot();
 		}
 		samcl.close();

@@ -161,8 +161,8 @@ implements Coprocessor, CoprocessorService{
 		strOfResults = strOfResults
 				+"End of Proxy Endpoint\t";
 		oewcResponseBuilder.setStr(strOfResults);
-		oewcResponseBuilder.setCount(maxCountOfResults);
-		oewcResponseBuilder.setWeight(maxWeightOfResults);
+		oewcResponseBuilder.setCount(maxCountOfResults);//OEWC time and reading HDFS time
+		oewcResponseBuilder.setWeight(maxWeightOfResults);//reading HDFS time
 		
 		//response is done!!!!!
 		done.run(oewcResponseBuilder.build());		

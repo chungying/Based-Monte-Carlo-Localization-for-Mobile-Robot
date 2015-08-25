@@ -34,7 +34,7 @@ public class RobotController extends JFrame implements ActionListener{
 			
 			if(btn==B[0]){
 				//Pause/Continue
-				this.robot.reverseLock();
+				this.robot.reverseLock2();
 			}
 			else if(btn==B[1]){
 				//Stop
@@ -58,7 +58,7 @@ public class RobotController extends JFrame implements ActionListener{
 			else if(btn==B[5]){
 				//Initialize
 				//System.out.println("Initialize robot");
-				this.robot.lock();
+				this.robot.lock2();
 				this.robot.initRobot();
 				
 			}
@@ -113,7 +113,7 @@ public class RobotController extends JFrame implements ActionListener{
 		public void run() {
 			try {
 				while(true){
-					if(!robot.isLock()){
+					if(!robot.isLock2()){
 						labelU.setText(
 								"v:"+Double.toString(robot.getVt())+
 								",w:"+Double.toString(robot.getWt()));

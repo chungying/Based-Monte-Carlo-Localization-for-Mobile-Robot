@@ -30,7 +30,7 @@ public class Sampler {
 	private static int sensorNumber = 181;
 	private static String imagePath = "file:///home/wuser/backup/jpg/bigmap.jpg";
 	
-	public static void main(String[] args) throws IOException{
+	public static void main(String[] args) throws Exception{
 //		if(args.length<4){
 //			System.exit(-1);
 //		}
@@ -49,7 +49,7 @@ public class Sampler {
 
 	public static Map<Float, Integer> sampler(String imagePath, int distribution, int samples, 
 			int orientation, int sensorNumber, int statisticsRange, int imageHeight, int bandWidth
-			) throws IOException{
+			) throws Exception{
 
 		int columnWidth = Math.round(samples/distribution);
 		NavigableMap<Float, Integer> map = new TreeMap<Float, Integer>();
@@ -72,11 +72,11 @@ public class Sampler {
 		return splitKeysMap;
 	}
 	
-	public static Map<Float, Integer> sampler(String imagePath, int distribution, int samples) throws IOException {
+	public static Map<Float, Integer> sampler(String imagePath, int distribution, int samples) throws Exception {
 		return sampler(imagePath, distribution, samples, orientation, sensorNumber, statisticsRange, imageHeight, bandWidth);
 	}
 	
-	public static Map<Float, Integer> sampler(String imagePath, int distribution, int samples, int orientation, int sensorNumber) throws IOException {
+	public static Map<Float, Integer> sampler(String imagePath, int distribution, int samples, int orientation, int sensorNumber) throws Exception {
 		return sampler(imagePath, distribution, samples, orientation, sensorNumber, statisticsRange, imageHeight, bandWidth);
 	}
 	
@@ -132,7 +132,7 @@ public class Sampler {
 		frame.setVisible(true);
 	}
 	
-	private static void sampling(NavigableMap<Float, Integer> map, Grid grid, int samples) throws IOException {
+	private static void sampling(NavigableMap<Float, Integer> map, Grid grid, int samples) throws Exception {
 		grid.readmap();
 		int width = grid.width;
 		int height = grid.height;

@@ -386,32 +386,25 @@ public class Grid extends MouseAdapter {
 		Result[] results = table.get(gets);
 		if (results.length == src.size()) {
 			for (int i = 0; i < results.length; i++) {
-				//convertResultToParticle(src.get(i), results[i], fam);
 				Particle p = src.get(i);
-				byte[] value = null;
-				int globalIndex;
-				float[] measurements = new float[this.sensor_number];
-				//int bias = (this.sensor_number - 1) / 2;
 				byte[] resultValue = results[i].getValue(
 						fam,
 						Bytes.toBytes("data")
 						);
+				float[] measurements = new float[this.sensor_number];
 				if(resultValue!=null){
 					for (int sensorIndex = 0; sensorIndex < this.sensor_number; sensorIndex++) {
-						globalIndex = 
-							Transformer.local2global(
-								sensorIndex, 
-								Transformer.th2Z(p.getTh(), this.orientation), 
-								this.orientation);
-						/*globalIndex = (Transformer.th2Z(p.getTh(), this.orientation) 
-								- bias + sensorIndex + this.orientation) 
-								% this.orientation;*/
-						value = Transformer.getBA(
-									globalIndex, 
-									resultValue
-									);
-						//System.out.println(Bytes.toString(value));
-						measurements[sensorIndex] = Bytes.toFloat(value);
+						measurements[sensorIndex] = 
+							Bytes.toFloat(
+									//the beam value of byte array
+									Transformer.getBA(
+											//global index
+											Transformer.local2global(
+													sensorIndex, 
+													Transformer.th2Z(p.getTh(), this.orientation), 
+													this.orientation),
+											resultValue)
+							);
 					}
 				}else{
 					throw new NullPointerException("bad particle"+src.get(i)+"\nrowkey:"+Bytes.toString(results[i].getRow()));

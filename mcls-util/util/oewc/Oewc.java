@@ -9,7 +9,9 @@ import util.metrics.Transformer;
 public class Oewc {
 
 	
-	static public Entry<Integer, Float> singleParticleModified(List<Float> Zt, List<Float> circles){
+	static public Entry<Integer, Float> singleParticleModified(List<Float> Zt, List<Float> circles) throws Exception{
+		if(Zt.size() > circles.size())
+			throw new Exception("cannot calculate OEWC!!!!!!!!!!!");
 		float weight;
 		int bestZ = 0;
 		float bestWeight = 1;
@@ -33,7 +35,9 @@ public class Oewc {
 		return new AbstractMap.SimpleEntry<Integer, Float>(bestZ, bestWeight);
 	}
 	
-	static public Entry<Integer, Float> singleParticleModified(float[] Zt, float[] circles){
+	static public Entry<Integer, Float> singleParticleModified(float[] Zt, float[] circles) throws Exception{
+		if(Zt.length > circles.length)
+			throw new Exception("cannot calculate OEWC!!!!!!!!!!!");
 		float weight;
 		int bestZ =0;
 		float bestWeight = 1;

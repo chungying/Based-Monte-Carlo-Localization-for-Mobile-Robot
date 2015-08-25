@@ -16,17 +16,21 @@ public class Main {
 	public static void main(String[] args) throws Throwable{
 		//for debug mode
 		if(args.length==0){
-			String[] targs = {/*"-cl",*/
+			String[] targs = {
 					//"-i","file:///Users/ihsumlee/Jolly/jpg/sim_map.jpg"
-					"-i","file:///home/wuser/backup/jpg/sim_map.jpg"
-					,"-o","36"
-					,"-rl","true"
-//							,"-rx","30"
-//							,"-ry","30"
-					,"-p","20"
-//							,"-cl"
+					"-i","file:///home/wuser/backup/jpg/test6.jpg"
+					,"-o","18"
+//					,"-rl","true"
+					,"-rx","80"
+					,"-ry","50"
+//					,"-rh","50"
+//					,"-n","50"
+//					,"-p","20"
 					,"-D","false"
 					,"-c","true"
+					,"--ignore", "true"
+					,"--showparticles"
+//					,"--period","50"
 					,"--logfile"
 					};
 			args = targs;
@@ -107,7 +111,7 @@ public class Main {
 			window.setTitle("mcl image:"+String.valueOf(counter));
 			robot.goStraight();
 			mcl.run(robot, window);
-			robot.lock();
+			robot.lock2();
 			robot.initRobot();
 		}	
 		mcl.close();

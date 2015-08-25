@@ -20,25 +20,33 @@ public class MCL extends SAMCL{
 	@Override
 	public void Global_drawing(List<Particle> src, List<Particle> dst) {
 		//Do nothing in MCL
-		//super.Global_drawing(src, dst);
 	}
 
 	@Override
 	public void Caculating_SER(float weight, float[] Zt, List<Particle> SER_set, List<Particle> global_set)
 			throws IOException {
-//		// TODO Auto-generated method stub
-//		super.Caculating_SER(weight, Zt, SER_set);
+		//Do nothing in MCL
+	}
+
+	@Override
+	public long updateParticle( List<Particle> src) throws Exception {
+		long trasmission = System.currentTimeMillis();
+		for(Particle p : src){
+			p.setMeasurements(
+					this.grid.getMeasurementsOnTime(p.getX(), p.getY(), Transformer.th2Z(p.getTh(), this.orientation))
+					);
+		}
+		return System.currentTimeMillis()-trasmission;
 	}
 
 	@Override
 	public long batchWeight(RobotState robot, List<Particle> src, float[] robotMeasurements)
 			throws Exception {
+		long weightTime = System.currentTimeMillis();
 		for(Particle p : src){
-			float[] m = this.grid.getMeasurementsOnTime(p.getX(), p.getY(), Transformer.th2Z(p.getTh(), this.orientation));
-			p.setMeasurements(m);
 			this.WeightParticle(p, robotMeasurements);
 		}
-		return -1;
+		return System.currentTimeMillis()-weightTime;
 	}
 
 	public MCL(boolean cloud, int orientation, String mapFilename,

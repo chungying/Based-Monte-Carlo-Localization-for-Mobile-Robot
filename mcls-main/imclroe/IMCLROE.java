@@ -26,6 +26,10 @@ import util.metrics.Particle;
 import util.metrics.Transformer;
 import util.robot.RobotState;
 
+/**
+ * @author wuser
+ *
+ */
 public class IMCLROE extends SAMCL{
 	
 	public IMCLROE(boolean cloud, int orientation, String mapFilename,
@@ -97,18 +101,43 @@ public class IMCLROE extends SAMCL{
 	@Parameter(names = {"-E","--endpoint"}, description = "choose the endpoint type, oewc, oewc2, and proxy modes.", required = false)
 	public int endpoint = 0;
 	
-	
 	@Override
+	public long[] weightAssignment(List<Particle> src,
+			float[] robotMeasurements, boolean ignore, RobotState robot)
+			throws Exception {
+		// TODO 
+		robotMeasurements = robot.getMeasurements();
+		long[] timers = new long[3];
+		//remove duplicated particle in X-Y domain
+				Transformer.filterParticle(src);
+				//choose endpoint
+				if(this.endpoint==1){
+					Transformer.debugMode(mode, "choose the proxy endpoint version.\n");
+					timers = this.proxyEndpoint(src, robotMeasurements);
+				}
+				else if(this.endpoint==2){
+					Transformer.debugMode(mode, "choose the oewc2 endpoint version.\n");
+					timers = this.oewc2Endpoint(src, robotMeasurements, 1000);
+				}
+				else{
+					Transformer.debugMode(true, "there is inappropriate endpoint\n");
+				}
+		return timers;
+	}
+
+//	@Override
+//	public long updateParticle( List<Particle> src) throws Exception {
+//		// TODO Auto-generated method stub
+//		return -1;
+//	}
+
+/*	@Override
 	public long batchWeight(RobotState robot, List<Particle> src, float[] robotMeasurements)
-			throws Throwable {
+			throws Exception {
 		//remove duplicated particle in X-Y domain
 		Transformer.filterParticle(src);
 		//choose endpoint
-		/*if(this.endpoint==0){
-			Transformer.debugMode(mode, "choose the endpoint.\n");
-			return this.oewcEndpoint(src, robotMeasurements);
-		}
-		else */if(this.endpoint==1){
+		if(this.endpoint==1){
 			Transformer.debugMode(mode, "choose the proxy endpoint version.\n");
 			return this.proxyEndpoint(src, robotMeasurements);
 		}
@@ -120,9 +149,9 @@ public class IMCLROE extends SAMCL{
 			Transformer.debugMode(true, "there is inappropriate endpoint\n");
 			return -1;
 		}
-	}
+	}*/
 
-	private long proxyEndpoint(final List<Particle> src, final float[] robotMeasurements) {
+	private long[] proxyEndpoint(final List<Particle> src, final float[] robotMeasurements) {
 		// TODO proxy endpoint
 		
 		final List<Pair<Map<Long, String>, OewcProtos2.OewcResponse>> results=Collections.synchronizedList(
@@ -185,11 +214,12 @@ public class IMCLROE extends SAMCL{
 		 * stop row key("1000".getBytes())
 		 * batch call object(b)
 		 * */
-		int rand = (new Random()).nextInt(1000);
+		long durationAll = System.currentTimeMillis();
 		try {
+			int rand = (new Random()).nextInt(1000);
 			table.coprocessorService(
 					RpcProxyProtos.RpcProxyService.class, 
-					String.valueOf(rand).getBytes(), String.valueOf(rand).getBytes(), 
+					String.format("%04d", rand).getBytes(), String.format("%04d",rand).getBytes(), 
 					call,
 					callback
 					);
@@ -200,19 +230,20 @@ public class IMCLROE extends SAMCL{
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}		
+		durationAll = System.currentTimeMillis() - durationAll;
 		
 		//setup weight and orientation to the particles(src)
-		List<Integer> durations = new ArrayList<Integer>();
+		List<Integer> durationsOEWC = new ArrayList<Integer>();
+		List<Integer> durationsReadingHDFS = new ArrayList<Integer>();
 		List<Particle> result = new ArrayList<Particle>();
-		List<Integer> durationsReading = new ArrayList<Integer>();
 		for(Pair<Map<Long, String>, OewcProtos2.OewcResponse> entry:results){
 			//show key
 			Transformer.debugMode(mode,entry.getFirst());
 			//show value
 			Transformer.debugMode(mode,"W:",entry.getSecond().getCount());
-			durations.add(entry.getSecond().getCount());
+			durationsOEWC.add(entry.getSecond().getCount());
 			Transformer.debugMode(mode,"R:",(int)entry.getSecond().getWeight());
-			durationsReading.add((int)entry.getSecond().getWeight());
+			durationsReadingHDFS.add((int)entry.getSecond().getWeight());
 			for(OewcProtos2.Particle op : entry.getSecond().getParticlesList()){
 				result.add(
 						new Particle(
@@ -226,27 +257,33 @@ public class IMCLROE extends SAMCL{
 		}
 
 		//change the result to src
+		
+		long[] timers = new long[3];
+		timers[2] = Collections.max(durationsReadingHDFS);
+		timers[1] = Collections.max(durationsOEWC);
+		timers[0] = durationAll - timers[1];
+		timers[1] -= timers[2];
+
+//		System.out.print("\t");
+		
 		src.clear();
 		src.addAll(result);
 		
-		System.out.print(Collections.max(durationsReading)+":");
-			System.out.print("\t");
-		return Collections.max(durations);
+		return timers;
 	}
 
-	private long oewc2Endpoint(final List<Particle> src, final float[] robotMeasurements, int endkey) {
+	private long[] oewc2Endpoint(final List<Particle> src, final float[] robotMeasurements, int endkey) {
 		// TODO oewc version 2 endpoint
-
-		final List<Pair<Map<Long, String>, OewcProtos2.OewcResponse>> results=Collections.synchronizedList(
-				new ArrayList<Pair<Map<Long, String>, OewcProtos2.OewcResponse>>());
 		
-		Batch.Call<OewcProtos2.Oewc2Service, Pair<Map<Long, String>,OewcProtos2.OewcResponse>> call = 
-				new Batch.Call<OewcProtos2.Oewc2Service, Pair<Map<Long, String>,OewcProtos2.OewcResponse>>() {
+		Batch.Call<OewcProtos2.Oewc2Service, Pair<Map<String, Long>,OewcProtos2.OewcResponse>> call = 
+				new Batch.Call<OewcProtos2.Oewc2Service, Pair<Map<String, Long>,OewcProtos2.OewcResponse>>() {
 			
 			@Override
-			public Pair<Map<Long, String>,OewcProtos2.OewcResponse> call(OewcProtos2.Oewc2Service endpoint) throws IOException {
-				Map<Long, String> records = Collections.synchronizedMap(new TreeMap<Long, String>());
-				records.put(System.currentTimeMillis(), "call");
+			public Pair<Map<String, Long>,OewcProtos2.OewcResponse> call(OewcProtos2.Oewc2Service endpoint) throws IOException {
+				
+				Map<String, Long> records = Collections.synchronizedMap(new TreeMap<String, Long>());
+				
+				records.put("call", System.currentTimeMillis());
 				//initialize the tow objects.(not important)
 				BlockingRpcCallback<OewcProtos2.OewcResponse> done = new BlockingRpcCallback<OewcProtos2.OewcResponse>();
 				RpcController controller = new ServerRpcController();
@@ -270,22 +307,27 @@ public class IMCLROE extends SAMCL{
 				OewcProtos2.OewcRequest.Builder builder = OewcProtos2.OewcRequest.newBuilder();
 				builder.addAllParticles(ps);
 				builder.addAllMeasurements(Zt);
-				
-				endpoint.getOewc2Result(controller, builder.build(), done);
+
 				//get the results.
-				records.put(System.currentTimeMillis(), "call end");
-//				System.out.println("callable");
-				return new Pair<Map<Long, String>,OewcProtos2.OewcResponse>(records, done.get());
+				endpoint.getOewc2Result(controller, builder.build(), done);
+								
+				records.put("call end", System.currentTimeMillis());
+
+				return new Pair<Map<String, Long>,OewcProtos2.OewcResponse>(records, done.get());
 			}	
 		};
+
+		final List<Pair<Map<String, Long>, OewcProtos2.OewcResponse>> results=Collections.synchronizedList(
+				new ArrayList<Pair<Map<String, Long>, OewcProtos2.OewcResponse>>());
 		
-		Batch.Callback<Pair<Map<Long, String>,OewcProtos2.OewcResponse>> callback = 
-				new Batch.Callback<Pair<Map<Long, String>,OewcProtos2.OewcResponse>>() {
-			 public void update(byte[] region, byte[] row, Pair<Map<Long, String>,OewcProtos2.OewcResponse> value) {
+		
+		Batch.Callback<Pair<Map<String, Long>,OewcProtos2.OewcResponse>> callback = 
+				new Batch.Callback<Pair<Map<String, Long>,OewcProtos2.OewcResponse>>() {
+			 public void update(byte[] region, byte[] row, Pair<Map<String, Long>,OewcProtos2.OewcResponse> value) {
 				 Transformer.debugMode(mode,"put result");
 				 Transformer.debugMode(mode, "Thread call time: " + value.getFirst());
 				 Transformer.debugMode(mode, value.getSecond().getStr());
-				 results.add(new Pair<Map<Long, String>, OewcProtos2.OewcResponse>(value.getFirst(), value.getSecond()));
+				 results.add(new Pair<Map<String, Long>, OewcProtos2.OewcResponse>(value.getFirst(), value.getSecond()));
 			 }
 		};
 		
@@ -297,7 +339,7 @@ public class IMCLROE extends SAMCL{
 		 * stop row key("1000".getBytes())
 		 * batch call object(b)
 		 * */
-		
+		long durationAll= System.currentTimeMillis();
 		try {
 			table.coprocessorService(
 					OewcProtos2.Oewc2Service.class, 
@@ -306,16 +348,16 @@ public class IMCLROE extends SAMCL{
 					callback
 					);
 		} catch (ServiceException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (Throwable e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		durationAll = System.currentTimeMillis() - durationAll;
 		
 		//setup weight and orientation to the particles(src)
-		List<Integer> durationsWeighting = new ArrayList<Integer>();
-		List<Integer> durationsReading = new ArrayList<Integer>();
+		List<Integer> durationsSending = new ArrayList<Integer>();
+		List<Integer> durationsOEWC = new ArrayList<Integer>();
+		List<Integer> durationsReadingHDFS = new ArrayList<Integer>();
 		List<Particle> result = new ArrayList<Particle>();
 		List<Integer> particlesNo = new ArrayList<Integer>();
 		Transformer.debugMode(mode,"result no.:"+ results.size());
@@ -326,12 +368,12 @@ public class IMCLROE extends SAMCL{
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-		for(Pair<Map<Long, String>,OewcProtos2.OewcResponse> entry:results){
+		for(Pair<Map<String, Long>,OewcProtos2.OewcResponse> entry:results){
 			//show key
-			
+			durationsSending.add((int)(entry.getFirst().get("call end") - entry.getFirst().get("call")));
 			//show value
-			durationsWeighting.add(entry.getSecond().getCount());
-			durationsReading.add((int)entry.getSecond().getWeight());
+			durationsOEWC.add(entry.getSecond().getCount());//OEWC time and reading HDFS time
+			durationsReadingHDFS.add((int)entry.getSecond().getWeight());//reading HDFS time
 			particlesNo.add(entry.getSecond().getParticlesCount());
 			for(OewcProtos2.Particle op : entry.getSecond().getParticlesList()){
 				result.add(
@@ -344,16 +386,23 @@ public class IMCLROE extends SAMCL{
 						);
 			}
 		}
-		System.out.print(Collections.max(durationsReading)+":");
-		for(Integer i : particlesNo){
-			System.out.print(i+",");
-			
-		}
-		System.out.print("\t");
+		
+		long[] timers = new long[3];
+		timers[2] = Collections.max(durationsReadingHDFS);
+		timers[1] = Collections.max(durationsOEWC);
+		timers[0] = durationAll - timers[1];
+		timers[1] -= timers[2];
+
+//		for(Integer i : particlesNo){
+//			System.out.print(i+",");
+//			
+//		}
+//		System.out.print("\t");
+		
 		//change the result to src
 		src.clear();
 		src.addAll(result);
-		return Collections.max(durationsWeighting);
+		return timers;
 	}
 
 	/*@Deprecated

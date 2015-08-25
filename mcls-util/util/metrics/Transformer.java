@@ -15,16 +15,6 @@ import org.apache.hadoop.hbase.util.Bytes;
 
 public class Transformer {
 	
-	public static List<Float> BA2FA(int offset, byte[] BA){
-		List<Float> result = new ArrayList<Float>();
-		for(int i = offset ; i < BA.length ; i+=4){
-			result.add(
-					Bytes.toFloat(
-							Arrays.copyOfRange(BA, i, i+4)));
-		}
-		return result;
-	}
-	
 	public static byte[] FA2BA(List<Float> FA){
 		byte[] BA = new byte[0];
 		for(float f: FA){
@@ -42,24 +32,38 @@ public class Transformer {
 	}
 	
 	public static byte[] getBA(int i, byte[] BA) throws Exception{
-		byte[] result = null;
-		try {
-			if(BA==null){
-				System.out.println("BA is null!!");
-				throw new NullPointerException();
-			}
-			result = Arrays.copyOfRange(BA, i*4, i*4+4);
-		} catch (Exception e) {
-			System.out.println("i = "+i+",BA = ");
-			for(Float f: BA2FA(0,BA)){
-				System.out.print(f+",");
-			}
-			e.printStackTrace();
-			
+
+		return Arrays.copyOfRange(BA, i*4, i*4+4);
+	}
+	
+	public static List<Float> BA2FA(int offset, byte[] BA){
+		List<Float> result = new ArrayList<Float>();
+		for(int i = offset ; i < BA.length ; i+=4){
+			result.add(
+					Bytes.toFloat(
+							Arrays.copyOfRange(BA, i, i+4)));
 		}
 		return result;
 	}
-	
+
+	public static long result2Array(byte[] familyName, Result result, List<Float> FA) throws Exception{
+		long timer = System.currentTimeMillis();
+		if(!FA.isEmpty()){
+			throw new Exception("the dst array is not empty. there are some bugs.");
+		}
+
+		byte[] BA = result.getValue(familyName, Bytes.toBytes("data"));
+
+		FA.addAll( BA2FA( 0, BA));
+//		for(int i = 0 ; i*4 < BA.length; i++){
+//			FA.add(Bytes.toFloat(
+//					Transformer.getBA(i, BA)));
+//		}
+
+		return System.currentTimeMillis() - timer;
+			
+		}
+
 	static public Put createPut(byte[] row, byte[] family, byte[] qualifier, byte[] value){
 		Put put = new Put(row);
 		put.setDurability(Durability.SKIP_WAL);
@@ -95,26 +99,6 @@ public class Transformer {
 	
 	static public double checkHeadRange(double h){
 		return (h%360+360)%360;
-	}
-	
-	public static String result2Array(byte[] familyName, Result result, List<Float> FA){
-		String message = "";
-		if(!FA.isEmpty()){
-			return "input of drawMeasurements2() is not empty";
-		}
-		try{
-			byte[] BA = result.getValue(familyName, Bytes.toBytes("data"));
-//			message = message + "BA.length="+String.valueOf(BA.length)+", ";
-			for(int i = 0 ; i*4 < BA.length; i++){
-				FA.add(Bytes.toFloat(
-						Transformer.getBA(i, BA)));
-			}
-//			message = message + "drawMeasurements2() succeed";
-		}catch(Exception e){
-//			message = message + "drawMeasurements2() failed" + e.toString();
-		}
-		return message;
-		
 	}
 	
 	public static float[] drawMeasurements(Float[] circles, int z) {
@@ -225,7 +209,9 @@ public class Transformer {
 		return 1;
 	}
 	
-	public static float CalculateEnergy(float[] measurements){
+	public static float CalculateEnergy(float[] measurements) throws Exception{
+		if (measurements == null)
+			throw new Exception("CalculateEnergy: the array is null.");
 		float energy = 0.0f;
 		for(float m: measurements){
 			energy+=m;
