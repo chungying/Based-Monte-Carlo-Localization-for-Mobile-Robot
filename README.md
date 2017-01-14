@@ -1,14 +1,15 @@
 Pre-requirement:
 
 1) Compile Java and generate Jar file
- jdk version of mcls-all-2.8.3.jar is 1.7
- Commands
- undergoing
+Jdk version of mcls-all-2.8.3.jar is 1.7
 
-2) Dispatch and Copy the jar file into all computers
-If no password ssh is set up, you can use scp to trasfer any file.
-eg. I am going to transfer JAR.jar file to the folder, /HOME/UBUNTU, at the computer named HOSTNAME via a user called USERNAME.
-scp JAR.jar USERNAME@HOSTNAME:/HOME/UBUNTU
+Compile via commands
+undergoing
+
+2) Dispatch and Copy the jar file into HBase lib forlder in all computers
+If no-password ssh is set up, you can use scp to trasfer any file.
+eg. I am going to transfer JAR.jar file to the folder, /HOME/UBUNTU/HBASE/LIB, at the computer named HOSTNAME via a user called USERNAME.
+scp mcls-all-2.8.3.jar USERNAME@HOSTNAME:/HOME/UBUNTU/
 
 3) Modified HBase configuration file in order to setup OEWC Coprocessor
 In hbase-site.xml, add
@@ -20,10 +21,12 @@ In hbase-site.xml, add
 If there is any question aoubt the configuration, referring to Appendix A in HBase: The Definitive Guide
 
 4) Prepare a known environment map for robots. The format of the map is JPEG.
-Such as map.jpg
+Such as map_8590.jpg, simmap.jpg, or bigmap.jpg
 
 5) Pre-define the split keys of energy grid map for HBase
-These split key are stored in paras.sh, a shell script exporting enviromental variables.
+These split key should be stored in paras.sh, a shell script exporting enviromental variables.
+If a new map is build, a tool, , can be used to find the split keys.
+eg. 
 
 6) Upload map.jpg into HDFS
 Google "hadoop command line interface" or refer to Hadoop: The definitive guide
@@ -54,3 +57,12 @@ or
 
 2) Execute the localization program
 hadoop jar JAR.jar IMCLROE.Main -i file:///home/ubuntu/map.jpg ...
+
+
+Touble Shooting:
+1) JRE Version Set Up
+If there is some errors like that "Unsupported major.minor version 51.0", the vesion of Java Runtime Environment (JRE) and the JAR.jar file is different.
+51.0 represents that the JAR.jar file is built by Java SE 7, 52.0 by Java SE 8, 50.0 by Java SE 6.
+The current JRE version can be found out by the command.
+$java -version
+
