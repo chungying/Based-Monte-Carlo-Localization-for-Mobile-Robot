@@ -1,4 +1,4 @@
-1. Pre-requirement:
+Pre-requirement:
 
 1) Compile Java and generate Jar file
 
@@ -10,13 +10,13 @@
 
 5) Pre-define the split keys of energy grid map for HBase
 
-2. Off-line:
+Off-line:
 
 1) Export environment variables
 
 2) Execute pre-caching
 
-3. On-line:
+On-line:
 
 1) Export environment variables
 
