@@ -1,9 +1,9 @@
 Pre-requirement:
 
 1) Compile Java and generate Jar file
-Versions
-CloudMCL-1-6.jar, CloudMCL-1-7.jar, CloudMCL-1-8.jar
-Commands
+ jdk version of mcls-all-2.8.3.jar is 1.7
+ Commands
+ undergoing
 
 2) Dispatch and Copy the jar file into all computers
 If no password ssh is set up, you can use scp to trasfer any file.
