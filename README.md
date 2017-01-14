@@ -1,7 +1,9 @@
 Pre-requirement:
 
 1) Compile Java and generate Jar file
-Jdk version of mcls-all-2.8.3.jar is 1.7
+mcls-all-6.jar is built by Java SE 6
+mcls-all-7.jar is built by Java SE 7
+mcls-all-8.jar is built by Java SE 8
 
 Compile via commands
 undergoing
@@ -9,7 +11,7 @@ undergoing
 2) Dispatch and Copy the jar file into HBase lib forlder in all computers
 If no-password ssh is set up, you can use scp to trasfer any file.
 eg. I am going to transfer JAR.jar file to the folder, /HOME/UBUNTU/HBASE/LIB, at the computer named HOSTNAME via a user called USERNAME.
-scp mcls-all-2.8.3.jar USERNAME@HOSTNAME:/HOME/UBUNTU/
+scp mcls-all-7.jar USERNAME@HOSTNAME:/HOME/UBUNTU/
 
 3) Modified HBase configuration file in order to setup OEWC Coprocessor
 In hbase-site.xml, add
@@ -26,7 +28,9 @@ Such as map_8590.jpg, simmap.jpg, or bigmap.jpg
 5) Pre-define the split keys of energy grid map for HBase
 These split key should be stored in paras.sh, a shell script exporting enviromental variables.
 If a new map is build, a tool, , can be used to find the split keys.
-eg. 
+eg.
+$hadoop jar mcls-all-7.jar util.metrics.Sampler -i file:///Users/ubuntu/jpg/simmap.jpg -o 18 --splitNumber 4
+
 
 6) Upload map.jpg into HDFS
 Google "hadoop command line interface" or refer to Hadoop: The definitive guide
@@ -37,9 +41,7 @@ hadoop hdfs -ls /user/eeuser
 Off-line:
 
 1) Export environment variables
-source environment.sh
-or
-./environment
+source environment.sh mcls-all-7.jar jcommander-1.36-SNAPSHOT.jar 
 
 2) Create a Table
 eg. execute the shell script, createTable.sh, to create a table, named TABLENAME.
