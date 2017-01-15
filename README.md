@@ -5,50 +5,67 @@ mcls-all-6.jar is built by Java SE 6
 mcls-all-7.jar is built by Java SE 7  
 mcls-all-8.jar is built by Java SE 8  
 
-Compile via commands
-undergoing
+Compile via commands  
+undergoing...  
 
-2) Dispatch and Copy the jar file into HBase lib forlder in all computers
-If no-password ssh is set up, you can use scp to trasfer any file.
+2) Dispatch and Copy the jar file into HBase lib forlder in all computers  
+If no-password ssh is set up, you can use scp to trasfer any file.  
 eg. I am going to transfer JAR.jar file to the folder, /HOME/UBUNTU/HBASE/LIB, at the computer named HOSTNAME via a user called USERNAME.
-scp mcls-all-7.jar USERNAME@HOSTNAME:/HOME/UBUNTU/
+$scp mcls-all-7.jar USERNAME@HOSTNAME:/HOME/UBUNTU/
 
-3) Modified HBase configuration file in order to setup OEWC Coprocessor
-In hbase-site.xml, add
-<property>
-    <name>hbase.coprocessor.region.classes</name>
-    <value>coprocessor.services.OewcEndpoint</value>
-</property>
-
-If there is any question aoubt the configuration, referring to Appendix A in HBase: The Definitive Guide
-
-4) Prepare a known environment map for robots. The format of the map is JPEG.
-Such as map_8590.jpg, simmap.jpg, or bigmap.jpg
-
-5) Pre-define the split keys of energy grid map for HBase
-These split key should be stored in paras.sh, a shell script exporting enviromental variables.
-If a new map is build, a tool, , can be used to find the split keys.
+3) Modified HBase configuration file in order to setup OEWC Coprocessor  
+In hbase-site.xml, add  
+<property>  
+    <name>hbase.coprocessor.region.classes</name>  
+    <value>coprocessor.services.OewcEndpoint</value>  
+</property>  
+  
+If there is any question aoubt the configuration, referring to Appendix A in HBase: The Definitive Guide  
+  
+4) Prepare a known environment map for robots. The format of the map is JPEG.  
+Such as map_8590.jpg, simmap.jpg, or bigmap.jpg  
+  
+5) Pre-define the split keys of energy grid map for HBase  
+These split key should be stored in paras.sh, a shell script exporting enviromental variables.  
+If a new map is build, a tool, , can be used to find the split keys.  
 eg.
-$hadoop jar mcls-all-7.jar util.metrics.Sampler -i file:///Users/ubuntu/jpg/simmap.jpg -o 18 --splitNumber 4
+$SPLITKEYS=`hadoop jar mcls-all-7.jar util.metrics.Sampler -i file:///Users/ubuntu/jpg/simmap.jpg -o 18 --splitNumber 4`  
+-i is the map image which will be use for localization.
+-o is the resolution of orientation.
+--splitNumber is the number of region nodes.
+  
+6) Upload map.jpg into HDFS  
+If you need more detailed instructions, access to the website ( http://hadoop.apache.org/docs/r2.7.2/hadoop-project-dist/hadoop-common/FileSystemShell.html ) or refer to the book, Hadoop: The definitive guide.
+The simple instructions could be obtained by typing the following command.  
+$hadoop help  
 
+To upload image file to the cloud types  
+$hadoop fs -copyFromLocal map.jpg hdfs:///user/ubuntu/map.jpg  
+$hadoop fs -ls hdfs:///user/ubuntu
 
-6) Upload map.jpg into HDFS
-Google "hadoop command line interface" or refer to Hadoop: The definitive guide
-hadoop help
-hadoop hdfs upload ~/map.jpg /user/eeuser/map.jpg
-hadoop hdfs -ls /user/eeuser
+Off-line:  
+  
+1) Export environment variables  
+Before executing mcls-all-7.jar, the environment variables must be set up correctly, especially for $HADOOP_CLASSPATH.
+Following command could automatically add routes of these jar files into $HADOOP_CLASSPATH. 
+$source environment.sh ~/mcls-all-7.jar ~/jcommander-1.36-SNAPSHOT.jar 
+  
+Following for checking  
+$echo $HADOOP_CLASSPATH  
+  
+2) Create a Table  
+Before execute pre-caching, a HBase table has to be created.  
+Please use these two commands to create a table, named TABLENAME.  
 
-Off-line:
-
-1) Export environment variables
-source environment.sh mcls-all-7.jar jcommander-1.36-SNAPSHOT.jar 
-
-2) Create a Table
-eg. execute the shell script, createTable.sh, to create a table, named TABLENAME.
-./createTable TABLENAME
-
-3) Execute pre-caching
-hadoop jar image2hbaseo.jar image2hbase.File2Hbase -t map -i hdfs:///user/eeuser/map.jpg -r 40 -o 36
+$SPLITKEYS=`hadoop jar mcls-all-7.jar util.metrics.Sampler -i file:///home/ubuntu/simmap.jpg -o 18 --splitNumber 4$`
+  
+$./createTable TABLENAME $SPLITKEYS  
+TABLENAME is the name in HBase system.  
+You could name it in any string format.  
+For instance, I would call the map, simmap.jpg, with 18 orientation resolution split into 4 parts as "simmap-18-4".  
+  
+3) Execute pre-caching  
+$hadoop jar mcls-all-7.jar mapreduce.file2hfile.File2Hfile -t map -i hdfs:///user/ubuntu/simmap.jpg -m 40 -o 18
 
 On-line:
 
