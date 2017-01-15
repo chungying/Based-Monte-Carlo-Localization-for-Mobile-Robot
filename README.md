@@ -25,27 +25,27 @@ If there is any question aoubt the configuration, referring to Appendix A in HBa
   
 4) Prepare a known environment map for robots. The format of the map is JPEG.  
 Such as map_8590.jpg, simmap.jpg, or bigmap.jpg  
-map_8590.jpg has 85 width and 90 height.
-simmap.jpg is 630x651.
-bigmap.jpg is 1220x1260.
+map_8590.jpg has 85 width and 90 height.  
+simmap.jpg is 630x651.  
+bigmap.jpg is 1220x1260.  
   
 5) Pre-define the split keys of energy grid map for HBase  
 If there is a new map, following command can be used to find the split keys.  
-  
+Noting that this command should be read in raw data.
 $SPLITKEYS=`hadoop jar mcls-all-7.jar util.metrics.Sampler -i file:///Users/ubuntu/jpg/simmap.jpg -o 18 --splitNumber 4`  
 -i is the map image which will be use for localization.  
 -o is the resolution of orientation.  
 --splitNumber is the number of region nodes.  
    
 6) Upload map.jpg into HDFS  
-If you need more detailed instructions, access to the website ( http://hadoop.apache.org/docs/r2.7.2/hadoop-project-dist/hadoop-common/FileSystemShell.html ) or refer to the book, Hadoop: The definitive guide.
+If you need more detailed instructions, access to the website ( http://hadoop.apache.org/docs/r2.7.2/hadoop-project-dist/hadoop-common/FileSystemShell.html ) or refer to the book, Hadoop: The definitive guide.  
 The simple instructions could be obtained by typing the following command.  
 $hadoop help  
-
+  
 To upload image file to the cloud types  
 $hadoop fs -copyFromLocal map.jpg hdfs:///user/ubuntu/map.jpg  
-$hadoop fs -ls hdfs:///user/ubuntu
-
+$hadoop fs -ls hdfs:///user/ubuntu  
+  
 Off-line:  
   
 1) Export environment variables  
@@ -59,8 +59,8 @@ $echo $HADOOP_CLASSPATH
 2) Create a Table  
 Before execute pre-caching, a HBase table has to be created.  
 Please use these two commands to create a table, named TABLENAME.  
-
-$SPLITKEYS=`hadoop jar mcls-all-7.jar util.metrics.Sampler -i file:///home/ubuntu/simmap.jpg -o 18 --splitNumber 4$`
+This command is as same as 5) in previous section, please read it in raw data.   
+`$SPLITKEYS=`hadoop jar mcls-all-7.jar util.metrics.Sampler -i file:///home/ubuntu/simmap.jpg -o 18 --splitNumber 4$` ` 
   
 $./createTable TABLENAME $SPLITKEYS  
 TABLENAME is the name in HBase system.  
