@@ -17,7 +17,7 @@ $scp mcls-all-7.jar USERNAME@HOSTNAME:/HOME/UBUNTU/
 In hbase-site.xml, add  
 <property>  
     <name>hbase.coprocessor.region.classes</name>  
-    <value>coprocessor.services.OewcEndpoint</value>  
+    <value>endpoint.services.OewcEndpoint</value>  
 </property>  
 Noting that there are some sturcture symbols for xml files so it would be better read this document in raw data.  
   
@@ -125,3 +125,5 @@ $./removeTable.sh TABLENAME  
   
 4) Making shell scripts executable  
 $chmod a+x createTable.sh removeTable.sh  
+  
+5) NTP 
