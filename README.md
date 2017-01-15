@@ -1,7 +1,6 @@
 Pre-requirement:
 
 1) Compile Java and generate Jar file
-
 mcls-all-6.jar is built by Java SE 6
 mcls-all-7.jar is built by Java SE 7
 mcls-all-8.jar is built by Java SE 8
