@@ -49,42 +49,72 @@ $hadoop fs -ls hdfs:///user/ubuntu
 Off-line:  
   
 1) Export environment variables  
-Before executing mcls-all-7.jar, the environment variables must be set up correctly, especially for $HADOOP_CLASSPATH.
-Following command could automatically add routes of these jar files into $HADOOP_CLASSPATH. 
-$source environment.sh ~/mcls-all-7.jar ~/jcommander-1.36-SNAPSHOT.jar 
-  
-Following for checking  
-$echo $HADOOP_CLASSPATH  
-  
+Before executing mcls-all-7.jar, the environment variables must be set up correctly, especially for $HADOOP_CLASSPATH.  
+Following command could automatically add routes of these jar files into $HADOOP_CLASSPATH.  
+$source environment.sh ~/mcls-all-7.jar ~/jcommander-1.36-SNAPSHOT.jar  
+   
+Following for checking   
+$echo $HADOOP_CLASSPATH   
+   
 2) Create a Table  
 Before execute pre-caching, a HBase table has to be created.  
 Please use these two commands to create a table, named TABLENAME.  
 This command is as same as 5) in previous section, please read it in raw data.   
-`$SPLITKEYS=`hadoop jar mcls-all-7.jar util.metrics.Sampler -i file:///home/ubuntu/simmap.jpg -o 18 --splitNumber 4$` ` 
-  
-$./createTable TABLENAME $SPLITKEYS  
+$export SPLITKEYS=`hadoop jar mcls-all-7.jar util.metrics.Sampler -i file:///home/ubuntu/simmap.jpg -o 18 --splitNumber 4`  
+   
+$./createTable TABLENAME   
 TABLENAME is the name in HBase system.  
 You could name it in any string format.  
 For instance, I would call the map, simmap.jpg, with 18 orientation resolution split into 4 parts as "simmap-18-4".  
   
 3) Execute pre-caching  
-$hadoop jar mcls-all-7.jar mapreduce.file2hfile.File2Hfile -t map -i hdfs:///user/ubuntu/simmap.jpg -m 40 -o 18
+$hadoop jar mcls-all-7.jar mapreduce.file2hfile.File2Hfile -t simmap-18-4 -i hdfs:///user/ubuntu/simmap.jpg -m 40 -o 18   
+-t is TABLENAME eg. simmap-18-4    
+-i is image map stored in HDFS   
+-m is the number of mappers   
+-o is the resolution of orientation   
+   
+On-line:  
+  
+1) Export environment variables  
+Before executing mcls-all-7.jar, the environment variables must be set up correctly, especially for $HADOOP_CLASSPATH.  
+Following command could automatically add routes of these jar files into $HADOOP_CLASSPATH.  
+$source environment.sh ~/mcls-all-7.jar ~/jcommander-1.36-SNAPSHOT.jar  
+  
+Following for checking  
+$echo $HADOOP_CLASSPATH  
+  
+2) Execute the localization program  
+$hadoop jar mcls-all-7.jar imclroe.Main -i file:///home/ubuntu/simmap.jpg -o 18 -cl -t simmap.18.4 -rx 250 -ry 170 --delta 0.0001 --xi 0.05   
+-i is the route of map image  
+-o is the resolution of the map  
+If there is "-cl", it means this execution will use the cloud compute  
+-t is TABLENAME  
+-rx and -ry are not necessary, because the initial coordinate can be tuned via User Interface.
+--delta is the parameter for the size of Similar Energy Region. This can be tuned via User Interface.  
+--xi is the sensitivity for detecting kidnapping situation  
+  
+  
+Touble Shooting:  
+  
+1) JRE Version Set Up  
+If there is some errors like that "Unsupported major.minor version 51.0", the vesions of Java Runtime Environment (JRE) and the JAR.jar file are different.  
+51.0 represents that the JAR.jar file is built by Java SE 7, 52.0 by Java SE 8, 50.0 by Java SE 6.  
+The current JRE version can be found out by the command.  
+$java -version  
+  
+2) When Pre-caching failed  
+Hadoop Distribution File System (HDFS) is similar to the file system of linux. Both of them require permission.
+Please check the folder in HDFS for storing HFiles, output of pre-caching, whether the permission is allowed to be read written by others.  
+The command checks file status. Please find the folder where storing HFiles of HBase.  
+$hadoop fs -ls hdfs:///user/hbase/...  
 
-On-line:
+The command change the ownership.  
+$hadoop fs -chown [-R] [OWNER][:[GROUP]] URI [URI]  
+-R is recursive, which means, if URI is a folder, all of the sub-folders and files in URI will be changed.  
+OWNER is the user who is going to own URI.  
+GROUP is the group who is going to own URI.  
+URI is the routes, such as hdfs:///user/hbase. If there are many URIs, use blank separate them.  
 
-1) Export environment variables
-source environment.sh
-or
-./environment
-
-2) Execute the localization program
-hadoop jar JAR.jar IMCLROE.Main -i file:///home/ubuntu/map.jpg ...
-
-
-Touble Shooting:
-1) JRE Version Set Up
-If there is some errors like that "Unsupported major.minor version 51.0", the vesion of Java Runtime Environment (JRE) and the JAR.jar file is different.
-51.0 represents that the JAR.jar file is built by Java SE 7, 52.0 by Java SE 8, 50.0 by Java SE 6.
-The current JRE version can be found out by the command.
-$java -version
-
+The command change the permission. Please refer to the instruction website.  
+$hadoop fs -chmod ...   
