@@ -21,7 +21,8 @@ In hbase-site.xml, add
 </property>  
 Noting that there are some sturcture symbols for xml files so it would be better read this document in raw data.  
   
-If there is any question aoubt the configuration, referring to Appendix A in HBase: The Definitive Guide  
+If there is any question aoubt the configuration, referring to Appendix A in HBase: The Definitive Guide.  
+Or you could refer to XML folder for my previous system configuration.  
   
 4) Prepare a known environment map for robots. The format of the map is JPEG.  
 Such as map_8590.jpg, simmap.jpg, or bigmap.jpg  
@@ -31,7 +32,7 @@ bigmap.jpg is 1220x1260.
   
 5) Pre-define the split keys of energy grid map for HBase  
 If there is a new map, following command can be used to find the split keys.  
-Noting that this command should be read in raw data.
+Noting that this command should be read in raw data.  
 $export SPLITKEYS=`hadoop jar mcls-all-7.jar util.metrics.Sampler -i file:///Users/ubuntu/jpg/simmap.jpg -o 18 --splitNumber 4`  
 -i is the map image which will be use for localization.  
 -o is the resolution of orientation.  
@@ -118,3 +119,9 @@ URI is the routes, such as hdfs:///user/hbase. If there are many URIs, use blank
 
 The command change the permission. Please refer to the instruction website.  
 $hadoop fs -chmod ...   
+  
+3) Deleting HBase Tables
+$./removeTable.sh TABLENAME  
+  
+4) Making shell scripts executable  
+$chmod a+x createTable.sh removeTable.sh  
