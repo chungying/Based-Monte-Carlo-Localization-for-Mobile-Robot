@@ -1,0 +1,45 @@
+
+#the paragraph could be modified by the user
+HADOOP_HOME=/usr/lib/hadoop
+YARN_HOME=/usr/lib/hadoop-yarn
+MR_HOME=/usr/lib/hadoop-mapreduce
+HDFS_HOME=/usr/lib/hadoop-hdfs
+HBASE_HOME=/usr/lib/hbase
+ZOOKEEPER_HOME=/usr/lib/zookeeper
+TEZ_HOME=/home/w514/tez-0.2.0-incubating/tez-dist/target/tez-0.2.0/tez-0.2.0
+
+#note that these configuration folders might be changed
+HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop
+HBASE_CONF_DIR=$HBASE_HOME/conf
+ZOOKEEPER_CONF_DIR=$ZOOKEEPER_HOME/conf
+TEZ_CONF_DIR=/etc/tez/conf
+
+
+HADOOP_CONF_DIR=$HADOOP_CONF_DIR:$HBASE_CONF_DIR:$ZOOKEEPER_CONF_DIR:$TEZ_CONF_DIR
+
+HADOOP_JARS=$HADOOP_HOME/*:$HADOOP_HOME/lib/*
+YARN_JARS=$YARN_HOME/*:$YARN_HOME/lib/*
+MR_JARS=$MR_HOME/*:$MR_HOME/lib/*
+HDFS_JARS=$HDFS_HOME/*:$HDFS_HOME/lib/*
+HBASE_JARS=$HBASE_HOME/lib/*
+ZOOKEEPER_JARS=$ZOOKEEPER_HOME/*:$ZOOKEEPER_HOME/lib/*
+TEZ_JARS=$TEZ_HOME/*:$TEZ_HOME/lib/*
+
+HADOOP_CLASSPATH=.:$HADOOP_JARS:$YARN_JARS:$MR_JARS:$HDFS_JARS:$HBASE_JARS:$ZOOKEEPER_JARS:$TEZ_JARS:$HADOOP_CONF_DIR
+
+#JAVA_HOME=/usr/java/default
+#export JAVA_HOME
+
+CLASSPATH=.:$JAVA_HOME/lib/tools.jar:$JAVA_HOME/lib/dt.jar
+CLASSPATH=$CLASSPATH:$HADOOP_JARS:$YARN_JARS:$MR_JARS:$HDFS_JARS:$HBASE_JARS:$ZOOKEEPER_JARS:$TEZ_JARS
+export CLASSPATH 
+
+export HADOOP_CLASSPATH
+
+LD_LIBRARY_PATH=/usr/local/Aria/lib
+
+#export LD_LIBRARY_PATH
+
+JAVA_INCLUDE=$JAVA_HOME/include
+#export JAVA_INCLUDE
+

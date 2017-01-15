@@ -47,9 +47,9 @@ public class File2Hbase {
 		o.setRequired(true);
 		options.addOption(o);
 
-		 o = new Option("r", "reducers", true,
-		 "the number of reducers");
-		 o.setArgName("reducers");
+		 o = new Option("m", "mappers", true,
+		 "the number of mappers");
+		 o.setArgName("mappers");
 		 o.setRequired(true);
 		 options.addOption(o);
 		
@@ -104,7 +104,7 @@ public class File2Hbase {
 
 		String table = cmd.getOptionValue("t");
 		String input = cmd.getOptionValue("i");
-		String reducers = cmd.getOptionValue("r");
+		String reducers = cmd.getOptionValue("m");
 		String orientation = cmd.getOptionValue("o");
 		System.out.println(input);
 		
