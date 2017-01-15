@@ -99,7 +99,7 @@ public class IMCLROE extends SAMCL{
 	}
 	
 	@Parameter(names = {"-E","--endpoint"}, description = "choose the endpoint type, oewc, oewc2, and proxy modes.", required = false)
-	public int endpoint = 0;
+	public int endpoint = 2;
 	
 	@Override
 	public long[] weightAssignment(List<Particle> src,

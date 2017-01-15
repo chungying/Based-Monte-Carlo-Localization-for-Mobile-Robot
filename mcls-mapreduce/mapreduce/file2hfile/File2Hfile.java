@@ -26,9 +26,9 @@ public class File2Hfile {
 		String[] arg = run(args);
 		jobTime = System.currentTimeMillis() - jobTime;
 		
-		String command = "sudo -u hdfs hadoop fs -chown -R hbase ";
-		String output = Command.excuteCommand(command+arg[0]);
-		System.out.println(output);
+		//String command = "sudo -u hdfs hadoop fs -chown -R hbase ";
+		//String output = Command.excuteCommand(command+arg[0]);
+		//System.out.println(output);
 		
 		long loadTime = System.currentTimeMillis();
 		int exit = ToolRunner.run(new LoadIncrementalHFiles(HBaseConfiguration.create()), arg);
@@ -57,13 +57,13 @@ public class File2Hfile {
 
 		String tableName = cmd.getOptionValue("t");
 		String input = cmd.getOptionValue("i");
-		String reducers = cmd.getOptionValue("r");
+		String mappers = cmd.getOptionValue("m");
 		String orientation = cmd.getOptionValue("o");
 		System.out.println(input);
 		
 		// ImportFromFile-8-JobDef Define the job with the required classes.
 		@SuppressWarnings("deprecation")
-		Job job = new Job(conf, "Import from file " + input + "through " + reducers + "mapper(s)" 
+		Job job = new Job(conf, "Import from file " + input + "through " + mappers + "mapper(s)" 
 		+ " into table " + tableName + " with " + orientation + " orientation.");
 		// ((JobConf)job.getConfiguration()).setJar("/home/w514/iff.jar");
 		job.setJarByClass(File2Hbase.class);
@@ -75,7 +75,7 @@ public class File2Hfile {
 		job.getConfiguration().set("conf.family.energy", "energy");
 		job.getConfiguration().set("conf.family.laserpoint.x", "laserpoint.x");
 		job.getConfiguration().set("conf.family.laserpoint.y", "laserpoint.y");
-		job.getConfiguration().set(ImageSpliterInputFormat.MAP_NUMBER, reducers);
+		job.getConfiguration().set(ImageSpliterInputFormat.MAP_NUMBER, mappers);
 		job.setInputFormatClass(ImageSpliterInputFormat.class);
 		
 		ImageSpliterInputFormat.addInputPath(job, new Path(input));
