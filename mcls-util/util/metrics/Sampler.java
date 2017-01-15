@@ -5,6 +5,9 @@ import java.awt.image.BufferedImage;
 
 import javax.swing.JFrame;
 
+import com.beust.jcommander.JCommander;
+import com.beust.jcommander.Parameter;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -19,67 +22,82 @@ import util.metrics.Transformer;
 
 
 public class Sampler {
-	private static int distribution = 30;
-	private static int samples = 1000;
+	@Parameter(names = {"-h", "--help"}, help = true)
+	public boolean help;
 	
-	private static int statisticsRange = 100;
-	private static int imageHeight = 300;
-	private static int bandWidth = 3;
+	//sampling parameters
+	@Parameter(names = "--splitNumber", description = "How many parts the energy grid map should be split, default is 4.", required = false)
+	private int splitNumber = 4;
+	@Parameter(names = "--sample", description = "the number of samples, default number is 1000.", required = false)
+	private int samples = 1000;
 	
-	private static int orientation  = 360;
-	private static int sensorNumber = 181;
-	private static String imagePath = "file:///home/wuser/backup/jpg/bigmap.jpg";
+	//visualization window parameters
+	@Parameter(names = {"-vl","--visualization"}, description = "whether the visualization is performed, default is false", required = false)
+	private boolean visualization = false;
+	private int statisticsRange = 100;
+	private int imageHeight = 300;
+	private int bandWidth = 3;
+	
+	//simulated sensor's parameters
+	@Parameter(names = {"-o","--orientation"}, description = "the resolution of orientation, default number is 18.", required = false)
+	private int orientation  = 18;
+	//ray-casting map
+	@Parameter(names = {"-i","--image"}, description = "the image of map, default is \"file:///Users/Jolly/git/Cloud-based MCL/jpg/simmap.jpg\"", required = false)
+	private  String imagePath = "file:///Users/Jolly/git/Cloud-based MCL/jpg/simmap.jpg";
 	
 	public static void main(String[] args) throws Exception{
-//		if(args.length<4){
-//			System.exit(-1);
-//		}
-//		String imagePath = args[0];
-//		int distribution = Integer.parseInt(args[1]);
-//		int samples = Integer.parseInt(args[2]);
-//		int orientation = Integer.parseInt(args[3]);
 		
+		Sampler sp = new Sampler();
+		//JCommander parser
+		JCommander jc = new JCommander();
+		jc.setAcceptUnknownOptions(true);
+		jc.addObject(sp);
+		jc.parse(args);
+		if(sp.help){
+			jc.usage();
+			System.exit(0);
+		}
 
 		long time = System.currentTimeMillis();
-		sampler(imagePath, distribution, samples, orientation, orientation/2+1);
+		Map<Float, Integer> splitKeysMap = sp.sampler();
 		time = System.currentTimeMillis() - time;
-		System.out.println("time: "+ time +" ms");
+		if(sp.visualization){
+			System.out.println("This programe is finished in "+ time +" ms.");
+			System.out.println("The split keys are:");
+		}
+		
+		System.out.print("\"{SPLITS =>[");
+		for(Entry<Float, Integer> entry: splitKeysMap.entrySet()){
+			System.out.print("'"+entry.getKey()+"', ");
+		}
+		for(int i = 1 ; i < sp.splitNumber-1;i++){
+			System.out.printf("'"+"%04d"+"', ", i*1000/sp.splitNumber);
+		}
+		System.out.printf("'"+"%04d"+"'", (sp.splitNumber-1)*1000/sp.splitNumber);
+		System.out.println("]}\"");
 		
 	}
 
-	public static Map<Float, Integer> sampler(String imagePath, int distribution, int samples, 
-			int orientation, int sensorNumber, int statisticsRange, int imageHeight, int bandWidth
-			) throws Exception{
+	public Map<Float, Integer> sampler() throws Exception{
 
-		int columnWidth = Math.round(samples/distribution);
+		int columnWidth = Math.round(samples/splitNumber);
 		NavigableMap<Float, Integer> map = new TreeMap<Float, Integer>();
 		int[] list = new int[statisticsRange];
 		Map<Float, Integer> splitKeysMap = new TreeMap<Float, Integer>();
 //		List<Float> splitKeys = new ArrayList<Float>();
 		
-		sampling(map, new Grid(orientation, sensorNumber, imagePath), samples);
+		sampling(map, new Grid(orientation, orientation/2+1, imagePath), samples);
 		
-		//statistic(splitKeysMap, list, map, columnWidth, statisticsRange);
 		statistic(splitKeysMap, list, map, columnWidth, statisticsRange);
 		
-		for(Entry<Float, Integer> entry: splitKeysMap.entrySet()){
-			System.out.print(entry.getKey()+":");
-			System.out.println(entry.getValue());
+		if(this.visualization){
+			drawImage(list, statisticsRange, imageHeight, bandWidth);
 		}
-		
-		drawImage(list, statisticsRange, imageHeight, bandWidth);
 		
 		return splitKeysMap;
 	}
 	
-	public static Map<Float, Integer> sampler(String imagePath, int distribution, int samples) throws Exception {
-		return sampler(imagePath, distribution, samples, orientation, sensorNumber, statisticsRange, imageHeight, bandWidth);
-	}
-	
-	public static Map<Float, Integer> sampler(String imagePath, int distribution, int samples, int orientation, int sensorNumber) throws Exception {
-		return sampler(imagePath, distribution, samples, orientation, sensorNumber, statisticsRange, imageHeight, bandWidth);
-	}
-	
+
 	public static void statistic(Map<Float, Integer> splitKeysMap/*, List<Float> splitKeys*/, int[] list, NavigableMap<Float,Integer> map, int columnWidth, int statisticsRange){
 		int i  = 1;
 		Float lastKey = 0.0f;
