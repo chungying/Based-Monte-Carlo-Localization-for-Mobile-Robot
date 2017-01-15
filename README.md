@@ -21,7 +21,8 @@ In hbase-site.xml, add
 </property>  
 Noting that there are some sturcture symbols for xml files so it would be better read this document in raw data.  
   
-If there is any question aoubt the configuration, referring to Appendix A in HBase: The Definitive Guide  
+If there is any question aoubt the configuration, referring to Appendix A in HBase: The Definitive Guide.  
+Or you could refer to XML folder for my previous system configuration.  
   
 4) Prepare a known environment map for robots. The format of the map is JPEG.  
 Such as map_8590.jpg, simmap.jpg, or bigmap.jpg  
@@ -118,3 +119,9 @@ URI is the routes, such as hdfs:///user/hbase. If there are many URIs, use blank
 
 The command change the permission. Please refer to the instruction website.  
 $hadoop fs -chmod ...   
+  
+3) Deleting HBase Tables
+$./removeTable.sh TABLENAME  
+  
+4) Making shell scripts executable  
+$chmod a+x createTable.sh removeTable.sh  
