@@ -32,7 +32,7 @@ bigmap.jpg is 1220x1260.
 5) Pre-define the split keys of energy grid map for HBase  
 If there is a new map, following command can be used to find the split keys.  
 Noting that this command should be read in raw data.
-$SPLITKEYS=`hadoop jar mcls-all-7.jar util.metrics.Sampler -i file:///Users/ubuntu/jpg/simmap.jpg -o 18 --splitNumber 4`  
+$export SPLITKEYS=`hadoop jar mcls-all-7.jar util.metrics.Sampler -i file:///Users/ubuntu/jpg/simmap.jpg -o 18 --splitNumber 4`  
 -i is the map image which will be use for localization.  
 -o is the resolution of orientation.  
 --splitNumber is the number of region nodes.  
