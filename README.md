@@ -11,7 +11,7 @@ undergoing...
 2) Dispatch and Copy the jar file into HBase lib forlder in all computers   
 If no-password ssh is set up, you can use scp to trasfer any file.  
 eg. I am going to transfer JAR.jar file to the folder, /HOME/UBUNTU/HBASE/LIB, at the computer named HOSTNAME via a user called USERNAME.  
-$scp mcls-all-7.jar USERNAME@HOSTNAME:/HOME/UBUNTU/
+$scp mcls-all-7.jar USERNAME@HOSTNAME:/HOME/UBUNTU/  
   
 3) Modified HBase configuration file in order to setup OEWC Coprocessor  
 In hbase-site.xml, add  
@@ -19,21 +19,24 @@ In hbase-site.xml, add
     <name>hbase.coprocessor.region.classes</name>  
     <value>coprocessor.services.OewcEndpoint</value>  
 </property>  
+Noting that there are some sturcture symbols for xml files so it would be better read this document in raw data.  
   
 If there is any question aoubt the configuration, referring to Appendix A in HBase: The Definitive Guide  
   
 4) Prepare a known environment map for robots. The format of the map is JPEG.  
 Such as map_8590.jpg, simmap.jpg, or bigmap.jpg  
+map_8590.jpg has 85 width and 90 height.
+simmap.jpg is 630x651.
+bigmap.jpg is 1220x1260.
   
 5) Pre-define the split keys of energy grid map for HBase  
-These split key should be stored in paras.sh, a shell script exporting enviromental variables.  
-If a new map is build, a tool, , can be used to find the split keys.  
-eg.
-$SPLITKEYS=`hadoop jar mcls-all-7.jar util.metrics.Sampler -i file:///Users/ubuntu/jpg/simmap.jpg -o 18 --splitNumber 4`  
--i is the map image which will be use for localization.
--o is the resolution of orientation.
---splitNumber is the number of region nodes.
+If there is a new map, following command can be used to find the split keys.  
   
+$SPLITKEYS=`hadoop jar mcls-all-7.jar util.metrics.Sampler -i file:///Users/ubuntu/jpg/simmap.jpg -o 18 --splitNumber 4`  
+-i is the map image which will be use for localization.  
+-o is the resolution of orientation.  
+--splitNumber is the number of region nodes.  
+   
 6) Upload map.jpg into HDFS  
 If you need more detailed instructions, access to the website ( http://hadoop.apache.org/docs/r2.7.2/hadoop-project-dist/hadoop-common/FileSystemShell.html ) or refer to the book, Hadoop: The definitive guide.
 The simple instructions could be obtained by typing the following command.  
