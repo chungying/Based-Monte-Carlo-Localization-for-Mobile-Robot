@@ -8,11 +8,11 @@ mcls-all-8.jar is built by Java SE 8
 Compile via commands  
 undergoing...  
 
-2) Dispatch and Copy the jar file into HBase lib forlder in all computers  
+2) Dispatch and Copy the jar file into HBase lib forlder in all computers   
 If no-password ssh is set up, you can use scp to trasfer any file.  
-eg. I am going to transfer JAR.jar file to the folder, /HOME/UBUNTU/HBASE/LIB, at the computer named HOSTNAME via a user called USERNAME.
+eg. I am going to transfer JAR.jar file to the folder, /HOME/UBUNTU/HBASE/LIB, at the computer named HOSTNAME via a user called USERNAME.  
 $scp mcls-all-7.jar USERNAME@HOSTNAME:/HOME/UBUNTU/
-
+  
 3) Modified HBase configuration file in order to setup OEWC Coprocessor  
 In hbase-site.xml, add  
 <property>  
