@@ -12,12 +12,15 @@ import java.awt.event.ActionListener;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
+import com.beust.jcommander.Parameter;
+
 import samcl.SAMCL;
 import util.robot.RobotState;
 
 @SuppressWarnings("serial")
 public class RobotController extends JFrame implements ActionListener{
-	
+	@Parameter(names = "--visualization", help = false)
+	public boolean visualization;
 	public String S[] = {
 			/*0*/"Pause/Continue",	/*1*/"Stop",		/*2*/"Terminate",
 			/*3*/"Converge",		/*4*/"Forward",		/*5*/"Initialize",
@@ -229,6 +232,6 @@ public class RobotController extends JFrame implements ActionListener{
 		}
 		
 		this.pack();
-		this.setVisible(true);
+		this.setVisible(this.visualization);
 	}
 }

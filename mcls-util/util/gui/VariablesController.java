@@ -23,11 +23,14 @@ import javax.swing.JTextField;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
+import com.beust.jcommander.Parameter;
+
 import samcl.SAMCL;
 
 
 public class VariablesController extends JFrame {
-	
+	@Parameter(names = "--visualization", help = false)
+	public boolean visualization;
 	/**
 	 * 
 	 */
@@ -253,7 +256,7 @@ public class VariablesController extends JFrame {
 		add(sliderPanel,BorderLayout.CENTER);
 		
 		this.pack();
-		this.setVisible(true);
+		this.setVisible(this.visualization);
 	}
 	
 	public VariablesController(SAMCL mcl){
@@ -286,7 +289,7 @@ public class VariablesController extends JFrame {
 		
 		add(checkPanel,BorderLayout.SOUTH);
 		this.pack();
-		this.setVisible(true);
+		this.setVisible(this.visualization);
 	}
 
 

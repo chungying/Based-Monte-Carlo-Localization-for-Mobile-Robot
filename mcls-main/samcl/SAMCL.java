@@ -46,6 +46,8 @@ import com.google.protobuf.ServiceException;
  *part5:Combining two particle sets
  */
 public class SAMCL implements Closeable{
+	@Parameter(names = "--visualization", help = false)
+	public boolean visualization;
 	
 	@Parameter(names = "--help", help = true)
 	public boolean help;
@@ -398,7 +400,7 @@ public class SAMCL implements Closeable{
 			//TODO WINDOW
 			Panel image_panel = new Panel(samcl_image);
 			samcl_window.add(image_panel);
-			samcl_window.setVisible(true);
+			samcl_window.setVisible(this.visualization);
 			
 			//Initial Particles and Painting
 			for (int i = 0; i < this.Nt; i++) {
@@ -516,7 +518,8 @@ public class SAMCL implements Closeable{
 				//draw image 
 				//TODO Particle
 				long drawingTime = System.currentTimeMillis();
-				this.Drawing(grap, samcl_window, robot, bestParticle, current_set, SER_set);
+				if(this.visualization)
+					this.Drawing(grap, samcl_window, robot, bestParticle, current_set, SER_set);
 				drawingTime = System.currentTimeMillis() - drawingTime;
 				
 				//update image
