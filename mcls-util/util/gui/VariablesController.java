@@ -289,7 +289,7 @@ public class VariablesController extends JFrame {
 		
 		add(checkPanel,BorderLayout.SOUTH);
 		this.pack();
-		this.setVisible(this.visualization);
+		//this.setVisible(this.visualization);
 	}
 
 

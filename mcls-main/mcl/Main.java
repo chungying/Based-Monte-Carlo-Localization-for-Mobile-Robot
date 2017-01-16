@@ -93,8 +93,18 @@ public class Main {
 		robot.setInitPose((Pose)robot);
 		@SuppressWarnings("unused")
 		RobotController robotController = new RobotController("robot controller", robot,mcl);
+		jc = new JCommander();
+		jc.setAcceptUnknownOptions(true);
+		jc.addObject(robotController);
+		jc.parse(args);
+		robotController.setVisible(robotController.visualization);
 		@SuppressWarnings("unused")
 		VariablesController vc = new VariablesController(mcl);
+		jc = new JCommander();
+		jc.setAcceptUnknownOptions(true);
+		jc.addObject(vc);
+		jc.parse(args);
+		vc.setVisible(vc.visualization);
 		Thread t = new Thread(robot);
 		t.start();
 		/**

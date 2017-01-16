@@ -232,6 +232,6 @@ public class RobotController extends JFrame implements ActionListener{
 		}
 		
 		this.pack();
-		this.setVisible(this.visualization);
+		//this.setVisible(this.visualization);
 	}
 }
