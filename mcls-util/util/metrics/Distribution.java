@@ -97,11 +97,12 @@ public class Distribution {
 		double result = 0.0;
 		
 		for (int i = 0; i < 12; i++) {
-			rand = (random.nextDouble() * upper *2) - upper;
-			result = result + rand;
+			//rand = (random.nextDouble() * upper *2) - upper;
+			rand = (random.nextDouble() *2) - 1;//rand(-1,1)
+			result +=rand;
 		}
 		
-		return result/2;
+		return b*result/6;
 	}
 	
 	public static int random(int min, int max){
@@ -111,9 +112,9 @@ public class Distribution {
 	}
 	
 	public static double[] al = {
-		10,10,
-		10,10,
-		10,10
+		20,20,
+		20,20,
+		20,20
 		};
 	
 	public static void MotionSampling(Particle p, VelocityModel u, double deltaT){
@@ -210,27 +211,31 @@ public class Distribution {
 	/**
 	 * 
 	 * @param p
-	 * @param currentPose
-	 * @param previousPose
+	 * @param curP
+	 * @param preP
 	 * @param deltaT
 	 * @param random
 	 * @param al
 	 */
-	public static void OdemetryMotionSampling(Particle p, Pose currentPose, Pose previousPose, double deltaT, Random random, double[] al) throws Exception{
+	public static void OdemetryMotionSampling(Particle p, Pose curP, Pose preP, double deltaT, Random random, double[] al) throws Exception{
 //		double deltax = u.getVelocity()*Math.cos()
-		double xbardelta = currentPose.X-previousPose.X;
-		double ybardelta = currentPose.Y-previousPose.Y;
+		double xbardelta = curP.X-preP.X;
+		double ybardelta = curP.Y-preP.Y;
 		if(xbardelta==0)
 			xbardelta = Double.MIN_VALUE;
 		if(ybardelta==0)
 			ybardelta = Double.MIN_VALUE;
-		double rot1 = Pose.deltaTheta(Transformer.checkHeadRange(Math.toDegrees(Math.atan2(ybardelta,xbardelta))),previousPose.H);
-		double rot2 = Pose.deltaTheta(currentPose.H, previousPose.H)-rot1;
+		double rot1;
+		if (Math.sqrt((curP.X-preP.X)*(curP.X-preP.X)+(curP.Y-preP.Y)*(curP.Y-preP.Y))<0.001){
+			rot1 = 0.0;
+		}else
+			rot1 = Pose.deltaTheta(Transformer.checkHeadRange(Math.toDegrees(Math.atan2(ybardelta,xbardelta))),preP.H);
+		double rot2 = Pose.deltaTheta(curP.H, preP.H)-rot1;
 		double trans= Math.sqrt(xbardelta*xbardelta+ybardelta*ybardelta);
 		
 		double rot1c = rot1 - sample_normal_distribution(al[0] * rot1 + al[1] * trans, random);
 		double transc= trans- sample_normal_distribution(al[2] * trans + al[3] * (rot1 + rot2), random);
-		double rot2c = rot2 - sample_normal_distribution(al[0] * rot2 + al[1] * trans, random);
+		double rot2c = rot2 - sample_normal_distribution(al[4] * rot2 + al[5] * trans, random);
 		
 		if(Double.isNaN(rot1c) || Double.isNaN(transc) || Double.isNaN(rot2c))
 			throw new Exception("there is NaN!!!!!!!");

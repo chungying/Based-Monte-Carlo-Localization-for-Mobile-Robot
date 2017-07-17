@@ -18,20 +18,27 @@ public class Main {
 		if(args.length==0){
 			String[] targs = {
 					//"-i","file:///Users/ihsumlee/Jolly/jpg/sim_map.jpg"
-					"-i","file:///home/wuser/backup/jpg/test6.jpg"
-					,"-o","18"
+					//"-i","file:///home/wuser/backup/jpg/test6.jpg"
+					"-i"
+					//,"file:///Users/Jolly/git/Cloud-based MCL/jpg/simmap.jpg"
+					,"file:///Users/Jolly/workspace/dataset/intel-map.png"
+					,"-max_dist", "50"
+					,"-o","36"
 //					,"-rl","true"
-					,"-rx","80"
-					,"-ry","50"
+					,"-rx","60"
+					,"-ry","60"
 //					,"-rh","50"
 //					,"-n","50"
 //					,"-p","20"
 					,"-D","false"
-					,"-c","true"
+					//,"-c","true"//forcing initial convergence of particles.
 					,"--ignore", "true"
 					,"--showparticles"
-//					,"--period","50"
+					,"--period","50"
 					,"--logfile"
+					,"--visualization"
+					,"--showmeasurements"
+					,"--sensor_model", "2"
 					};
 			args = targs;
 		}
@@ -83,7 +90,7 @@ public class Main {
 		path.add(new Pose(150,550,270));
 		path.add(new Pose(150,150,270));
 		path.add(new Pose(150,150,0));
-		RobotState robot = new RobotState(150, 150, 0, /*null*/mcl.grid, mcl.tableName, path);
+		RobotState robot = new RobotState(60, 60, 0, /*null*/mcl.grid, mcl.tableName, path);
 		jc = new JCommander();
 		jc.setAcceptUnknownOptions(true);
 		jc.addObject(robot);

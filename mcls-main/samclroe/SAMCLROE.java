@@ -16,23 +16,7 @@ public class SAMCLROE extends SAMCL{
 	
 
 	@Override
-	public long updateParticle( List<Particle> src) throws Exception {
-		long transmission = System.currentTimeMillis();
-		for(Particle p : src){
-			p.setMeasurements(
-				this.grid.getMeasurements(
-						this.table, this.onCloud, p.getX(), p.getY(), -1
-				)
-			);
-		}
-//		if(!lock){
-//			robot.unlock();
-//		}
-		return System.currentTimeMillis()-transmission;
-	}
-
-	@Override
-	public long batchWeight(RobotState robot, List<Particle> src, float[] robotMeasurements)
+	public long batchWeight( List<Particle> src, float[] robotMeasurements)
 			throws Exception {
 		
 		long weightTime = System.currentTimeMillis();

@@ -151,7 +151,7 @@ public class Sampler {
 	}
 	
 	private static void sampling(NavigableMap<Float, Integer> map, Grid grid, int samples) throws Exception {
-		grid.readmap();
+		grid.readmap(-1);
 		int width = grid.width;
 		int height = grid.height;
 		Random random = new Random();
@@ -165,7 +165,7 @@ public class Sampler {
 			int z = random.nextInt(grid.orientation);
 			List<Float> circle = grid.getLaserDist(x, y).getKey();
 			float[] measurements = Transformer.drawMeasurements(circle.toArray(new Float[circle.size()]), z);
-			float energy = Transformer.CalculateEnergy(measurements);
+			float energy = Transformer.CalculateEnergy(measurements, grid.max_distance);
 			
 			addOne(map,energy);
 		}		

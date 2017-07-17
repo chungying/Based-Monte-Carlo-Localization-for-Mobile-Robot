@@ -152,28 +152,116 @@ public class Transformer {
 		return (((globalIndex-particleHead-Math.round(orientation*(360-90)/360))%360)+360)%360;
 	}
 
-	public static float WeightFloat(float[] a, float[] b){
-		try {
-			//check if length is equal
-			if(a.length!=b.length)
-				throw new Exception("The lengh of a is different from b."); 
-			//start to calculate the weight, importance factor
-			float weight = 0;
-			for( int i = 0 ; i < a.length ; i++ ){
-
-				if(a[i]>1.0f || b[i]>1.0f)
-					throw new Exception("the value is not normalized.");
-				//calculating
-				weight = weight + Math.abs(b[i]-a[i]);
-			}
-			weight = weight / a.length;
-			return weight;
-		} catch (Exception e) {
-			
-			e.printStackTrace();
+	public static float weight_loglikelihood(float[] a, float[] b){
+		float[] z_paras = {0.95f, 0.1f, 0.05f, 0.05f};
+		//z_paras = z_paras/sum(z_paras);
+		
+		//TODO index i, a[i] and b[i]
+		float z_map = a[0]; 
+		float z_sensor = b[0];
+		
+		float[] p = new float[4];
+		//1 gaussian
+		float sig_hit=1f;
+		p[0] = z_paras[0]*(float) ((Math.pow(2*Math.PI*sig_hit*sig_hit,-0.5))*Math.exp((z_map-z_sensor)*(z_map-z_sensor)/(-2*sig_hit*sig_hit)));
+		
+		//2 short
+		float lamda = 0.1f;
+		if (z_sensor<z_map)
+			p[1] = z_paras[1] * (float) (lamda*Math.exp(-1*lamda*z_sensor));
+		
+		float laser_max=40;
+		
+		//3 maximum
+		if (z_sensor==laser_max)
+			p[2] = z_paras[2] * 1;
+		
+		//4 random failure
+		p[3] = z_paras[3] * 1/laser_max;
+		
+		/*
+		  %
+		  		  
+		  %2 short
+		  lamda = 0.1;
+		  p(2) = lamda*exp(-1*lamda*z_sensor);
+		  
+		  %3 maximum
+		  p(3) = 1;
+		  
+		  %4 random failure
+		  laser_max = 40;
+		  p(4) = 1/laser_max;
+		  
+		  disp('p is');
+		  disp(p);
+		  
+		  pzs = z_paras.*p;
+		  disp('pzs is');
+		  disp(pzs);
+		  
+		  prob=pzs(1)+pzs(4);
+		  if z_sensor<z_map
+		    prob+=pzs(2);
+		  endif
+		  if z_sensor==laser_max
+		    prob+=pzs(3);
+		  endif
+		  disp('prob is');
+		  disp(prob);
+		  
+		  lnprob = log(prob);
+		  disp('ln(prob) is');
+		  disp(lnprob);*/
+		
+		return 0f;
+	}
+	
+	public static float WeightFloat_BeamModel(float[] a, float[] b){
+		
+		float prob = 1.0f;
+		//TODO sensor variance shall be calibrated by users of the laser sensor. 
+		float sig = 1;
+		for(int i=0;i< a.length;i++){
+			float z = a[i]-b[i];
+			//pz = exp(-z^2/2sig^2)
+			double pz = Math.exp(-(z*z)/(2*(sig*sig)));
+/*			if(pz==0||prob==0)
+				System.out.println("is the difference too large?");*/
+			prob *=pz;
 		}
-		// return the worst weight
-		return 1;
+		
+		return prob;
+	}
+	public static float weightFloat(float[] a, float[] b){
+		//temporary
+		return WeightFloat_BeamModel(a, b);
+		//return -1*weightFloatLoss(a, b);
+	}
+	//optimality changes
+	public static float weightFloatLoss(float[] a, float[] b){
+		
+		//Flowing is the loss of sensor measurement.
+		//check if length is equal
+		int length = a.length, d=0;
+		if(a.length!=b.length){
+			//throw new Exception("The length of a array is different from b.");
+			d = Math.abs(a.length-b.length);
+		}
+		
+		//start to calculate the weight, importance factor
+		float weight = 0;
+		//TODO sensor variance shall be calibrated by users of the laser sensor.
+		//default value is one.
+		float sensor_variance = 1;
+		for( int i = 0 ; i < length-d ; i++ ){
+			//if(a[i]<0.0f || b[i]<0.0f)
+			//	throw new Exception("the value is negative.");
+			//loss function
+			weight = weight + Math.abs(b[i]-a[i])/sensor_variance;
+		}
+		weight = weight / length;
+		return weight;
 	}
 	
 	public static float WeightFloat(List<Float> Mt, List<Float> Zt) {
@@ -209,12 +297,15 @@ public class Transformer {
 		return 1;
 	}
 	
-	public static float CalculateEnergy(float[] measurements) throws Exception{
+	public static float CalculateEnergy(float[] measurements,float max_dist) /*throws Exception*/{
+
 		if (measurements == null)
-			throw new Exception("CalculateEnergy: the array is null.");
+			//throw new Exception("CalculateEnergy: the array is null.");
+			return -1;
 		float energy = 0.0f;
 		for(float m: measurements){
-			energy+=m;
+			//energy+=m;
+			energy += (1- m/max_dist);
 		}
 		energy = energy/measurements.length;
 		return energy;
@@ -235,7 +326,8 @@ public class Transformer {
 			random = r.nextInt(srcSet.size());
 			temp_set.add(srcSet.get(random));
 		}
-		Particle tempp = minParticle(temp_set);		
+		//optimality is changed into maximizing. done!
+		Particle tempp = maxParticle(temp_set);	
 		return tempp;
 	}
 	
@@ -243,7 +335,7 @@ public class Transformer {
 		Particle max_particle = particles.get(0);
 		float max_weight = max_particle.getWeight();
 		for (int i = 1; i < particles.size(); i++) {
-			if (max_weight <= particles.get(i).getWeight()) {
+			if (max_weight < particles.get(i).getWeight()) {
 				max_particle = particles.get(i);
 				max_weight = max_particle.getWeight();
 			}

@@ -139,9 +139,12 @@ public class Particle implements Cloneable{
 		return measurements;
 	}
 
-	public void setMeasurements(float[] measurements2) {
-		this.ifmeasurements = true;
-		this.measurements = measurements2;		
+	public void setMeasurements(float[] m) {
+		if(m==null)
+			this.ifmeasurements = false;
+		else
+			this.ifmeasurements = true;
+		this.measurements = m;		
 	}
 
 	public boolean isIfmeasurements() {

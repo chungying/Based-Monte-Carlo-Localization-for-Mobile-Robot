@@ -66,7 +66,7 @@ public class Main {
 		samclroe.setup();
 		if(!samclroe.onCloud){
 			System.out.println("start to pre-caching");
-			samclroe.Pre_caching();
+			samclroe.preCaching();
 		}	
 		
 		/**

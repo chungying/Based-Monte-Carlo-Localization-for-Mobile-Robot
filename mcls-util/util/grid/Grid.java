@@ -86,7 +86,7 @@ public class Grid extends MouseAdapter {
 		 * return all of the measurements
 		 * </pre>
 		 */
-		public float[] getMeasurements(int z) {
+		private float[] getMeasurements(int z) {
 			if (z >= 0) {
 				float[] measurements = new float[this.sensor_number];
 				//int bias = (this.sensor_number - 1) / 2;
@@ -124,32 +124,36 @@ public class Grid extends MouseAdapter {
 		 */
 		public Point[] getMeasurement_points(int z) {
 			if (z >= 0) {
-				Point[] measurements = new Point[this.sensor_number];
+				Point[] mpts = new Point[this.sensor_number];
 				//int bias = (this.sensor_number - 1) / 2;
 				int globalIndex;
 				for (int i = 0; i < this.sensor_number; i++) {
 					globalIndex = Transformer.local2global(i, z, this.circle_measurements.length);
 					//globalIndex = ((z - bias + i + this.circle_measurements.length) % this.circle_measurements.length);
-					measurements[i] = this.measurement_points[globalIndex];
+					mpts[i] = this.measurement_points[globalIndex];
 				}
-				return measurements;
+				return mpts;
 			} else {
-				Point[] measurements = this.measurement_points;
-				return measurements;
+				Point[] mpts = this.measurement_points;
+				return mpts;
 			}
 		}
 
-		private void setup() {
+		
+		private void setup(float max_dist_sensor) {
 			this.sensor_number = (this.circle_measurements.length / 2) + 1;
 			this.energy = new float[this.circle_measurements.length];
 			float[] zt = null;
 			for (int i = 0; i < this.circle_measurements.length; i++) {
+				//Unit of measurements is pixel.
+				//TODO convert pixel to [0-1], the unit of energy.
 				zt = this.getMeasurements(i);
-				this.energy[i] = 0.0f;
+				this.energy[i] = Transformer.CalculateEnergy(zt, max_dist_sensor);
+				/*this.energy[i] = 0.0f;
 				for (int j = 0; j < zt.length; j++) {
-					this.energy[i] = this.energy[i] + zt[j];
+					this.energy[i] = this.energy[i] + (1- zt[j]/max_dist_sensor);
 				}
-				this.energy[i] = this.energy[i] / ((float) zt.length);
+				this.energy[i] = this.energy[i] / ((float) zt.length);*/
 			}
 		}
 
@@ -161,10 +165,10 @@ public class Grid extends MouseAdapter {
 		 * and then compute the energy of all orientation
 		 * </pre>
 		 */
-		public position(float[] measurements) {
+		public position(float[] measurements, float max_dist) {
 			super();
 			this.circle_measurements = measurements;
-			this.setup();
+			this.setup(max_dist);
 		}
 
 		/**
@@ -178,11 +182,11 @@ public class Grid extends MouseAdapter {
 		 * and then compute the energy of all orientation
 		 * </pre>
 		 */
-		public position(float[] measurements, Point[] measurement_points) {
+		public position(float[] measurements, float max_dist, Point[] measurement_points) {
 			super();
 			this.circle_measurements = measurements;
 			this.measurement_points = measurement_points;
-			this.setup();
+			this.setup(max_dist);
 		}
 
 		/**
@@ -374,7 +378,7 @@ public class Grid extends MouseAdapter {
 		// HTable, Particles
 		List<Get> gets = new ArrayList<Get>();
 		byte[] fam = Bytes.toBytes("distance");
-		for (Particle p : src) {//TODO check
+		for (Particle p : src) {
 			String str = Transformer.xy2RowkeyString(p.getDX(), p.getDY());
 			Get get = new Get(Bytes.toBytes(str));
 			get.addFamily(fam);
@@ -463,7 +467,7 @@ public class Grid extends MouseAdapter {
 
 	}
 
-	private float[] getFromCloud2(HTable table, int X, int Y, int Z) throws Exception {
+	private float[] getSingleFromCloud2(HTable table, int X, int Y, int Z) throws Exception {
 		this.RPCcount++;
 		
 		String rowkey = Transformer.xy2RowkeyString(X, Y);
@@ -530,9 +534,18 @@ public class Grid extends MouseAdapter {
 		}
 	}
 	
+	public boolean getMeasurementsAnyway(HTable table, boolean onCloud, Particle p) throws Exception{
+		if(map_array[p.getX()][p.getY()] == Grid.GRID_OCCUPIED)
+			p.setMeasurements(null);
+		else
+			p.setMeasurements(this.getMeasurementsAnyway( table, onCloud, p.getX(), p.getY(), p.getTh()));
+		return p.isIfmeasurements();
+	}
+	
+	//TODO has to return true points in simulated known map.
 	public float[] getMeasurementsAnyway(HTable table, boolean onCloud, double x, double y, double head)
 			throws Exception{
-		if(this.G!=null){
+		if(this.G!=null || onCloud==true){
 			return this.getMeasurements(table, onCloud, x, y, head);
 		}else{
 			return this.getMeasurementsOnTime(
@@ -542,8 +555,9 @@ public class Grid extends MouseAdapter {
 		}
 	}
 
-	public float[] getMeasurementsOnTime(int x, int y, int z){
-		List<Float> M = this.getLaserDist(x, y).getKey();
+	//Unit of getlaserdist has to be changed to pixel. done!
+	private float[] getMeasurementsOnTime(int x, int y, int z){
+		List<Float> M = this.getLaserDist(x, y, this.max_distance).getKey();
 		return Transformer.drawMeasurements(M.toArray(new Float[M.size()]), z);
 	}
 	
@@ -558,73 +572,41 @@ public class Grid extends MouseAdapter {
 	 * <pre>
 	 * @throws IOException
 	 */
-	public float[] getMeasurements(HTable table, boolean onCloud, int x, int y, double head)
+	private float[] getMeasurements(HTable table, boolean onCloud, double x, double y, double head)
 			throws Exception {
-		return this.getMeasurements(table, onCloud, x, y, Transformer.th2Z(head, this.orientation));
-
-	}
-	
-	/**
-	 * @param table if onCloud is true , read table from table.
-	 * @param onCloud if onCloud is true , read table from table.
-	 * @param x the pose where to read.
-	 * @param y the pose where to read.
-	 * @param head the orientation where to read.
-	 * @return <pre>
-	 * if onCloud is true , read table from table.
-	 * <pre>
-	 * @throws IOException
-	 */
-	public float[] getMeasurements(HTable table, boolean onCloud, double x, double y, double head)
-			throws Exception {
-		return this.getMeasurements(table, onCloud, (int)Math.round(x), (int)Math.round(y), Transformer.th2Z(head,
-				this.orientation));
-	}
-
-	/**	 
-	 * @param table if onCloud is true , read table from table.
-	 * @param onCloud if onCloud is true , read table from table.
-	 * @param x the pose where to read.
-	 * @param y the pose where to read.
-	 * @param z the orientation where to read.
-	 * @return <pre>
-	 * 
-	 * if z >= 0
-	 * return the range of the measurements of this orientation
-	 * else
-	 * return all of the measurements
-	 * </pre>
-	 */
-	public float[] getMeasurements(HTable table, boolean oncloud, int x, int y, int z)
-			throws Exception {
-		if (oncloud) {
-			return this.getFromCloud2(table, x, y, z);
+		//return this.getMeasurements(table, onCloud, (int)Math.round(x), (int)Math.round(y), Transformer.th2Z(head, this.orientation));
+		
+		if (onCloud) {
+			//refer to pre_compute() for the measurements from cloud servers.
+			return this.getSingleFromCloud2(table, 
+					(int)Math.round(x), (int)Math.round(y), Transformer.th2Z(head, this.orientation));
 		} 
 		else// if( this.map_array(x,y)==Grid.GRID_EMPTY ) {
-			return this.G[x][y].getMeasurements(z);
-//		} else{
-//			return null;
-//		}
+			//refer to pre_compute() for the measurements computed in advance.
+			return this.G[(int)Math.round(x)][(int)Math.round(y)].getMeasurements(Transformer.th2Z(head,this.orientation));
 	}
 
-	public void readmap() {
+	//using default filename
+	public void readmap(float max_dist) throws IOException {
 		try {
 			this.map_image = ImageIO.read(new URL(this.map_filename));
-			this.convert();
+			this.convert(max_dist);
 		} catch (IOException e) {
 			e.printStackTrace();
+			throw e;
 		}
 	}
 
-	public void readmap(String filename) {
+	public void readmap(float max_dist, String filename) throws IOException {
 		this.map_filename = filename;
-		this.readmap();
+		this.readmap(max_dist);
 	}
 
 	// for MapReduce, before calculate the data, task must read the map information from filesystem.
+	//for hbase2hbase
 	public void readmap(String filename,
 			@SuppressWarnings("rawtypes") Context context) {
-		try {
+/*		try {
 			FileSystem fs = FileSystem.get(URI.create(filename),
 					context.getConfiguration());
 			FSDataInputStream inputstream = fs.open(new Path(filename));
@@ -634,10 +616,13 @@ public class Grid extends MouseAdapter {
 		} catch (IOException e) {
 			context.getCounter(Counters.READ_FAILED).increment(1);
 			e.printStackTrace();
-		}
+		}*/
+		//TODO requiring max_dist of sensors.
+		readmap(filename, context.getConfiguration());
 
 	}
 
+	//for hbase2hfile
 	public void readmap(String filename, Configuration conf) {
 		try {
 			// context.getCounter(Counters.READMAP).increment(1);
@@ -645,7 +630,8 @@ public class Grid extends MouseAdapter {
 			FSDataInputStream inputstream = fs.open(new Path(filename));
 			map_image = ImageIO.read(inputstream);
 			// context.getCounter(Counters.READ_SUCCEED).increment(1);
-			this.convert();
+			//TODO requiring max_dist of sensors.
+			this.convert(-1);
 			fs.close();
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -653,26 +639,38 @@ public class Grid extends MouseAdapter {
 
 	}
 
-	private void convert() {
+	
+	/**
+	 * extract information of map image for raycasting.
+	 * max_distance of sensor is required, default value is diagonal length of map.
+	 */
+	private void convert(float max_dist) {
 		this.width = map_image.getWidth();
 		this.height = map_image.getHeight();
-		this.max_distance = (float) Point2D.Float.distance(0.0, 0.0,
-				(double) this.width, (double) this.height);
+		if(max_dist<=0){
+			//diagonal length of map image
+			this.max_distance = (float) Point2D.Float.distance(0.0, 0.0, (double) this.width, (double) this.height);
+		}else
+			this.max_distance = max_dist;
 		map_array = new boolean[this.width][this.height];
 		Color black = new Color(0, 0, 0);
+		Color white = new Color(255,255,255);
 		Color pixel;
 		for (int x = 0; x < map_image.getWidth(); x++) {
 			for (int y = 0; y < map_image.getHeight(); y++) {
 				pixel = new Color(map_image.getRGB(x, y));
 				if (pixel.equals(black))
 					map_array[x][y] = Grid.GRID_OCCUPIED;
-				else
+				else if (pixel.equals(white))
 					map_array[x][y] = Grid.GRID_EMPTY;
+				else
+					map_array[x][y] = Grid.GRID_OCCUPIED;
 			}
 		}
 	}
 	private double totalProgress;
 	private double currentProgress;
+	
 	/**
 	 * 
 	 */
@@ -694,17 +692,25 @@ public class Grid extends MouseAdapter {
 					for (int k = 0; k < measurement_points.length; k++) {
 						measurement_points[k] = new Point(x, y);
 					}
-					this.G[x][y] = new position(temp, measurement_points);
+					// Unit of G has to be changed into pixel.
+					//done! These are edge points.
+					this.G[x][y] = new position(temp, this.max_distance, measurement_points);
 				} else {
 					
-
-					this.getlaserdist(x, y, temp, measurement_points);
-					this.G[x][y] = new position(temp, measurement_points);
+					// Unit of G has to be changed into pixel. done!
+					this.getlaserdist(x, y, temp, measurement_points, this.max_distance);
+					this.G[x][y] = new position(temp, this.max_distance, measurement_points);
 				}
 			}
 		}
 	}
 
+	/**
+	 * @param x
+	 * @param y
+	 * @param width
+	 * @param height
+	 */
 	public void pre_compute(int x, int y, int width, int height) {
 		try {
 			this.G = new position[width][height];
@@ -717,12 +723,14 @@ public class Grid extends MouseAdapter {
 						for (int k = 0; k < measurement_points.length; k++) {
 							measurement_points[k] = new Point(i + x, j + y);
 						}
-						this.G[i][j] = new position(temp, measurement_points);
+						//Unit of G has to be changed into pixel. done!
+						this.G[i][j] = new position(temp, this.max_distance, measurement_points);
 						
 					} else {
-						this.getlaserdist(i + x, j + y, temp,
-								measurement_points);
-						this.G[i][j] = new position(temp, measurement_points);
+						//Unit of G has to be changed into pixel. done!
+						this.getlaserdist(i + x, j + y,
+								temp, measurement_points, this.max_distance);
+						this.G[i][j] = new position(temp, this.max_distance, measurement_points);
 					}
 				}
 			}
@@ -732,10 +740,17 @@ public class Grid extends MouseAdapter {
 			e.printStackTrace();
 		}
 	}
-
+	
+	/**
+	 * @param x
+	 * @param y
+	 * @param measurements
+	 * @param measurement_points
+	 * This will be replaced by getLaserDist(...). 
+	 */
 	@Deprecated
-	public void getlaserdist(int x, int y, float[] measurements,
-			Point[] measurement_points) {
+	private void getlaserdist(int x, int y, float[] measurements,
+			Point[] measurement_points, float max_dist) {
 		int checkX, checkY;
 		int step;
 		// double orientation_degree = this.orientation_delta_degree;
@@ -744,22 +759,37 @@ public class Grid extends MouseAdapter {
 			checkX = x;
 			checkY = y;
 			while (this.map_array(checkX, checkY) == Grid.GRID_EMPTY) {
+				step++;//begin from 1 unit length
 				checkX = (int) Math.round((x + step
 						* Math.cos((i * this.orientation_delta_degree)
 								* Math.PI / 180)));
 				checkY = (int) Math.round((y + step
 						* Math.sin((i * this.orientation_delta_degree)
 								* Math.PI / 180)));
-				step++;
+				//check max_dist
+				if(step>=max_dist)
+					break;
 			}
 			measurements[i] = (float) Math.sqrt(((checkX - x) * (checkX - x))
 					+ ((checkY - y) * (checkY - y)));
-			measurements[i] = 1 - measurements[i] / this.max_distance;
+			//Unit of measurements has to be changed into pixel. done!
+			//measurements[i] = 1 - measurements[i] / this.max_distance;
+			
 			measurement_points[i] = new Point(checkX, checkY);
 		}
 	}
 	
 	public SimpleEntry<List<Float>, List<Point>> getLaserDist(int x, int y){
+		return getLaserDist(x, y, this.max_distance);
+	}
+	
+	/**
+	 * @param x x-axis value of the position
+	 * @param y y-axis value of the position
+	 * @return a set of distances between each point and (x,y), unit is pixel(s).
+	 * This function will replace getlaserdist(...).
+	 */
+	public SimpleEntry<List<Float>, List<Point>> getLaserDist(int x, int y, float max_dist){
 		List<Float> measurements = new ArrayList<Float>();
 		List<Point>  measurementPoints = new ArrayList<Point>();
 		int checkX, checkY;
@@ -770,17 +800,23 @@ public class Grid extends MouseAdapter {
 			checkX = x;
 			checkY = y;
 			while (this.map_array(checkX, checkY) == Grid.GRID_EMPTY) {
+				step++;//begin from 1 unit length.
 				checkX = (int) Math.round((x + step
 						* Math.cos((i * this.orientation_delta_degree)
 								* Math.PI / 180)));
 				checkY = (int) Math.round((y + step
 						* Math.sin((i * this.orientation_delta_degree)
 								* Math.PI / 180)));
-				step++;
+				//check max_dist
+				if(step>=max_dist)
+					break;
 			}
-			measurements.add(1 - (float) Math.sqrt(((checkX - x) * (checkX - x))
-					+ ((checkY - y) * (checkY - y))) / this.max_distance);
-			//measurements[i] = 1 - measurements[i] / this.max_distance;
+			//Unit of measurements has to be changed into pixel. done!
+			/*measurements.add(1 - (float) Math.sqrt(((checkX - x) * (checkX - x))
+					+ ((checkY - y) * (checkY - y))) / this.max_distance);*/
+			measurements.add((float) Math.sqrt(((checkX - x) * (checkX - x))
+					+ ((checkY - y) * (checkY - y))));
+
 			measurementPoints.add(new Point(checkX, checkY));
 		}
 		
@@ -856,7 +892,7 @@ public class Grid extends MouseAdapter {
 
 		//test distribution
 		Grid grid = new Grid(4,4,"file:///home/wuser/backup/jpg/sim_map.jpg");
-		grid.readmap();
+		grid.readmap(-1);
 		
 		int situation[] = {1,2,4,8,16};
 			for (int j : situation) {

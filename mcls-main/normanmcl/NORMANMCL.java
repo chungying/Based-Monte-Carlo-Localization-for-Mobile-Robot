@@ -12,34 +12,17 @@ public class NORMANMCL extends SAMCL{
 	
 
 	@Override
-	public Particle Determining_size(List<Particle> src) {
+	public void determiningSize(Particle bestParticle) {
 		this.Nl = this.Nt;
 		this.Ng = 0;
-		return Transformer.minParticle(src);
+		//return Transformer.minParticle(src);
 	}
 
 	@Override
-	public void Global_drawing(List<Particle> src, List<Particle> dst) {
-		//Do nothing in MCL
-		//super.Global_drawing(src, dst);
-	}
-
-	@Override
-	public void Caculating_SER(float weight, float[] Zt, List<Particle> SER_set, List<Particle> global_set)
+	public void caculatingSER(List<Particle> current_set, float weight, float[] Zt, List<Particle> SER_set, List<Particle> global_set)
 			throws IOException {
 //		// TODO Auto-generated method stub
 //		super.Caculating_SER(weight, Zt, SER_set);
-	}
-
-	@Override
-	public long batchWeight(RobotState robot, List<Particle> src, float[] robotMeasurements)
-			throws Exception {
-		for(Particle p : src){
-			float[] m = this.grid.getMeasurementsOnTime(p.getX(), p.getY(), Transformer.th2Z(p.getTh(), this.orientation));
-			p.setMeasurements(m);
-			this.WeightParticle(p, robotMeasurements);
-		}
-		return -1;
 	}
 
 	public NORMANMCL(boolean cloud, int orientation, String mapFilename,

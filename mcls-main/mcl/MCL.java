@@ -11,42 +11,16 @@ import util.robot.RobotState;
 public class MCL extends SAMCL{
 	
 	@Override
-	public Particle Determining_size(List<Particle> src) {
+	public void determiningSize(Particle bestParticle) {
 		this.Nl = this.Nt;
 		this.Ng = 0;
-		return Transformer.minParticle(src);
+		//return Transformer.minParticle(src);
 	}
 
 	@Override
-	public void Global_drawing(List<Particle> src, List<Particle> dst) {
-		//Do nothing in MCL
-	}
-
-	@Override
-	public void Caculating_SER(float weight, float[] Zt, List<Particle> SER_set, List<Particle> global_set)
+	public void caculatingSER(List<Particle> current_set, float best_weight, float[] Zt, List<Particle> SER_set, List<Particle> global_set)
 			throws IOException {
 		//Do nothing in MCL
-	}
-
-	@Override
-	public long updateParticle( List<Particle> src) throws Exception {
-		long trasmission = System.currentTimeMillis();
-		for(Particle p : src){
-			p.setMeasurements(
-					this.grid.getMeasurementsOnTime(p.getX(), p.getY(), Transformer.th2Z(p.getTh(), this.orientation))
-					);
-		}
-		return System.currentTimeMillis()-trasmission;
-	}
-
-	@Override
-	public long batchWeight(RobotState robot, List<Particle> src, float[] robotMeasurements)
-			throws Exception {
-		long weightTime = System.currentTimeMillis();
-		for(Particle p : src){
-			this.WeightParticle(p, robotMeasurements);
-		}
-		return System.currentTimeMillis()-weightTime;
 	}
 
 	public MCL(boolean cloud, int orientation, String mapFilename,

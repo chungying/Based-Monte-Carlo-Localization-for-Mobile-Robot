@@ -2,6 +2,7 @@ package util.robot;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
+import java.awt.Point;
 import java.awt.image.BufferedImage;
 import java.io.Closeable;
 import java.io.IOException;
@@ -356,7 +357,29 @@ public class RobotState extends Pose implements Runnable,Closeable{
 	}
 
 	private void updateSensor() throws Exception {
-		this.setMeasurements(this.grid.getMeasurementsAnyway(this.table , onCloud, this.X, this.Y, this.H));
+		float[] m = this.grid.getMeasurementsAnyway(this.table , onCloud, this.X, this.Y, this.H);
+		Point[] mpts = new Point[m.length];
+		for(int i = 0 ; i < m.length; i++){
+			m[i] += (float)Distribution.sample_normal_distribution(4, rand);
+			if (m[i]<0)
+				m[i] = 0f;
+			else if(m[i]>this.grid.max_distance)
+				m[i] = this.grid.max_distance;
+			
+			//drawing hitting points on obstacles.
+			//needing distance and orientation. 
+			//The orientation is obtained from robot's heading and sensor index.
+			int x = (int) Math.round(this.X+
+					m[i] * Math.cos( (this.H - 90.0 + i * this.grid.orientation_delta_degree) * Math.PI / 180)
+					);
+			int y = (int) Math.round(this.Y+
+					m[i] * Math.sin( (this.H - 90.0+ i * this.grid.orientation_delta_degree) * Math.PI / 180)
+					);
+			mpts[i] = new Point(x,y);
+		}
+		this.setMeasurements(m);
+		//TODO 
+		this.setMeasurement_points(mpts);
 	}
 
 	private void updateVelocityModel(Pose current, Pose goal) {
@@ -414,9 +437,11 @@ public class RobotState extends Pose implements Runnable,Closeable{
 	private List<Pose> path = null;
 	//current Target
 	private int target = 0;
-	private float[] measurements;
+	private float[] measurements = null;
+	private Point[] measurement_true_points = null;
 	private Grid grid = null;
 	private HTable table = null;
+	private Random rand = null;
 	
 
 	/**
@@ -508,6 +533,8 @@ public class RobotState extends Pose implements Runnable,Closeable{
 		
 		//current Target
 		target = 0;
+		
+		this.rand = new Random();
 	}
 	
 	private Pose initRobot = null;
@@ -590,9 +617,20 @@ public class RobotState extends Pose implements Runnable,Closeable{
 	public float[] getMeasurements() {
 		return measurements;
 	}
+	
 
 	public void setMeasurements(float[] measurements) {
-		this.measurements = measurements;
+		this.measurements= measurements;
+		
+	}
+	
+	public Point[] getMeasurement_points() {
+		return this.measurement_true_points;
+	}
+	
+	public void setMeasurement_points(Point[] mtps) {
+		this.measurement_true_points= mtps;
+		
 	}
 
 	public boolean isOnCloud() {
