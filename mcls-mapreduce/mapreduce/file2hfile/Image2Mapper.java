@@ -63,7 +63,7 @@ public class Image2Mapper extends Mapper< Text, RectangleSplit, ImmutableBytesWr
 		
 		try{
 			Grid gridmap = new Grid(orientation, (orientation/2)+1, pathStr);
-			gridmap.readmap(pathStr, context.getConfiguration());
+			gridmap.readmap2Hfile(pathStr, context.getConfiguration());
 			long time = System.currentTimeMillis();
 			gridmap.pre_compute( x, y, recWidth, recHeight);
 			time = System.currentTimeMillis() - time;

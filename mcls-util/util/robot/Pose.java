@@ -6,7 +6,7 @@ import com.beust.jcommander.converters.DoubleConverter;
 import util.metrics.Transformer;
 
 public class Pose {
-	public static final double ERROR = 0.15;
+	public static final double ERROR = 0.05;
 	@Parameter(names = {"-rx","--robotx"}, description = "initialize robot's X-Axis", required = false, converter = DoubleConverter.class)
 	public double X;
 	@Parameter(names = {"-ry","--roboty"}, description = "initialize robot's Y-Axis", required = false, converter = DoubleConverter.class)
@@ -87,7 +87,7 @@ public class Pose {
 	
 	@Override
 	public String toString() {
-		return "Pose [\t" + X + "\t" + Y + "\t" + H + "\t]";
+		return String.format("Pose[ %.4f %.4f %.4f]", X, Y, H);
 	}
 
 }

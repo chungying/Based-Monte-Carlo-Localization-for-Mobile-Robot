@@ -88,8 +88,6 @@ public class Test extends MCL{
 					jc.setAcceptUnknownOptions(true);
 					jc.addObject(robot);
 					jc.parse(args);
-					robot.setInitModel(robot.getUt());
-					robot.setInitPose((Pose)robot);
 					RobotController robotController = new RobotController("robot controller", robot,mcl);
 					jc = new JCommander();
 					jc.setAcceptUnknownOptions(true);
@@ -114,7 +112,7 @@ public class Test extends MCL{
 					window.setTitle("mcl image:");
 					robot.goStraight();
 					mcl.run(robot, window);
-					robot.lock2();
+					robot.setRobotLock(true);
 					mcl.close();
 					robot.close();
 		}

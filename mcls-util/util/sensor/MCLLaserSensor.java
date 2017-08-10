@@ -1,10 +1,13 @@
 package util.sensor;
 
+import java.sql.Time;
 import java.util.List;
-import util.sensormodel.SensorModel;
+import util.sensormodel.BasicSensorModel;
 import util.sensormodel.BeamModel;
+import util.sensormodel.LogBeamModel;
 import util.sensormodel.LossFunction;
 import util.metrics.Particle;
+import util.robot.Pose;
 
 public class MCLLaserSensor extends MCLSensor{
 	
@@ -14,55 +17,9 @@ public class MCLLaserSensor extends MCLSensor{
 	}
 	
 	public static enum ModelType{
-		BEAM_MODEL, LOSS_FUNCTION, DEFAULT
+		BEAM_MODEL, LOSS_FUNCTION, LOG_BEAM_MODEL, DEFAULT
 	}
 
-	@Override
-	public void setupSensor() {
-		//TODO finish this setup function
-		setupSensor(this.modeltype);
-	}
-
-	public void setupSensor(ModelType mt) {
-		this.setModeltype(mt);
-	}
-
-	private ModelType modeltype = ModelType.DEFAULT;
-	
-	public ModelType getModeltype() {
-		return modeltype;
-	}
-
-	public void setModeltype(ModelType modeltype) {
-		this.modeltype = modeltype;
-		//TODO release previous callable functions.
-		setupCallableModel(modeltype);
-	}
-
-	public SensorModel callableModelFunction;
-	private void setupCallableModel(ModelType model_type) {
-		// TODO Auto-generated method stub
-		switch(modeltype){
-		case BEAM_MODEL:
-			this.modeltype = ModelType.BEAM_MODEL;
-			//TODO setupCallableModel(this.modeltype);
-			this.callableModelFunction = new BeamModel();//new BeamModel
-			break;
-			
-		case LOSS_FUNCTION:
-			this.modeltype = ModelType.LOSS_FUNCTION;
-			//TODO setupCallableModel(this.modeltype);
-			this.callableModelFunction = new LossFunction();//new LossFunction
-			break;
-
-		default:
-			//TODO setupCallableModel(ModelType.BEAM_MODEL);
-			this.callableModelFunction = new BeamModel();//new BeaModel
-			break;
-		}
-	}
-
-	
 	/**
 	 * calculating importance factor of particles based on .
 	 */
@@ -73,10 +30,48 @@ public class MCLLaserSensor extends MCLSensor{
 			this.callableModelFunction.updateModel( set, (MCLLaserSensorData) data);
 			this.callableModelFunction.call();
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
+	}
+
+	private ModelType modeltype = ModelType.DEFAULT;
+
+	@Override
+	public void setupSensor() {
+		//TODO finish this setup function
+		this.setModeltype(this.modeltype);
+	}
+	
+	public void setModeltype(ModelType modeltype) {
+			this.modeltype = modeltype;
+			setupCallableModel(modeltype);
+	}
+	
+	public ModelType getModeltype() {
+		return modeltype;
+	}
+	
+	public BasicSensorModel callableModelFunction;
+	private void setupCallableModel(ModelType model_type) {
+		switch(modeltype){
+		case BEAM_MODEL:
+			this.modeltype = ModelType.BEAM_MODEL;
+			this.callableModelFunction = new BeamModel();//new BeamModel
+			break;
+			
+		case LOSS_FUNCTION:
+			this.modeltype = ModelType.LOSS_FUNCTION;
+			this.callableModelFunction = new LossFunction();//new LossFunction
+			break;
+
+		case LOG_BEAM_MODEL:
+			this.modeltype = ModelType.LOG_BEAM_MODEL;
+			this.callableModelFunction = new LogBeamModel();
+		default:
+			this.callableModelFunction = new BeamModel();//new BeaModel
+			break;
+		}
 	}
 	
 	public class MCLLaserSensorData extends MCLSensor.MCLSensorData{
@@ -85,19 +80,20 @@ public class MCLLaserSensor extends MCLSensor{
 			this.setBeamRange(null);
 			this.setBeamBearing(null);
 		}
-		
-		public MCLLaserSensorData(float[] rm) {
+		public Pose truePose;
+		public MCLLaserSensorData(float[] rm, MCLSensor sensor, Time time, Pose truePose) {
 			this();
-			this.beamrange = rm;
+			this.beamranges = rm;
+			this.sensor = sensor;
+			this.timeStamp = time;
+			this.truePose = truePose;
 		}
+		public MCLLaserSensorData(float[] rm, MCLSensor sensor, Time time) {
+			this(rm, sensor, time, null);
+		}
+		
 
 		//TODO modifying following getters and setters.
-		public float getMaxDist() {
-			return maxdist;
-		}
-		public void setMaxDist(float maxdist) {
-			this.maxdist = maxdist;
-		}
 		public int getBeamCount() {
 			return beamcount;
 		}
@@ -111,15 +107,18 @@ public class MCLLaserSensor extends MCLSensor{
 			this.beambearing = beambearing;
 		}
 		public float[] getBeamRange() {
-			return beamrange;
+			return beamranges;
 		}
 		public void setBeamRange(float[] beamrange) {
-			this.beamrange = beamrange;
+			this.beamranges = beamrange;
 		}
-		private float[] beamrange;
+		private float[] beamranges;
 		private float[] beambearing;
 		private int beamcount;
-		private float maxdist;
+		public float laser_max=40;
+		public float sigma_hit = 4; //unit in pixels
+		public float lambda_short = 0.1f;
+		public float[] z_paras = {0.95f, 0.1f, 0.05f, 0.05f};
 	}
 
 }

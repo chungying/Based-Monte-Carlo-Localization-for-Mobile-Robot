@@ -89,8 +89,8 @@ public class Distribution {
 		return sample_normal_distribution(b,new Random());
 	}
 	
-	public static double sample_normal_distribution(double b, Random random){
-		double upper = Math.sqrt(Math.abs(b));
+	public static double sample_normal_distribution(double variance, Random random){
+		//double stdev = Math.sqrt(Math.abs(variance));
 		//double lower = 0-upper;
 		
 		double rand;
@@ -102,7 +102,7 @@ public class Distribution {
 			result +=rand;
 		}
 		
-		return b*result/6;
+		return variance*result/6;
 	}
 	
 	public static int random(int min, int max){

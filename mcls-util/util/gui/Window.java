@@ -8,6 +8,7 @@ import javax.swing.JOptionPane;
 import javax.swing.WindowConstants;
 
 import samcl.SAMCL;
+import util.grid.Grid;
 import util.robot.RobotState;
 //TODO implement Window.class with Runnable interface in order to independently monitoring.
 public class Window extends JFrame implements Runnable{
@@ -26,18 +27,28 @@ public class Window extends JFrame implements Runnable{
 		this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 	}
 	
+	public Window(String name, Grid grid, RobotState robot){
+		super(name);
+		this.samcl = null;
+		this.robot = robot;
+		this.setSize(grid.width, grid.height);
+		this.addWindowListener(new CustomAdapter());
+		this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+	}
+	
 	public class CustomAdapter extends WindowAdapter{
 		@Override
 		public void windowClosing(WindowEvent e) {
-			System.out.println("close table!!!!!!!!!!!!!!!!!!!!!!!");
+			System.out.println("closing the window");
 			if (JOptionPane.showConfirmDialog(Window.this,
 					"Are you sure to close this window?", "Really Closing?", 
 		            JOptionPane.YES_NO_OPTION,
 		            JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION){
 				try {
-					samcl.setTerminating(true);
-					samcl.setClosing(true);
-					
+					if(samcl!=null){
+						samcl.setTerminating(true);
+						samcl.setClosing(true);
+					}
 //					samcl.close();
 //					robot.close();
 					

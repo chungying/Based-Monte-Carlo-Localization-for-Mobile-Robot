@@ -29,8 +29,8 @@ import util.metrics.Transformer;
 //TODO why don't extends Pose.class? A: Because this class is combined with JCommander, there is no way to assign pose without JCommander. 
 public class RobotState extends Pose implements Runnable,Closeable{
 	
-	public static final double standardAngularVelocity = 30;// degree/second
-	public static final double standardVelocity = 10;// pixel/second
+	public static final double standardAngularVelocity = 3;// degree/second
+	public static final double standardVelocity = 0.01;// pixel/second
 	
 	@SuppressWarnings({ "unused" })
 	public static void main(String[] args) throws Exception{
@@ -202,99 +202,98 @@ public class RobotState extends Pose implements Runnable,Closeable{
 
 	
 
-	@Parameter(names = {"-rl","--robotlock"}, description = "initialize robot's lock", required = false, arity = 1)
-	private boolean lock1 = false;
+	@Parameter(names = {"-rl","--motorlock"}, description = "initial state of motor's lock", required = false, arity = 1)
+	private boolean motorLock = false;
 
-	public void reverseLock1(){
-		this.setLock1(!this.isLock1());
+	public void reverseMotorLock(){
+		this.setMotorLock(!this.isMotorLocked());
 	}
 	
-	public boolean isLock1() {
-		return lock1;
-	}
-
-	public void lock1() {
-		this.setLock1(true);
-	}
-	
-	public void unlock1() {
-		this.setLock1(false);
-	}
-	
-	public void setLock1(boolean lock) {
-		this.lock1 = lock;
+	public boolean isMotorLocked() {
+		return motorLock;
 	}
 
-	@Parameter(names = {"-rl2","--robotlock2"}, description = "initialize robot's lock2", required = false, arity = 1)
-	private boolean lock2 = true;
-	
-	public void reverseLock2(){
-		this.setLock2(!this.isLock2());
+	public void lockMotor() {
+		this.setMotorLock(true);
 	}
 	
-	public boolean isLock2() {
-		return lock2;
+	public void unlockMotor() {
+		this.setMotorLock(false);
+	}
+	
+	public void setMotorLock(boolean lock) {
+		this.motorLock = lock;
 	}
 
-	public void lock2() {
-		this.setLock2(true);
+	private boolean robotLock = false;
+	
+	public void reverseRobotLock(){
+		this.setRobotLock(!this.isRobotLocked());
 	}
 	
-	public void unlock2() {
-		this.setLock2(false);
+	public boolean isRobotLocked() {
+		return robotLock;
 	}
-	
-	public void setLock2(boolean lock) {
-		this.lock2 = lock;
+
+	public void setRobotLock(boolean lock) {
+		//System.out.println("Robot is "+(lock?"off":"on"));
+		this.robotLock = lock;
 	}
 
 	@Override
-		public void run(){
-			if(this.onCloud){
-				try {
-					this.table = this.grid.getTable(tableName);
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
+	public void run(){
+		if(this.onCloud){
+			try {
+				this.table = this.grid.getTable(tableName);
+			} catch (IOException e) {
+				e.printStackTrace();
 			}
-			long time = 0;
-			long duration = 0;
-			
-			while(true){
-				//System.out.println("lock : " + this.isLock());
-//				if (this.isLock()) {
-					//System.out.println(this.toString());
-					//System.out.println("target:" + target);
-					//delay
-					time = System.currentTimeMillis();
-					try {
-						if(!this.isLock2()){
-							updateTarget(path);
-							if(!this.isLock1()){
-//								updateTarget(path);
-								this.update(duration / 1000.0);
-							}
+		}
+		long time = System.currentTimeMillis();
+		long odoUpdatePeriod=10;
+		long odoDuration, lsrDuration;
+		long lsrUpdatePeriod=1000;
+		long lastOdoUpdate=time;
+		long lastLsrUpdate=time;
+		while(!this.closing){
+			time = System.currentTimeMillis();
+			odoDuration = time-lastOdoUpdate;
+			lsrDuration = time-lastLsrUpdate;
+			try {
+				synchronized (this){
+						updateTarget(path);
+						if(!this.isMotorLocked() && odoDuration>=odoUpdatePeriod){
+							//System.out.println("Odometry Updated: "+odoDuration);
+							lastOdoUpdate=time;
+							//this.updateMotionModel(odoDuration / 1000.0);
+							updateMotionModel2(this, this.ut, odoDuration / 1000.0);
 						}
-						Thread.sleep(10);
 						//update sensor data 
-						if(this.grid!=null){
+						if(this.grid!=null && lsrDuration>=lsrUpdatePeriod){
+							//System.out.println("Laser Updated: "+lsrDuration);
+							lastLsrUpdate=time;
 							try {
 								this.updateSensor();
+								//TODO laser updated flag
 							} catch (Exception e) {
 								e.printStackTrace();
 							}
 						}
-
-					} catch (IOException e) {
-						e.printStackTrace();
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
-					//next iteration
-					duration = System.currentTimeMillis() - time;
-//				}
+						Thread.sleep(10);
+				}
+			} catch (InterruptedException e) {
+				e.printStackTrace();
 			}
 		}
+	}
+
+	public List<Pose> getPath() {
+		return path;
+	}
+
+	public void setPath(List<Pose> path) {
+		this.path = path;
+	}
 
 	private void updateTarget(List<Pose> path) {
 		
@@ -313,7 +312,7 @@ public class RobotState extends Pose implements Runnable,Closeable{
 				}else if(target == path.size() - 1){//finished then lock robot
 					//update robot pose to current target
 					this.setPose(path.get(target));
-					this.setLock1(false);
+					this.setMotorLock(false);
 				}
 					
 				
@@ -323,44 +322,42 @@ public class RobotState extends Pose implements Runnable,Closeable{
 		else//do nothing
 			;
 	}
-
-	public void update(double t) throws IOException{
-		//update pose
-		this.X = this.X +  ( ut.getVelocity() * t * Math.cos( Math.toRadians(this.H) ) ) /*+ (int)(Math.round(Wt))*/;
-		this.Y = this.Y +  ( ut.getVelocity() * t * Math.sin( Math.toRadians(this.H) ) ) /*+ (int)(Math.round(Wt))*/;
-		this.H = Transformer.checkHeadRange((ut.getAngular_velocity() * t) + this.H);
-//		update2(t);
-		
-	}
 	
-	@SuppressWarnings("unused")
-	private void update2(double t){
-		double w = this.ut.getAngular_velocity();
-		if(w==0)
-			w = Double.MIN_VALUE;
-		
-		double r = this.ut.getVelocity()/Math.toRadians(w);
-		
-		this.X = this.X + r * ( 0 
-					+ Math.cos(Math.toRadians(this.H)) 
-					- Math.cos( 
-						Math.toRadians(	this.H + w * t )
-					) 
-				);
-		this.Y = this.Y + r * ( 0
-					- Math.sin(Math.toRadians(this.H))
-					+ Math.sin( 
-						Math.toRadians(	this.H + w * t )
-					) 
-				);
-		this.H = Transformer.checkHeadRange( this.H + w * t);
+	/**
+	 * 
+	 * @param t duration in seconds
+	 */
+	public static void updateMotionModel2(Pose pos, VelocityModel ut, double t){
+		double w = ut.getAngular_velocity();
+		if(Math.abs(w)<=0.0001){
+			//updateMotionModel(double t)
+			pos.X = pos.X +  ( ut.getVelocity() * t * Math.cos( Math.toRadians(pos.H) ) ) ;
+			pos.Y = pos.Y +  ( ut.getVelocity() * t * Math.sin( Math.toRadians(pos.H) ) ) ;
+			pos.H = Transformer.checkHeadRange((ut.getAngular_velocity() * t) + pos.H);
+		}else{
+			double r = ut.getVelocity()/Math.toRadians(w);
+			
+			pos.X = pos.X + r * ( 0 
+						- Math.sin(Math.toRadians(pos.H)) 
+						+ Math.sin(Math.toRadians(pos.H + w * t )) 
+					);
+			pos.Y = pos.Y + r * ( 0
+						+ Math.cos(Math.toRadians(pos.H))
+						- Math.cos(Math.toRadians(pos.H + w * t )) 
+					);
+			pos.H = Transformer.checkHeadRange( pos.H + w * t);
+		}
 	}
 
+	//TODO laserVariance
+	private double laserVariance = 4; //Unit is pixels.
 	private void updateSensor() throws Exception {
 		float[] m = this.grid.getMeasurementsAnyway(this.table , onCloud, this.X, this.Y, this.H);
+		//float[] m = this.grid.getMeasurementsOnTime(this);
 		Point[] mpts = new Point[m.length];
 		for(int i = 0 ; i < m.length; i++){
-			m[i] += (float)Distribution.sample_normal_distribution(4, rand);
+			//TODO this unit is still pixels.
+			m[i] += (float)Distribution.sample_normal_distribution(laserVariance, rand);
 			if (m[i]<0)
 				m[i] = 0f;
 			else if(m[i]>this.grid.max_distance)
@@ -377,10 +374,27 @@ public class RobotState extends Pose implements Runnable,Closeable{
 					);
 			mpts[i] = new Point(x,y);
 		}
+		while(isRobotLocked()){
+			Thread.sleep(0, 1);
+		}
+		this.setRobotLock(true);
+		//System.out.println("got robot lock in RS");
 		this.setMeasurements(m);
-		//TODO 
 		this.setMeasurement_points(mpts);
+		this.setSensorUpdated(true);
+		this.setRobotLock(false);
+		Thread.sleep(0, 1);
+		//System.out.println("returned robot lock in RS");
 	}
+
+	private boolean sensorUpdated = false;
+	public void setSensorUpdated(boolean b) {
+		sensorUpdated = b;
+	}
+	public boolean isSensorUpdated(){
+		return sensorUpdated;
+	}
+	
 
 	private void updateVelocityModel(Pose current, Pose goal) {
 		if(Pose.compareToDistance(current, goal)>0){
@@ -535,34 +549,43 @@ public class RobotState extends Pose implements Runnable,Closeable{
 		target = 0;
 		
 		this.rand = new Random();
+		
+		//initial state
+		setInitModel(this.ut);
+		setInitPose(this);
 	}
 	
 	private Pose initRobot = null;
 	private VelocityModel initModel = null;
-	public void setInitPose(Pose p) {
+	private void setInitPose(Pose p) {
 		this.initRobot = new Pose(p);
 	}
-	public void setInitModel(VelocityModel m){
+	private void setInitModel(VelocityModel m){
 		this.initModel = new VelocityModel(m);
 	}
 	
 	public void initRobot(){
 		if(initRobot!=null){
+			while(isRobotLocked()){
+				try {
+					Thread.sleep(0, 1);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+			this.setRobotLock(true);
+			System.out.println("got robot lock");
 			this.setPose(initRobot);
 			this.setVelocityModel(initModel);
 			this.target = 0;
+			this.setRobotLock(false);
 		}
-	}
-
-	
-	private VelocityModel getModel() {
-		return this.ut;
 	}
 
 	static public VelocityModel ZEROU = new VelocityModel(0.0,0.0); 
 
 	public VelocityModel getUt() {
-		if(lock1)
+		if(motorLock)
 			return ZEROU;
 		else
 			return ut;
@@ -624,15 +647,15 @@ public class RobotState extends Pose implements Runnable,Closeable{
 		
 	}
 	
-	public Point[] getMeasurement_points() {
-		return this.measurement_true_points;
-	}
-	
 	public void setMeasurement_points(Point[] mtps) {
 		this.measurement_true_points= mtps;
 		
 	}
-
+	
+	public Point[] getMeasurement_points() {
+		return this.measurement_true_points;
+	}
+	
 	public boolean isOnCloud() {
 		return onCloud;
 	}
@@ -641,11 +664,25 @@ public class RobotState extends Pose implements Runnable,Closeable{
 		this.onCloud = onCloud;
 	}
 
+	private RobotController controller=null;
+	
+	public RobotController getController() {
+		return controller;
+	}
+
+	public void setController(RobotController controller) {
+		this.controller = controller;
+	}
+
 	@Override
 	public void close() throws IOException {
 		if(this.onCloud) 
 			table.close();
+		this.closing = true;
+		if(controller!=null)
+			controller.close();
 	}
+	private boolean closing = false;
 
 	public void setPose(Pose pose) {
 		this.X = pose.X;

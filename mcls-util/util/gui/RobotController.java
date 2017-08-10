@@ -37,7 +37,7 @@ public class RobotController extends JFrame implements ActionListener{
 			
 			if(btn==B[0]){
 				//Pause/Continue
-				this.robot.reverseLock2();
+				this.robot.reverseRobotLock();
 			}
 			else if(btn==B[1]){
 				//Stop
@@ -48,11 +48,13 @@ public class RobotController extends JFrame implements ActionListener{
 			else if(btn==B[2]){
 				//terminate
 				//System.out.println("terminate the localization method");
-				this.samcl.setTerminating(true);
+				if(samcl!=null)
+					this.samcl.setTerminating(true);
 			}
 			else if(btn==B[3]){
 				//force converge
-				samcl.forceConverge();
+				if(samcl!=null)
+					samcl.forceConverge();
 			}
 			else if(btn==B[4]){//Forward
 				//System.out.println("Forward");
@@ -61,7 +63,6 @@ public class RobotController extends JFrame implements ActionListener{
 			else if(btn==B[5]){
 				//Initialize
 				//System.out.println("Initialize robot");
-				this.robot.lock2();
 				this.robot.initRobot();
 				
 			}
@@ -110,13 +111,18 @@ public class RobotController extends JFrame implements ActionListener{
 		}
 	}
 
+	public void close(){
+		updateThtread.interrupt();
+		this.dispose();
+	}
 
 	Thread updateThtread = new Thread(){
+		public boolean closing = false;
 		@Override
 		public void run() {
 			try {
-				while(true){
-					if(!robot.isLock2()){
+				while(!closing){
+					if(!robot.isRobotLocked()){
 						labelU.setText(
 								"v:"+Double.toString(robot.getVt())+
 								",w:"+Double.toString(robot.getWt()));
@@ -130,8 +136,8 @@ public class RobotController extends JFrame implements ActionListener{
 					Thread.sleep(33);
 				}
 			} catch (InterruptedException e) {
-				System.out.println("updateThread in RobotController");
-				e.printStackTrace();
+				System.out.println("updateThread in RobotController is closed");
+				//e.printStackTrace();
 			}
 		}
 	};
@@ -176,6 +182,7 @@ public class RobotController extends JFrame implements ActionListener{
 	public RobotController(String title, RobotState robot, SAMCL samcl){
 		super(title);
 		this.robot = robot;
+		robot.setController(this);
 		this.samcl = samcl;
 		this.setLayout(new BorderLayout(3,3));
 		

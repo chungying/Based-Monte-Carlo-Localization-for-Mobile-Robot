@@ -81,7 +81,7 @@ public class Reducer2Hbase
 				context.getCounter(Counters.A).increment(1);
 				Grid gridmap = new Grid(orientation, (orientation/2)+1, path);
 
-				gridmap.readmap(path, context);
+				gridmap.readmap2Hbase(path, context);
 
 				gridmap.pre_compute(value.x.get(), value.y.get(), value.width.get(),
 						value.height.get());

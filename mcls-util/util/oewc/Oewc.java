@@ -67,7 +67,7 @@ public class Oewc {
 		float bestWeight = 1;
 		for(int z = 0; z < circles.length; z++){
 			//calculate the weight between Zt and the Sensor data with the orientation.
-			weight = Transformer.weightFloat(Zt, Transformer.drawMeasurements(circles, z));
+			weight = Transformer.weight_LossFunction(Zt, Transformer.drawMeasurements(circles, z));
 			//if the weight is better, keep it.
 			if(bestWeight > weight){
 				bestWeight = weight;
@@ -85,7 +85,7 @@ public class Oewc {
 		float bestWeight = 1;
 		for(int z = 0; z < circles.size(); z++){
 			//calculate the weight between Zt and the Sensor data with the orientation.
-			weight = Transformer.WeightFloat(Zt, Transformer.drawMeasurements(circles, z));
+			weight = Transformer.weight_LossFunction(Zt, Transformer.drawMeasurements(circles, z));
 			//if the weight is better, keep it.
 			if(bestWeight > weight){
 				bestWeight = weight;

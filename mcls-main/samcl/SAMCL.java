@@ -10,6 +10,7 @@ import java.awt.image.BufferedImage;
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.sql.Time;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -181,7 +182,7 @@ public class SAMCL implements Closeable{
 		Logger.getRootLogger().setLevel(Level.WARN);
 		Configuration conf = HBaseConfiguration.create();
 		grid.setupTable(conf);
-		grid.readmap(this.mapFilename, conf);
+		grid.readmap2Hfile(this.mapFilename, conf);
 		this.table = this.grid.getTable(this.tableName);
 		/**
 		 *  the initialization of SAMCL 
@@ -235,7 +236,7 @@ public class SAMCL implements Closeable{
 			;
 		if(this.onCloud){
 			this.table.close();
-			this.grid.closeTable();
+			this.grid.close();
 		}
 		
 		this.customizedClose();
@@ -392,6 +393,8 @@ public class SAMCL implements Closeable{
 			this.sensor = new MCLLaserSensor(ModelType.BEAM_MODEL);
 		}else if(this.sensormodel_selection==2){
 			this.sensor = new MCLLaserSensor(ModelType.LOSS_FUNCTION);
+		}else if(this.sensormodel_selection==3){
+			this.sensor = new MCLLaserSensor(ModelType.LOG_BEAM_MODEL);
 		}else
 			this.sensor = new MCLLaserSensor(ModelType.BEAM_MODEL);
 		this.sensor.setupSensor();
@@ -587,8 +590,7 @@ public class SAMCL implements Closeable{
 				safe_edge+rand.nextInt(this.width-(2*safe_edge)), 
 				safe_edge+rand.nextInt(this.height-(2*safe_edge)), 
 				Transformer.Z2Th(rand.nextInt(this.orientation), orientation));
-			while (
-					!p.underSafeEdge(this.width, this.height, this.safe_edge) ||
+			while ( !p.underSafeEdge(this.width, this.height, this.safe_edge) ||
 					this.grid.map_array(p.getX(), p.getY()) == Grid.GRID_OCCUPIED) {
 				p.setX(safe_edge+rand.nextInt(this.width-(2*safe_edge)));
 				p.setY(safe_edge+rand.nextInt(this.height-(2*safe_edge)));
@@ -598,7 +600,8 @@ public class SAMCL implements Closeable{
 					p.setWeight(1/this.Nt);
 				if(this.sensor.getModeltype().equals(ModelType.BEAM_MODEL))
 					p.setWeight(1/this.Nt);
-				else if(this.sensor.getModeltype().equals(ModelType.LOSS_FUNCTION))
+				else if(this.sensor.getModeltype().equals(ModelType.LOSS_FUNCTION)||
+						this.sensor.getModeltype().equals(ModelType.LOG_BEAM_MODEL))
 					p.setWeight(-Float.MAX_VALUE);
 			}
 			set.add(p);
@@ -669,21 +672,23 @@ public class SAMCL implements Closeable{
 	}
 	
 	public long[] weightAssignment( List<Particle> src, float[] robotMeasurements, boolean ignore, RobotState robot) throws Exception{
-		boolean previousState = robot.isLock1();
+		boolean previousState = robot.isMotorLocked();
 		long[] timers = new long[3];
 		
 		if(ignore)
-			robot.lock1();
+			robot.lockMotor();
 		
 		timers[0] = this.raycastingUpdate(src);
 		
 		if(ignore)
-			robot.setLock1(previousState);
+			robot.setMotorLock(previousState);
 		//update robot's sensor
 		robotMeasurements = robot.getMeasurements();
 		
-		/*if(robotMeasurements == null)
-			System.out.println("something wrong.");*/
+		if(robotMeasurements == null){
+			System.out.println("something wrong.");
+			throw new Exception("robot measurement is null.");
+		}
 		
 		timers[1] = this.batchWeight(src, robotMeasurements);
 		timers[2] = 0;
@@ -710,7 +715,7 @@ public class SAMCL implements Closeable{
 			/*int count=0;*/
 			for (Particle p : src) {
 				/*if(*/
-					this.grid.getMeasurementsAnyway( this.table, this.onCloud, p)
+					this.grid.assignMeasurementsAnyway( this.table, this.onCloud, p)
 							/*==true)*/
 					/*count++*/;
 			}
@@ -721,32 +726,13 @@ public class SAMCL implements Closeable{
 	
 	public long batchWeight(List<Particle> src, float[] robotMeasurements) throws Exception {
 		long weightTime = System.currentTimeMillis();
-		MCLLaserSensorData data = this.sensor.new MCLLaserSensorData(robotMeasurements);
-		this.sensor.callableModelFunction.updateModel(src, data );
-		Float total = this.sensor.callableModelFunction.call();
-		
-		/*System.out.println("total is " + total);*/
-		/*if (robotMeasurements!=null) {
-			float total = 0.0f;
-			for(Particle p : src){
-				this.weightAParticle(p, robotMeasurements);
-				total += p.getWeight();
-			}
-			//normalization is needed by regular method of particle filter.
-			if(total>0){
-				for(Particle p : src){
-					p.setWeight(p.getWeight()/total);
-				}
-			}
-		}else{
-			throw new Exception("robot didn't get the sensor data!!!");
-		}*/
+		MCLLaserSensorData data = this.sensor.new MCLLaserSensorData(robotMeasurements, this.sensor, new Time(System.currentTimeMillis()));
+		this.sensor.updateSensor(src, data);
 		
 		return System.currentTimeMillis() - weightTime;
 	}
 	
-	@SuppressWarnings("unused")
-	@Deprecated
+	/*@Deprecated
 	private void weightAParticle(Particle p, float[] robotMeasurements) throws Exception{
 		//if the position is occupied.		
 		if( this.grid.map_array(p.getX(), p.getY())==Grid.GRID_EMPTY ) {
@@ -754,13 +740,14 @@ public class SAMCL implements Closeable{
 			if(p.isIfmeasurements()){//FIXME
 				//optimality is changed into maximizing. done!
 				float w = 
-				Transformer.WeightFloat_BeamModel(p.getMeasurements(), robotMeasurements);
+						Transformer.weight_BeamModel(p.getMeasurements(), robotMeasurements);
+				//Transformer.weight_BeamModel_Gauss(p.getMeasurements(), robotMeasurements);
 				p.setWeight(w*p.getWeight());
 			}else{
 				throw new Exception("no measurement in the particle: " + p+". Raycasting might be failed.");
-				/*//Cloud , Grid class------done
+				//Cloud , Grid class------done
 				float[] measurements = this.grid.getMeasurements(this.table, onCloud, p.getX(), p.getY(), p.getTh());
-				p.setWeight(Transformer.WeightFloat(measurements, robotMeasurements));*/
+				p.setWeight(Transformer.WeightFloat(measurements, robotMeasurements));
 			}
 		}else{
 			//if the position is occupied, then assign the worst weight.
@@ -772,7 +759,7 @@ public class SAMCL implements Closeable{
 			else if(this.sensor.getModeltype().equals(ModelType.LOSS_FUNCTION))
 				p.setWeight(-Float.MAX_VALUE);
 		}
-	}
+	}*/
 	
 	/**
 	 * parameters:sensitive coefficient(Threshold),the ratio of the global samples and local samples(Alpha)
@@ -800,19 +787,20 @@ public class SAMCL implements Closeable{
 	 */
 	public void caculatingSER(List<Particle> current_set, float best_weight, float[] Zt, List<Particle> SER_set, List<Particle> global_set) throws Exception{
 		
-		float minus_total_weight = 0f;
+		
 		float normalized_weight = 0;
 		
 		if(this.sensor.getModeltype().equals(ModelType.DEFAULT))
 			normalized_weight = best_weight; 
 		else if(this.sensor.getModeltype().equals(ModelType.BEAM_MODEL))
 			normalized_weight = best_weight; 
-		else if(this.sensor.getModeltype().equals(ModelType.LOSS_FUNCTION)){
+		else if(this.sensor.getModeltype().equals(ModelType.LOSS_FUNCTION)||
+				this.sensor.getModeltype().equals(ModelType.LOG_BEAM_MODEL)){
 			for(Particle p: current_set){
 				if(p.getWeight()!=-Float.MAX_VALUE)
-					minus_total_weight+=p.getWeight();
+					normalized_weight+=p.getWeight();
 			}
-			normalized_weight = 1 - best_weight/minus_total_weight;
+			normalized_weight = 1 - best_weight/normalized_weight;
 		}
 		
 		//optimality is changed into maximizing. done!
@@ -864,7 +852,7 @@ public class SAMCL implements Closeable{
 		SER_set.clear();
 		//TODO return List<Particle>
 		//System.out.println("start to scan in caculating SER on the cloud");
-		this.grid.scan(this.table, SER_set, LowerBoundary, UpperBoundary);
+		this.grid.scanFromHbase(this.table, SER_set, LowerBoundary, UpperBoundary);
 	}
 
 	private void localCaculatingSER(List<Particle> SER_set, float LowerBoundary, float UpperBoundary){

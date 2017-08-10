@@ -20,16 +20,16 @@ public class VelocityModel {
 	public double getVelocity() {
 		return velocity;
 	}
-	public void setVelocity(double velocity) {
+	synchronized public void setVelocity(double velocity) {
 		this.velocity = velocity;
 	}
 	public double getAngular_velocity() {
 		return angular_velocity;
 	}
-	public void setAngular_velocity(double angular_velocity) {
+	synchronized public void setAngular_velocity(double angular_velocity) {
 		this.angular_velocity = angular_velocity;
 	}
-	public void set(double v, double w) {
+	synchronized public void set(double v, double w) {
 		this.velocity = v;
 		this.angular_velocity = w;	
 	}

@@ -13,6 +13,8 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 
+import util.sensor.MCLLaserSensor.MCLLaserSensorData;
+
 public class Transformer {
 	
 	public static byte[] FA2BA(List<Float> FA){
@@ -152,94 +154,91 @@ public class Transformer {
 		return (((globalIndex-particleHead-Math.round(orientation*(360-90)/360))%360)+360)%360;
 	}
 
-	public static float weight_loglikelihood(float[] a, float[] b){
-		float[] z_paras = {0.95f, 0.1f, 0.05f, 0.05f};
-		//z_paras = z_paras/sum(z_paras);
-		
-		//TODO index i, a[i] and b[i]
-		float z_map = a[0]; 
-		float z_sensor = b[0];
-		
-		float[] p = new float[4];
-		//1 gaussian
-		float sig_hit=1f;
-		p[0] = z_paras[0]*(float) ((Math.pow(2*Math.PI*sig_hit*sig_hit,-0.5))*Math.exp((z_map-z_sensor)*(z_map-z_sensor)/(-2*sig_hit*sig_hit)));
-		
-		//2 short
-		float lamda = 0.1f;
-		if (z_sensor<z_map)
-			p[1] = z_paras[1] * (float) (lamda*Math.exp(-1*lamda*z_sensor));
-		
-		float laser_max=40;
-		
-		//3 maximum
-		if (z_sensor==laser_max)
-			p[2] = z_paras[2] * 1;
-		
-		//4 random failure
-		p[3] = z_paras[3] * 1/laser_max;
-		
-		/*
-		  %
-		  		  
-		  %2 short
-		  lamda = 0.1;
-		  p(2) = lamda*exp(-1*lamda*z_sensor);
-		  
-		  %3 maximum
-		  p(3) = 1;
-		  
-		  %4 random failure
-		  laser_max = 40;
-		  p(4) = 1/laser_max;
-		  
-		  disp('p is');
-		  disp(p);
-		  
-		  pzs = z_paras.*p;
-		  disp('pzs is');
-		  disp(pzs);
-		  
-		  prob=pzs(1)+pzs(4);
-		  if z_sensor<z_map
-		    prob+=pzs(2);
-		  endif
-		  if z_sensor==laser_max
-		    prob+=pzs(3);
-		  endif
-		  disp('prob is');
-		  disp(prob);
-		  
-		  lnprob = log(prob);
-		  disp('ln(prob) is');
-		  disp(lnprob);*/
-		
-		return 0f;
+	public static float weight_LogBeamModel(float[] hypData, MCLLaserSensorData data){
+		float logSum = 0f;
+		float[] obsData = data.getBeamRange();
+		for(int i=0;i< obsData.length;i++){
+			 
+			float prob =weight_SingleBeam(obsData[i], hypData[i],
+					data.sigma_hit,
+					data.lambda_short,
+					data.laser_max,
+					data.z_paras
+					);
+			
+			logSum += Math.log(prob);
+		}
+		return logSum;
 	}
 	
-	public static float WeightFloat_BeamModel(float[] a, float[] b){
+	public static float weight_SingleBeam(float obsz, float hypz, float sig_hit, float lamda, float laser_max, float[] z_paras){
+		float p = 0;
+		//1 gaussian
+		p += z_paras[0]*(float) ((Math.pow(2*Math.PI*sig_hit*sig_hit,-0.5))*Math.exp((hypz-obsz)*(hypz-obsz)/(-2*sig_hit*sig_hit)));
+		
+		//2 short
+		if (obsz<hypz)
+			p += z_paras[1] * (float) (lamda*Math.exp(-1*lamda*obsz));
+		
+		//3 maximum
+		if (obsz>=laser_max)
+			p += z_paras[2];
+		
+		//4 random failure
+		p += z_paras[3] / laser_max;
+		
+		return p;
+	}
+	
+	public static float weight_BeamModel(float[] hypData, MCLLaserSensorData data) {
+		float prob = 1.0f;
+		float[] obsData = data.getBeamRange();
+		for(int i=0;i< obsData.length;i++){
+			prob *= weight_SingleBeam(obsData[i], hypData[i],
+					data.sigma_hit,
+					data.lambda_short,
+					data.laser_max,
+					data.z_paras
+					);
+		}
+		return prob;
+	}
+	
+	/*@Deprecated these two functions are only called by SAMCL's old weighting function.
+	 * The weighting function is deleted now.
+	public static float weight_BeamModel(float[] obsData, float[]hypData){
+		float sig_hit = 4;
+		float lambda_short = 0.1f;
+		float laser_max = 40;
+		float[] z_paras = {0.95f, 0.1f, 0.05f, 0.05f};
 		
 		float prob = 1.0f;
-		//TODO sensor variance shall be calibrated by users of the laser sensor. 
+		for(int i=0;i< obsData.length;i++){
+			prob *= weight_SingleBeam(obsData[i], hypData[i],
+					sig_hit,
+					lambda_short,
+					laser_max,
+					z_paras
+					);
+		}
+		return prob;
+	}
+	public static float weight_BeamModel_Gauss(float[] obsData, float[] hypData){
+		
+		float prob = 1.0f;
 		float sig = 1;
-		for(int i=0;i< a.length;i++){
-			float z = a[i]-b[i];
+		for(int i=0;i< obsData.length;i++){
+			float z = obsData[i]-hypData[i];
 			//pz = exp(-z^2/2sig^2)
 			double pz = Math.exp(-(z*z)/(2*(sig*sig)));
-/*			if(pz==0||prob==0)
-				System.out.println("is the difference too large?");*/
 			prob *=pz;
 		}
 		
 		return prob;
-	}
-	public static float weightFloat(float[] a, float[] b){
-		//temporary
-		return WeightFloat_BeamModel(a, b);
-		//return -1*weightFloatLoss(a, b);
-	}
+	}*/
+	
 	//optimality changes
-	public static float weightFloatLoss(float[] a, float[] b){
+	public static float weight_LossFunction(float[] a, float[] b){
 		
 		//Flowing is the loss of sensor measurement.
 		//check if length is equal
@@ -263,8 +262,8 @@ public class Transformer {
 		weight = weight / length;
 		return weight;
 	}
-	
-	public static float WeightFloat(List<Float> Mt, List<Float> Zt) {
+
+	public static float weight_LossFunction(List<Float> Mt, List<Float> Zt) {
 		float w = 0.0f;
 		for(int i = 0; i < Zt.size(); i++){
 			w = w + Math.abs(Mt.get(i)- Zt.get(i));
@@ -273,7 +272,7 @@ public class Transformer {
 		return w;
 	}
 	
-	public static float WeightFloat(List<Float> a, float[] b) {
+	public static float weight_LossFunction(List<Float> a, float[] b) {
 		try {
 			//check if length is equal
 			if(a.size()!=b.length)

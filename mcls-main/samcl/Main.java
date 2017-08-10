@@ -98,8 +98,6 @@ public class Main {
 			jc.addObject(robot);
 			jc.parse(args);
 			//TODO setup robot
-			robot.setInitModel(robot.getUt());
-			robot.setInitPose((Pose)robot);
 			@SuppressWarnings("unused")
 			RobotController robotController = new RobotController("robot controller", robot,samcl);
 			@SuppressWarnings("unused")
@@ -125,7 +123,7 @@ public class Main {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-				robot.lock2();
+				robot.setRobotLock(true);
 				robot.initRobot();
 			}
 			

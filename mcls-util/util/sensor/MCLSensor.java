@@ -1,5 +1,6 @@
 package util.sensor;
 
+import java.sql.Time;
 import java.util.List;
 import java.util.concurrent.Callable;
 
@@ -30,6 +31,6 @@ public abstract class MCLSensor {
 	
 	public class MCLSensorData{
 		public MCLSensor sensor;
-		public double timestamp;
+		public Time timeStamp;
 	}
 }

@@ -93,8 +93,6 @@ public class Main {
 		jc.addObject(robot);
 		jc.parse(args);
 		//TODO setup robot
-		robot.setInitModel(robot.getUt());
-		robot.setInitPose((Pose)robot);
 		@SuppressWarnings("unused")
 		RobotController robotController = new RobotController("robot controller", robot,samclroe);
 		@SuppressWarnings("unused")
@@ -115,7 +113,7 @@ public class Main {
 			window.setTitle("samcl image:"+String.valueOf(counter));
 			robot.goStraight();
 			samclroe.run(robot, window);
-			robot.lock2();
+			robot.setRobotLock(true);
 			robot.initRobot();
 		}
 		samclroe.close();

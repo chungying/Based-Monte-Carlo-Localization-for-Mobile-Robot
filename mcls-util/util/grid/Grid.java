@@ -52,10 +52,17 @@ import org.apache.hadoop.hbase.filter.RowFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Threads;
 import org.apache.hadoop.mapreduce.Reducer.Context;
+import org.moeaframework.core.Population;
+import org.moeaframework.core.Solution;
 
 import util.gui.MouseListener;
+import util.gui.Panel;
+import util.gui.Tools;
+import util.gui.Window;
 import util.metrics.Particle;
 import util.metrics.Transformer;
+import util.robot.Pose;
+import util.robot.RobotState;
 
 /**
  * @author w514
@@ -240,7 +247,7 @@ public class Grid extends MouseAdapter {
 	public BufferedImage map_image;
 	public BufferedImage showimage;
 	public BufferedImage temp_image;
-	public MouseListener window;
+	public MouseListener mouseListener;
 	public MouseMotionListener mouse = new MouseMotionListener() {
 
 		@Override
@@ -307,8 +314,9 @@ public class Grid extends MouseAdapter {
 		}
 	}
 	
-	public void closeTable() throws IOException {
-		connection.close();
+	public void close() throws IOException {
+		if(connection!=null)connection.close();
+		if(window!=null)window.dispose();
 	}
 
 	public void setupTable(Configuration conf) throws IOException {
@@ -319,8 +327,69 @@ public class Grid extends MouseAdapter {
 		connection = HConnectionManager.createConnection(conf);
 		
 	}
+	private Window window = null;
+	private Graphics2D grap = null;
+	private Panel image_panel = null;
+	boolean visualization=true;
 
-	public void scan(HTable table, List<Particle> ser_set, float lowerBoundary,
+	public void setupWindow(RobotState robot){
+		//1. initialization
+		//1.1 window
+		window = new Window("intell research lab Seattle", this,robot);
+		//1.2 image and graphics
+		BufferedImage image = new BufferedImage(this.width,this.height, BufferedImage.TYPE_INT_ARGB);
+		grap=image.createGraphics();
+		grap.drawImage(this.map_image, null, 0, 0);
+		image_panel = new Panel(image);
+		window.add(image_panel);
+		window.setVisible(visualization);
+		
+	}
+	
+	/**
+	 * 
+	 * @param x in pixels, int
+	 * @param y in pixels, int
+	 * @param th in degree, double
+	 */
+	public void drawHypothesisRobot(int x, int y, double th) {
+		Tools.drawRobot(grap, x, y, th, 4, Color.GREEN);
+	}
+	
+	public void drawLaserPoint(int x, int y){
+		Tools.drawPoint(grap, x, y, -1.0, 4, Color.RED);
+	}
+	
+	public void drawBestSolution(int x, int y, double th){
+		Tools.drawRobot(grap, x, y, th, 8, Color.BLUE);
+	}
+
+	public void drawRobot(RobotState robot){
+		//2. drawing Robot
+		if(robot!=null){
+			Tools.drawRobot(grap, (int)Math.round(robot.X), (int)Math.round(robot.Y), robot.H, 10, Color.RED);
+			//3. drawing sensor hits
+			if(robot.getMeasurement_points()!=null){
+				for(Point p: robot.getMeasurement_points()){
+					drawLaserPoint(p.x, p.y);
+				}	
+			}
+		}
+	}
+	
+	public void refresh(){
+		//1. refreshing image
+		grap.drawImage(this.map_image, null, 0, 0);
+	}
+	
+	public void repaint(){
+		//final step of drawing
+		image_panel.repaint();
+	}
+
+	
+
+	public void scanFromHbase(HTable table, List<Particle> ser_set, float lowerBoundary,
 			float upperBoundary) throws IOException {
 		ser_set.clear();
 		//energy format
@@ -534,7 +603,7 @@ public class Grid extends MouseAdapter {
 		}
 	}
 	
-	public boolean getMeasurementsAnyway(HTable table, boolean onCloud, Particle p) throws Exception{
+	public boolean assignMeasurementsAnyway(HTable table, boolean onCloud, Particle p) throws Exception{
 		if(map_array[p.getX()][p.getY()] == Grid.GRID_OCCUPIED)
 			p.setMeasurements(null);
 		else
@@ -542,23 +611,58 @@ public class Grid extends MouseAdapter {
 		return p.isIfmeasurements();
 	}
 	
-	//TODO has to return true points in simulated known map.
 	public float[] getMeasurementsAnyway(HTable table, boolean onCloud, double x, double y, double head)
 			throws Exception{
 		if(this.G!=null || onCloud==true){
 			return this.getMeasurements(table, onCloud, x, y, head);
 		}else{
-			return this.getMeasurementsOnTime(
+			List<Float> M = this.getLaserDist((int)Math.round(x), (int)Math.round(y), this.max_distance).getKey();
+			return Transformer.drawMeasurements(M.toArray(new Float[M.size()]), Transformer.th2Z(head, orientation));
+			/*return this.getMeasurementsOnTime(
 					(int)Math.round(x), 
 					(int)Math.round(y), 
-					Transformer.th2Z(head, orientation));
+					Transformer.th2Z(head, orientation));*/
 		}
 	}
-
-	//Unit of getlaserdist has to be changed to pixel. done!
-	private float[] getMeasurementsOnTime(int x, int y, int z){
+	
+	/**
+	 * 
+	 * @param x in pixels
+	 * @param y in pixels
+	 * @param head in degree
+	 * @return
+	 */
+	public float[] getMeasurementsOnTime(double x, double y, double head){
+		return getMeasurementsOnTime((int)Math.round(x), (int)Math.round(y), Transformer.th2Z(head, orientation));
+	}
+	
+	/**
+	 * 
+	 * @param x in pixels
+	 * @param y in pixels
+	 * @param z
+	 * @return
+	 */
+	public float[] getMeasurementsOnTime(int x, int y, int z){
 		List<Float> M = this.getLaserDist(x, y, this.max_distance).getKey();
 		return Transformer.drawMeasurements(M.toArray(new Float[M.size()]), z);
+	}
+	
+	
+	public double angle_min=0; 		//start angle of the scan [rad]
+	public double angle_max=0;     	//end angle of the scan [rad]
+	public double angle_increment=Math.toRadians(45);	// angular distance between measurements [rad]
+	//Unit of getlaserdist has to be changed to pixel. done!
+	public float[] getMeasurementsOnTime(Pose pos){
+		/*List<Float> M = this.getLaserDist(x, y, this.max_distance).getKey();
+		return Transformer.drawMeasurements(M.toArray(new Float[M.size()]), z);*/
+		
+		int count=(int)Math.floor((angle_max-angle_min)/angle_increment) +1;
+		float[] ranges=new float[count];
+		for(int i = 0 ; i < count;i++){
+			ranges[i] = (float)map_calc_range(pos.X,pos.Y,Math.toRadians(pos.H)+angle_min + (i*angle_increment),100);
+		}
+		return ranges;
 	}
 	
 	/**
@@ -586,199 +690,6 @@ public class Grid extends MouseAdapter {
 			return this.G[(int)Math.round(x)][(int)Math.round(y)].getMeasurements(Transformer.th2Z(head,this.orientation));
 	}
 
-	//using default filename
-	public void readmap(float max_dist) throws IOException {
-		try {
-			this.map_image = ImageIO.read(new URL(this.map_filename));
-			this.convert(max_dist);
-		} catch (IOException e) {
-			e.printStackTrace();
-			throw e;
-		}
-	}
-
-	public void readmap(float max_dist, String filename) throws IOException {
-		this.map_filename = filename;
-		this.readmap(max_dist);
-	}
-
-	// for MapReduce, before calculate the data, task must read the map information from filesystem.
-	//for hbase2hbase
-	public void readmap(String filename,
-			@SuppressWarnings("rawtypes") Context context) {
-/*		try {
-			FileSystem fs = FileSystem.get(URI.create(filename),
-					context.getConfiguration());
-			FSDataInputStream inputstream = fs.open(new Path(filename));
-			map_image = ImageIO.read(inputstream);
-			this.convert();
-			fs.close();
-		} catch (IOException e) {
-			context.getCounter(Counters.READ_FAILED).increment(1);
-			e.printStackTrace();
-		}*/
-		//TODO requiring max_dist of sensors.
-		readmap(filename, context.getConfiguration());
-
-	}
-
-	//for hbase2hfile
-	public void readmap(String filename, Configuration conf) {
-		try {
-			// context.getCounter(Counters.READMAP).increment(1);
-			FileSystem fs = FileSystem.get(URI.create(filename), conf);
-			FSDataInputStream inputstream = fs.open(new Path(filename));
-			map_image = ImageIO.read(inputstream);
-			// context.getCounter(Counters.READ_SUCCEED).increment(1);
-			//TODO requiring max_dist of sensors.
-			this.convert(-1);
-			fs.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-
-	}
-
-	
-	/**
-	 * extract information of map image for raycasting.
-	 * max_distance of sensor is required, default value is diagonal length of map.
-	 */
-	private void convert(float max_dist) {
-		this.width = map_image.getWidth();
-		this.height = map_image.getHeight();
-		if(max_dist<=0){
-			//diagonal length of map image
-			this.max_distance = (float) Point2D.Float.distance(0.0, 0.0, (double) this.width, (double) this.height);
-		}else
-			this.max_distance = max_dist;
-		map_array = new boolean[this.width][this.height];
-		Color black = new Color(0, 0, 0);
-		Color white = new Color(255,255,255);
-		Color pixel;
-		for (int x = 0; x < map_image.getWidth(); x++) {
-			for (int y = 0; y < map_image.getHeight(); y++) {
-				pixel = new Color(map_image.getRGB(x, y));
-				if (pixel.equals(black))
-					map_array[x][y] = Grid.GRID_OCCUPIED;
-				else if (pixel.equals(white))
-					map_array[x][y] = Grid.GRID_EMPTY;
-				else
-					map_array[x][y] = Grid.GRID_OCCUPIED;
-			}
-		}
-	}
-	private double totalProgress;
-	private double currentProgress;
-	
-	/**
-	 * 
-	 */
-	public void pre_compute() {
-		this.totalProgress = this.width*this.height;
-		int progress = 0;
-		this.G = new position[this.width][this.height];
-		for (int x = 0; x < this.width ; x++) {
-			for (int y = 0; y < this.height ; y++) {
-				this.currentProgress = x*y;
-				if(Math.round(this.currentProgress/this.totalProgress)>progress){
-					progress++;
-					System.out.println("pre-caching progress"+progress+"%");
-				}
-				
-				float[] temp = new float[this.orientation];
-				Point[] measurement_points = new Point[this.orientation];
-				if (x == 0) {
-					for (int k = 0; k < measurement_points.length; k++) {
-						measurement_points[k] = new Point(x, y);
-					}
-					// Unit of G has to be changed into pixel.
-					//done! These are edge points.
-					this.G[x][y] = new position(temp, this.max_distance, measurement_points);
-				} else {
-					
-					// Unit of G has to be changed into pixel. done!
-					this.getlaserdist(x, y, temp, measurement_points, this.max_distance);
-					this.G[x][y] = new position(temp, this.max_distance, measurement_points);
-				}
-			}
-		}
-	}
-
-	/**
-	 * @param x
-	 * @param y
-	 * @param width
-	 * @param height
-	 */
-	public void pre_compute(int x, int y, int width, int height) {
-		try {
-			this.G = new position[width][height];
-			for (int i = 0; i < width; i++) {
-				for (int j = 0; j < height; j++) {
-					float[] temp = new float[this.orientation];
-					Point[] measurement_points = new Point[this.orientation];
-					if (i + x == 0 || i + x >= this.width || j + y == 0
-							|| j + y >= this.height) {//edge of the picture would not be calculated.
-						for (int k = 0; k < measurement_points.length; k++) {
-							measurement_points[k] = new Point(i + x, j + y);
-						}
-						//Unit of G has to be changed into pixel. done!
-						this.G[i][j] = new position(temp, this.max_distance, measurement_points);
-						
-					} else {
-						//Unit of G has to be changed into pixel. done!
-						this.getlaserdist(i + x, j + y,
-								temp, measurement_points, this.max_distance);
-						this.G[i][j] = new position(temp, this.max_distance, measurement_points);
-					}
-				}
-			}
-		} catch (NullPointerException e) {
-			e.printStackTrace();
-		} catch (Exception e){
-			e.printStackTrace();
-		}
-	}
-	
-	/**
-	 * @param x
-	 * @param y
-	 * @param measurements
-	 * @param measurement_points
-	 * This will be replaced by getLaserDist(...). 
-	 */
-	@Deprecated
-	private void getlaserdist(int x, int y, float[] measurements,
-			Point[] measurement_points, float max_dist) {
-		int checkX, checkY;
-		int step;
-		// double orientation_degree = this.orientation_delta_degree;
-		for (int i = 0; i < this.orientation; i++) {
-			step = 0;
-			checkX = x;
-			checkY = y;
-			while (this.map_array(checkX, checkY) == Grid.GRID_EMPTY) {
-				step++;//begin from 1 unit length
-				checkX = (int) Math.round((x + step
-						* Math.cos((i * this.orientation_delta_degree)
-								* Math.PI / 180)));
-				checkY = (int) Math.round((y + step
-						* Math.sin((i * this.orientation_delta_degree)
-								* Math.PI / 180)));
-				//check max_dist
-				if(step>=max_dist)
-					break;
-			}
-			measurements[i] = (float) Math.sqrt(((checkX - x) * (checkX - x))
-					+ ((checkY - y) * (checkY - y)));
-			//Unit of measurements has to be changed into pixel. done!
-			//measurements[i] = 1 - measurements[i] / this.max_distance;
-			
-			measurement_points[i] = new Point(checkX, checkY);
-		}
-	}
-	
 	public SimpleEntry<List<Float>, List<Point>> getLaserDist(int x, int y){
 		return getLaserDist(x, y, this.max_distance);
 	}
@@ -821,6 +732,100 @@ public class Grid extends MouseAdapter {
 		}
 		
 		return new SimpleEntry<List<Float>, List<Point>>(measurements, measurementPoints);
+	}
+
+	private double map_scale=1;
+
+	public double map_calc_range( double ox, double oy, double oa, double max_range)
+	{
+	  // Bresenham raytracing
+	  int x0,x1,y0,y1;
+	  int x,y;
+	  int xstep, ystep;
+	  boolean steep;
+	  int tmp;
+	  int deltax, deltay, error, deltaerr;
+
+	  x0 = (int) Math.round(ox/this.map_scale);
+	  y0 = (int) Math.round(oy/this.map_scale);;
+	  
+	  x1 = (int) Math.round((ox + max_range * Math.cos(oa))/this.map_scale);
+	  y1 = (int) Math.round((oy + max_range * Math.sin(oa))/this.map_scale);;
+	  
+	  if(Math.abs(y1-y0) > Math.abs(x1-x0))
+	    steep = true;
+	  else
+	    steep = false;
+
+	  if(steep)
+	  {
+	    tmp = x0;
+	    x0 = y0;
+	    y0 = tmp;
+
+	    tmp = x1;
+	    x1 = y1;
+	    y1 = tmp;
+	  }
+
+	  deltax = Math.abs(x1-x0);
+	  deltay = Math.abs(y1-y0);
+	  error = 0;
+	  deltaerr = deltay;
+
+	  x = x0;
+	  y = y0;
+
+	  if(x0 < x1)
+	    xstep = 1;
+	  else
+	    xstep = -1;
+	  if(y0 < y1)
+	    ystep = 1;
+	  else
+	    ystep = -1;
+
+	  if(steep)
+	  {
+	    if(this.map_array(y,x) != Grid.GRID_EMPTY)
+	      return Math.sqrt((x-x0)*(x-x0) + (y-y0)*(y-y0)) * this.map_scale;
+	  }
+	  else
+	  {
+	    if(this.map_array(x,y) != Grid.GRID_EMPTY)
+	      return Math.sqrt((x-x0)*(x-x0) + (y-y0)*(y-y0)) * this.map_scale;
+	  }
+
+	  while(x != (x1 + xstep * 1))
+	  {
+	    x += xstep;
+	    error += deltaerr;
+	    if(2*error >= deltax)
+	    {
+	      y += ystep;
+	      error -= deltax;
+	    }
+
+	    if(steep)
+	    {
+	      if(this.map_array(y,x) != Grid.GRID_EMPTY)
+	        return Math.sqrt((x-x0)*(x-x0) + (y-y0)*(y-y0)) * this.map_scale;
+	    }
+	    else
+	    {
+	      if(this.map_array(x,y) != Grid.GRID_EMPTY)
+	        return Math.sqrt((x-x0)*(x-x0) + (y-y0)*(y-y0)) * this.map_scale;
+	    }
+	  }
+	  return max_range;
+	}
+	
+	public boolean map_array(int x, int y) {
+		if (x >= 0 && x < this.width && y >= 0 && y < this.height) {
+			return this.map_array[x][y];
+		} else {
+			return GRID_OCCUPIED;
+		}
 	}
 
 	/**
@@ -880,11 +885,186 @@ public class Grid extends MouseAdapter {
 		}
 	}
 
-	public boolean map_array(int x, int y) {
-		if (x >= 0 && x < this.width && y >= 0 && y < this.height) {
-			return this.map_array[x][y];
-		} else {
-			return GRID_OCCUPIED;
+	public void readmap(float max_dist, String filename) throws IOException {
+		this.map_filename = filename;
+		this.readmap(max_dist);
+	}
+
+	//using default filename
+	public void readmap(float max_dist) throws IOException {
+		try {
+			this.map_image = ImageIO.read(new URL(this.map_filename));
+			this.convert(max_dist);
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw e;
+		}
+	}
+
+	// for MapReduce, before calculate the data, task must read the map information from filesystem.
+	//for hbase2hbase
+	public void readmap2Hbase(String filename,
+			@SuppressWarnings("rawtypes") Context context) {
+		//TODO requiring max_dist of sensors.
+		readmap2Hfile(filename, context.getConfiguration());
+	
+	}
+
+	//for hbase2hfile
+	public void readmap2Hfile(String filename, Configuration conf) {
+		try {
+			// context.getCounter(Counters.READMAP).increment(1);
+			FileSystem fs = FileSystem.get(URI.create(filename), conf);
+			FSDataInputStream inputstream = fs.open(new Path(filename));
+			map_image = ImageIO.read(inputstream);
+			// context.getCounter(Counters.READ_SUCCEED).increment(1);
+			//TODO requiring max_dist of sensors.
+			this.convert(-1);
+			fs.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	
+	}
+
+	/**
+	 * extract information of map image for raycasting.
+	 * max_distance of sensor is required, default value is diagonal length of map.
+	 */
+	private void convert(float max_dist) {
+		this.width = map_image.getWidth();
+		this.height = map_image.getHeight();
+		if(max_dist<=0){
+			//diagonal length of map image
+			this.max_distance = (float) Point2D.Float.distance(0.0, 0.0, (double) this.width, (double) this.height);
+		}else
+			this.max_distance = max_dist;
+		map_array = new boolean[this.width][this.height];
+		Color black = new Color(0, 0, 0);
+		Color white = new Color(255,255,255);
+		Color pixel;
+		for (int x = 0; x < map_image.getWidth(); x++) {
+			for (int y = 0; y < map_image.getHeight(); y++) {
+				pixel = new Color(map_image.getRGB(x, y));
+				if (pixel.equals(black))
+					map_array[x][y] = Grid.GRID_OCCUPIED;
+				else if (pixel.equals(white))
+					map_array[x][y] = Grid.GRID_EMPTY;
+				else
+					map_array[x][y] = Grid.GRID_OCCUPIED;
+			}
+		}
+	}
+
+
+	private double totalProgress;
+	private double currentProgress;
+
+	/**
+	 * 
+	 */
+	public void pre_compute() {
+		this.totalProgress = this.width*this.height;
+		int progress = 0;
+		this.G = new position[this.width][this.height];
+		for (int x = 0; x < this.width ; x++) {
+			for (int y = 0; y < this.height ; y++) {
+				this.currentProgress = x*y;
+				if(Math.round(this.currentProgress/this.totalProgress)>progress){
+					progress++;
+					System.out.println("pre-caching progress"+progress+"%");
+				}
+				
+				float[] temp = new float[this.orientation];
+				Point[] measurement_points = new Point[this.orientation];
+				if (x == 0) {
+					for (int k = 0; k < measurement_points.length; k++) {
+						measurement_points[k] = new Point(x, y);
+					}
+					// Unit of G has to be changed into pixel.
+					//done! These are edge points.
+					this.G[x][y] = new position(temp, this.max_distance, measurement_points);
+				} else {
+					
+					// Unit of G has to be changed into pixel. done!
+					this.getlaserdist(x, y, temp, measurement_points, this.max_distance);
+					this.G[x][y] = new position(temp, this.max_distance, measurement_points);
+				}
+			}
+		}
+	}
+
+	/**
+	 * @param x
+	 * @param y
+	 * @param width
+	 * @param height
+	 */
+	public void pre_compute(int x, int y, int width, int height) {
+		try {
+			this.G = new position[width][height];
+			for (int i = 0; i < width; i++) {
+				for (int j = 0; j < height; j++) {
+					float[] measurements = new float[this.orientation];
+					Point[] measurement_points = new Point[this.orientation];
+					if (i + x == 0 || i + x >= this.width || j + y == 0
+							|| j + y >= this.height) {//edge of the picture would not be calculated.
+						for (int k = 0; k < measurement_points.length; k++) {
+							measurement_points[k] = new Point(i + x, j + y);
+						}
+						//Unit of G has to be changed into pixel. done!
+						this.G[i][j] = new position(measurements, this.max_distance, measurement_points);
+						
+					} else {
+						//Unit of G has to be changed into pixel. done!
+						this.getlaserdist(i + x, j + y,
+								measurements, measurement_points, this.max_distance);
+						this.G[i][j] = new position(measurements, this.max_distance, measurement_points);
+					}
+				}
+			}
+		} catch (NullPointerException e) {
+			e.printStackTrace();
+		} catch (Exception e){
+			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * @param x in unit of pixels
+	 * @param y in unit of pixels
+	 * @param measurements in unit of pixels
+	 * @param measurement_points
+	 * This will be replaced by getLaserDist(...). 
+	 */
+	@Deprecated
+	private void getlaserdist(int x, int y, float[] measurements,
+			Point[] measurement_points, float max_dist) {
+		int checkX, checkY;
+		int step;
+		// double orientation_degree = this.orientation_delta_degree;
+		for (int i = 0; i < this.orientation; i++) {
+			step = 0;
+			checkX = x;
+			checkY = y;
+			while (this.map_array(checkX, checkY) == Grid.GRID_EMPTY) {
+				step++;//begin from 1 unit length
+				checkX = (int) Math.round((x + step
+						* Math.cos((i * this.orientation_delta_degree)
+								* Math.PI / 180)));
+				checkY = (int) Math.round((y + step
+						* Math.sin((i * this.orientation_delta_degree)
+								* Math.PI / 180)));
+				//check max_dist
+				if(step>=max_dist)
+					break;
+			}
+			measurements[i] = (float) Math.sqrt(((checkX - x) * (checkX - x))
+					+ ((checkY - y) * (checkY - y)));
+			//Unit of measurements has to be changed into pixel. done!
+			//measurements[i] = 1 - measurements[i] / this.max_distance;
+			
+			measurement_points[i] = new Point(checkX, checkY);
 		}
 	}
 

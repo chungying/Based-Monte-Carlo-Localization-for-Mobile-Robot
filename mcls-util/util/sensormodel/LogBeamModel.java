@@ -1,10 +1,11 @@
 package util.sensormodel;
 
+
 import util.metrics.Particle;
 import util.metrics.Transformer;
 
-public class LossFunction extends BasicSensorModel{
-
+public class LogBeamModel extends BasicSensorModel{
+	
 	@Override
 	public Float call() throws Exception {
 		if(this.isupdated == false){
@@ -12,12 +13,11 @@ public class LossFunction extends BasicSensorModel{
 		}
 
 		for(Particle p : this.set){
-			if(p.isIfmeasurements()){//FIXME
+			if(p.isIfmeasurements()){
 				//optimality is changed into maximizing. done!
-				float w = Transformer.weight_LossFunction(p.getMeasurements(), data.getBeamRange());
-				p.setWeight( 
-						-1*w
-					);
+				float[] a = p.getMeasurements();
+				float w = Transformer.weight_LogBeamModel(a, data);
+				p.setWeight(w);
 			}else{
 				//assigning the worst weight.
 				p.setWeight(-Float.MAX_VALUE);
@@ -27,5 +27,5 @@ public class LossFunction extends BasicSensorModel{
 		this.isupdated = false;
 		return 0f;
 	}
-	
 }
+

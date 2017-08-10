@@ -24,7 +24,7 @@ public class Main {
 					,"file:///Users/Jolly/workspace/dataset/intel-map.png"
 					,"-max_dist", "50"
 					,"-o","36"
-//					,"-rl","true"
+					,"-rl","true"
 					,"-rx","60"
 					,"-ry","60"
 //					,"-rh","50"
@@ -38,7 +38,7 @@ public class Main {
 					,"--logfile"
 					,"--visualization"
 					,"--showmeasurements"
-					,"--sensor_model", "2"
+					,"--sensor_model", "1"
 					};
 			args = targs;
 		}
@@ -96,16 +96,12 @@ public class Main {
 		jc.addObject(robot);
 		jc.parse(args);
 		//TODO setup robot
-		robot.setInitModel(robot.getUt());
-		robot.setInitPose((Pose)robot);
-		@SuppressWarnings("unused")
 		RobotController robotController = new RobotController("robot controller", robot,mcl);
 		jc = new JCommander();
 		jc.setAcceptUnknownOptions(true);
 		jc.addObject(robotController);
 		jc.parse(args);
 		robotController.setVisible(robotController.visualization);
-		@SuppressWarnings("unused")
 		VariablesController vc = new VariablesController(mcl);
 		jc = new JCommander();
 		jc.setAcceptUnknownOptions(true);
@@ -128,7 +124,7 @@ public class Main {
 			window.setTitle("mcl image:"+String.valueOf(counter));
 			robot.goStraight();
 			mcl.run(robot, window);
-			robot.lock2();
+			robot.setRobotLock(true);
 			robot.initRobot();
 		}	
 		mcl.close();

@@ -125,7 +125,7 @@ public class OewcObserver extends BaseRegionObserver{
 		float bestWeight = 1;
 		for(int z = 0; z < circles.size(); z++){
 			//calculate the weight between Zt and the Sensor data with the orientation.
-			weight = Transformer.WeightFloat(Zt, Transformer.drawMeasurements(circles, z));
+			weight = Transformer.weight_LossFunction(Zt, Transformer.drawMeasurements(circles, z));
 			
 			for(int i = 0;i<Zt.size();i++){
 				weight+=Math.abs(Zt.get(i)-circles.get((i+z)%circles.size()));
