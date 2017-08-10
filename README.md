@@ -131,5 +131,7 @@ $chmod a+x createTable.sh removeTable.sh
 
 # Further Reading and Video
 The video shows that the user interface and the operation of IMCLROE running and requesting computation resources on 8-node cloud server.
+
 https://youtu.be/gl0YwFDF094
+
 https://doi.org/10.1109/CEC.2016.7744365
