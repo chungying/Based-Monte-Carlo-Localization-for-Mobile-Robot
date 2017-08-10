@@ -130,7 +130,7 @@ $chmod a+x createTable.sh removeTable.sh
 ## 5) NTP 
 
 # Further Reading and Video
-The video shows that the user interface and the operation of IMCLROE running and requesting computation resources on 8-node cloud server.
+The video shows how user can control via user interface and the performing of IMCLROE requesting computation resources on 8-node cloud server.
 
 https://youtu.be/gl0YwFDF094
 
