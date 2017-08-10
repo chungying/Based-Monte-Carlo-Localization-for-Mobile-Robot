@@ -132,12 +132,4 @@ $chmod a+x createTable.sh removeTable.sh
 # Further Reading and Video
 The video shows that the user interface and the operation of IMCLROE running and requesting computation resources on 8-node cloud server.
 https://youtu.be/gl0YwFDF094
-@INPROCEEDINGS{7744365, 
-author={C. Y. Li and I. H. Li and Y. H. Chien and W. Y. Wang and C. C. Hsu}, 
-booktitle={2016 IEEE Congress on Evolutionary Computation (CEC)}, 
-title={Improved Monte Carlo localization with robust orientation estimation based on cloud computing}, 
-year={2016}, 
-pages={4522-4527}, 
-keywords={Monte Carlo methods;cloud computing;control engineering computing;estimation theory;mobile robots;navigation;IMCLROE;MCL;cloud computing;cloud-based architecture;cloud-based improved Monte Carlo localization algorithm;distributed orientation estimation technique;global localization;high-resolution grid map;improved Monte Carlo localization with robust orientation estimation algorithm;pose tracking;robot localization;robot navigation;ubiquitous network;Algorithm design and analysis;Cloud computing;Computational efficiency;Estimation;Monte Carlo methods;Robot sensing systems;Cloud computing;Monte Carlo Localization;particle filter;robot localization}, 
-doi={10.1109/CEC.2016.7744365}, 
-month={July},}
+https://doi.org/10.1109/CEC.2016.7744365
