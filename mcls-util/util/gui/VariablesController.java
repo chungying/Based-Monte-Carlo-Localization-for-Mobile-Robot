@@ -29,7 +29,7 @@ import samcl.SAMCL;
 
 
 public class VariablesController extends JFrame {
-	@Parameter(names = "--visualization", help = false)
+	@Parameter(names = "--visualization", help = false, required = false, arity=1)
 	public boolean visualization;
 	/**
 	 * 
@@ -272,11 +272,11 @@ public class VariablesController extends JFrame {
 		
 		//add showing particles
 		Checkbox checkParticles = new Checkbox("show particles",null,mcl.ifShowParticles);
-		checkParticles.addItemListener(new ShowParticlesListener(this.mcl,checkParticles));
+		checkParticles.addItemListener(new ShowParticlesListener(mcl,checkParticles));
 		checkPanel.add(checkParticles);
 		//add showing SER
 		Checkbox checkSER = new Checkbox("show SER",null,mcl.ifShowSER);
-		checkSER.addItemListener(new ShowSERListener(this.mcl, checkSER));
+		checkSER.addItemListener(new ShowSERListener(mcl, checkSER));
 		checkPanel.add(checkSER);
 		
 		//...

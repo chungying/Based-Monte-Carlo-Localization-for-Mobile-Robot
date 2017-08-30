@@ -10,7 +10,6 @@ import java.awt.image.BufferedImage;
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.MalformedURLException;
-import java.sql.Time;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -29,16 +28,19 @@ import org.apache.log4j.Logger;
 import util.grid.Grid;
 import util.gui.Panel;
 import util.gui.Tools;
+import util.measurementmodel.LaserModel.LaserData;
+import util.measurementmodel.MCLLaserModel;
+import util.measurementmodel.MCLLaserModel.ModelType;
 import util.metrics.Distribution;
 import util.metrics.Particle;
 import util.metrics.Transformer;
 import util.robot.Pose;
 import util.robot.RobotState;
 import util.robot.VelocityModel;
-import util.sensor.MCLLaserSensor;
-import util.sensor.MCLLaserSensor.MCLLaserSensorData;
-import util.sensor.MCLLaserSensor.ModelType;
+import util.sensor.LaserSensor;
 import com.beust.jcommander.Parameter;
+import com.beust.jcommander.ParametersDelegate;
+import com.beust.jcommander.converters.FloatConverter;
 
 /**
  * @author w514
@@ -87,23 +89,9 @@ public class SAMCL implements Closeable{
 	 * @param tournamentPresure competetive strength
 	 * @throws IOException 
 	 */
-	public SAMCL(int orientation,
-			String mapFilename, 
-			float deltaEnergy,
-			int nt,
-			float xI, 
-			float aLPHA, 
-			int tournamentPresure) throws IOException {
-		//directive
-		super();
-		this.orientation = orientation;
-		this.mapFilename = mapFilename;
-		this.deltaEnergy = deltaEnergy;
-		this.Nt = nt;
-		this.XI = xI;
-		this.ALPHA = aLPHA;
-		this.tournamentPresure = tournamentPresure;
-		//remains
+	public SAMCL(/*int orientation, String mapFilename,*/ float deltaEnergy, int nt, float xI, float aLPHA, int tournamentPresure) 
+			throws IOException {
+		this(false/*, orientation, mapFilename*/, deltaEnergy, nt, xI, aLPHA, tournamentPresure);
 	}
 	
 	/**
@@ -117,85 +105,46 @@ public class SAMCL implements Closeable{
 	 * @throws IOException 
 	 */
 	public SAMCL(boolean cloud, 
-			int orientation,
-			String mapFilename, 
 			float deltaEnergy,
 			int nt,
 			float xI, 
 			float aLPHA, 
 			int tournamentPresure) throws IOException {
-		//directive
-		super();
-		this.orientation = orientation;
-		this.mapFilename = mapFilename;
+		this.onCloud = cloud;
 		this.deltaEnergy = deltaEnergy;
 		this.Nt = nt;
 		this.XI = xI;
 		this.ALPHA = aLPHA;
 		this.tournamentPresure = tournamentPresure;
 		
-		this.onCloud = cloud;
-		
-	}
-	
-	public SAMCL() throws IOException{
-		
-	}
-	
-	public void setup() throws Exception{
-		if(this.deltaEnergyStr!=null)
-			this.deltaEnergy = Float.parseFloat(deltaEnergyStr);
-		if(this.alpha!=null)
-			this.ALPHA = Float.parseFloat(this.alpha);
-		if(this.xiStr!=null)
-			this.XI = Float.parseFloat(xiStr);
-
-		this.sensorNumber = this.orientation/2 + 1;
-		//unused
-		//this.sensorDeltaDegree = this.orientationDeltaDegree;
-		//this.orientationDeltaDegree = 360/this.orientation;
 		this.al = Distribution.al.clone();
-		this.grid= new Grid(this.orientation, this.sensorNumber, this.mapFilename);
+		
+	}
+	
+	public void setupGrid(LaserSensor robotLaser) throws Exception{
+		this.sensor.setupSensor(robotLaser);//Done! copy configue from robot's laser sensor
+		//Done! remove this.orientation, this.sensorNumber, this.max_distance
+		this.grid= new Grid( this.mapFilename, robotLaser);
 		
 		if(this.onCloud){
 			System.out.println("cloud setup");
-			this.cloudSetup();
+			Logger.getRootLogger().setLevel(Level.WARN);
+			Configuration conf = HBaseConfiguration.create();
+			grid.setupHBaseConnection(conf);
+			grid.readMapImageFromHadoop(this.mapFilename, conf);
+			this.table = this.grid.getTable(this.tableName);
+			
 		}else{
 			System.out.println("local setup");
-			this.localSetup();
+			grid.readMapImageFromLocal();
+			
 		}
+		this.width = this.grid.width;
+		this.height = this.grid.height;
+		//TODO add a condition to choose if start mouse function or not
+		//precomputed_grid.start_mouse(precomputed_grid);
+	}
 
-	}
-	
-	private void localSetup() throws IOException{
-		grid.readmap(max_distance);
-		/**
-		 *  the initialization of SAMCL 
-		 */
-		this.width = this.grid.width;
-		this.height = this.grid.height;
-		//TODO add a condition to choose if start mouse function or not
-		//precomputed_grid.start_mouse(precomputed_grid);
-	}
-	
-	private void cloudSetup() throws Exception{
-		Logger.getRootLogger().setLevel(Level.WARN);
-		Configuration conf = HBaseConfiguration.create();
-		grid.setupTable(conf);
-		grid.readmap2Hfile(this.mapFilename, conf);
-		this.table = this.grid.getTable(this.tableName);
-		/**
-		 *  the initialization of SAMCL 
-		 */
-		this.width = this.grid.width;
-		this.height = this.grid.height;
-		//TODO add a condition to choose if start mouse function or not
-		//precomputed_grid.start_mouse(precomputed_grid);
-		
-		this.customizedSetup(conf);
-	}
-	public void customizedSetup(Configuration conf) throws Exception{ 
-	}
 
 	private boolean terminating = false;
 	public void setTerminating(boolean terminate) {
@@ -232,8 +181,8 @@ public class SAMCL implements Closeable{
 			setClosing(true);
 		if(!isTerminating())
 			setTerminating(true);
-		while(!this.hasTerminated())
-			;
+//		while(!this.hasTerminated())
+//			this.setTerminating(true);
 		if(this.onCloud){
 			this.table.close();
 			this.grid.close();
@@ -248,7 +197,7 @@ public class SAMCL implements Closeable{
 		
 	}
 
-	@Parameter(names = "--visualization", help = false)
+	@Parameter(names = "--visualization", help = false, required = false, arity = 1)
 	public boolean visualization;
 
 	@Parameter(names = "--help", help = true)
@@ -257,16 +206,16 @@ public class SAMCL implements Closeable{
 	public HTable table = null;
 
 	//check the parameters 
-	@Parameter(names = {"--showser"}, description = "if show the SER or not, default is false", required = false)
+	@Parameter(names = {"--showser"}, description = "if show the SER or not, default is false", required = false, arity = 1)
 	public boolean ifShowSER = false;
 
-	@Parameter(names = {"--showparticles"}, description = "if show the particles or not, default is false", required = false)
+	@Parameter(names = {"--showparticles"}, description = "if show the particles or not, default is false", required = false, arity = 1)
 	public boolean ifShowParticles = false;
 
-	@Parameter(names = {"--showmeasurements"}, description = "if show the measurements or not, default is false", required = false)
+	@Parameter(names = {"--showmeasurements"}, description = "if show the measurements or not, default is false", required = false, arity = 1)
 	public boolean ifShowSensors = false;
 
-	@Parameter(names = {"-sr","--safeRange"}, description = "the range of edge which wouldn't be used in process, must be greater than 1, default is 10 pixel.", required = false)
+	@Parameter(names = {"-sr","--safeRange"}, description = "the range of edge which wouldn't be used in process, must be greater than 1, default is 10 pixel.", required = false, arity = 1)
 	public int safe_edge = 10;
 
 	@Parameter(names = {"-c","--converge"}, description = "start up/stop debug mode, default is to start up", required = false, arity = 1)
@@ -278,49 +227,52 @@ public class SAMCL implements Closeable{
 	@Parameter(names = {"-D","--debug"}, description = "start up/stop debug mode, default is to start up", required = false, arity = 1)
 	public boolean mode = true;
 	
-	@Parameter(names = "--period", description = "the period of an executed time.", required = false)
+	@Parameter(names = "--period", description = "the period of an executed time.", required = false, arity = 1)
 	private int period = 0;
 
 	//check the parameters 
-	@Parameter(names = {"-cl","--cloud"}, description = "if there on the cloud is or not, default is false", required = false)
+	@Parameter(names = {"-cl","--cloud"}, description = "if there on the cloud is or not, default is false", required = false, arity = 1)
 	public boolean onCloud = false;
-	
-	@Parameter(names = {"-o","--orientation"}, description = "the number of orientation of a cell, default is 18.", required = false)
-	public int orientation = 18;
-	
+
 	//for Pre_caching()
-	@Parameter(names = {"-i","--image"}, description = "the image of map, default is \"file:///home/eeuser/map1024.jpeg\"", required = false)
+	@Parameter(names = {"-i","--image"}, 
+			description = "the image of map, default is \"file:///home/eeuser/map1024.jpeg\"", 
+			required = true, arity = 1)
 	public String mapFilename = "file:///home/eeuser/map1024.jpeg";
 	
 	//for Caculating_SER()
-	@Parameter(names = {"-d","--delta"}, description = "the delta of SER, default is 0.01", required = false)
-	public String deltaEnergyStr = null;
+	@Parameter(names = {"-d","--delta"}, description = "the delta of SER, default is 0.01", required = false, arity = 1, converter = FloatConverter.class)
+	//public String deltaEnergyStr = null;
 	public float deltaEnergy = (float)0.01;
 	
 	//for Determining_size()
-	@Parameter(names = {"-x","--xi"}, description = "the sensitive coefficient, default is 0.1", required = false)
-	public String xiStr = null;
+	@Parameter(names = {"-x","--xi"}, description = "the sensitive coefficient, default is 0.1", required = false, arity = 1, converter = FloatConverter.class)
+	//public String xiStr = null;
 	public float XI = (float)0.1;
 	
-	@Parameter(names = {"-a","--alpha"}, description = "the ratio of population(global:local), default is 0.6", required = false)
-	public String alpha = null;
+	@Parameter(names = {"-a","--alpha"}, description = "the ratio of population(global:local), default is 0.6", required = false, arity = 1, converter = FloatConverter.class)
 	public float ALPHA = (float)0.6;
 	
-	@Parameter(names = {"-n","--number"}, description = "the number of total population, default is 100 particles.", required = false)
+	@Parameter(names = {"-n","--number"}, description = "the number of total population, default is 100 particles.", required = false, arity = 1)
 	public int Nt = 100;
 
-	@Parameter(names = {"-t","--tableName"}, description = "the name of HBase table, default is \"map.512.4.split\"", required = false)
+	@Parameter(names = {"-t","--tableName"}, description = "the name of HBase table, default is \"map.512.4.split\"", required = false, arity = 1)
 	public String tableName = "map.512.4.split";
 	
-	@Parameter(names = {"-p","--presure"}, description = "the tournament presure, default is 10 particles.", required = false)
+	@Parameter(names = {"-p","--presure"}, description = "the tournament presure, default is 10 particles.", required = false, arity = 1)
 	private int tournamentPresure = 10;
 	
-	@Parameter(names = {"-max_dist"}, description = "the max distance the sensor can measure in the unit of pixel, default is the diagonal length of input map image.", required = false)
-	public int max_distance = -1;
-	private int sensorNumber;
-	//unused
-	//private double orientationDeltaDegree;
-	//private double sensorDeltaDegree;
+	//for sensor model of particle filter
+	@ParametersDelegate
+	public MCLLaserModel sensor =  new MCLLaserModel();
+	
+	//Done! replace the following three members by sensor.range_max, sensor.getOrientation(), and sensor.rangesCount()
+//	@Parameter(names = {"-max_dist"}, description = "the max distance the sensor can measure in the unit of pixel, default is the diagonal length of input map image.", required = false, arity = 1)
+//	private int max_distance = -1;
+//	@Parameter(names = {"-o","--orientation"}, description = "the number of orientation of a cell, default is 18.", required = false, arity = 1)
+//	private int orientation = 18;	
+//	private int sensorNumber;
+	
 	private int width;
 	private int height;
 	//for Pre_caching()
@@ -332,11 +284,11 @@ public class SAMCL implements Closeable{
 	protected int Ng;
 	public double[] al;
 	
-	//for sensor model of particle filter
-	public MCLLaserSensor sensor = null;
 	
-	@Parameter(names = {"-sm","--sensor_model"}, description = "selection of sensor model of particle filter, default model is importance factor.", required = false)
-	public int sensormodel_selection = 1;
+	
+	//Done! replace this vairable with the variable of ModelType modeltype in MCLLaserSensor sensor.
+	//@Parameter(names = {"-sm","--sensor_model"}, description = "selection of sensor model of particle filter, default model is importance factor.", required = false, arity = 1)
+	//public int sensormodel_selection = 1;
 
 	/**
 	 * input:Map(M)
@@ -345,7 +297,7 @@ public class SAMCL implements Closeable{
 	 * properties:Sensor number,
 	 * @throws MalformedURLException 
 	 */
-	public void preCaching(/*Map.jpg*/) {
+	public void preCaching() {
 		//start to computing all of the grid of 3-dimension
 		System.out.println("computing...");
 		long startTime = System.currentTimeMillis();
@@ -387,18 +339,10 @@ public class SAMCL implements Closeable{
 		Pose previousPose = new Pose((Pose)robot);
 		Pose currentPose = null;
 		VelocityModel u = new VelocityModel();
-		
-		//initial sensor model for particle filter
-		if(this.sensormodel_selection==1){
-			this.sensor = new MCLLaserSensor(ModelType.BEAM_MODEL);
-		}else if(this.sensormodel_selection==2){
-			this.sensor = new MCLLaserSensor(ModelType.LOSS_FUNCTION);
-		}else if(this.sensormodel_selection==3){
-			this.sensor = new MCLLaserSensor(ModelType.LOG_BEAM_MODEL);
-		}else
-			this.sensor = new MCLLaserSensor(ModelType.BEAM_MODEL);
-		this.sensor.setupSensor();
-		
+		while(robot.getLaserScan()==null){
+			Thread.sleep(0, 1);
+			System.out.println("robot is not ready");
+		}
 		//Initial Particles 
 		this.globalSampling(last_set, robot);
 		
@@ -420,11 +364,13 @@ public class SAMCL implements Closeable{
 		
 		int counter = 0;
 		long time = 0, duration = 0, startTime = System.currentTimeMillis();
+		
 		while(!this.isTerminating()){
-			
 			if(this.convergeFlag){
 				this.converge(last_set, robot);
 			}
+			
+			//TODO if isSensorUpdated() is true, execute an iteration of particle filter
 			
 			time = System.currentTimeMillis();
 			counter = counter +1;
@@ -441,13 +387,11 @@ public class SAMCL implements Closeable{
 			//Step 2: Weighting
 			Transformer.debugMode(mode, "(2) Weighting\t");
 			long transmission1, weightTime, transmission2;
-			//TODO Zt has to be changed into LaserData
-			float[] Zt = null;	
-			//optimality is changed into maximizing.
-			long[] times = this.weightAssignment(current_set, Zt, ignore, robot);
-			transmission1 = times[0];
-			weightTime = times[1];
-			transmission2 = times[2];
+			LaserData laserData = new LaserData(robot.getLaserScan(), this.sensor);
+			List<Long> times = this.weightAssignment(current_set, /*Zt,*/ ignore, robot, laserData);
+			transmission1 = times.get(0);
+			weightTime = times.get(1);
+			transmission2 = times.get(2);
 			//Step 3: Determining size
 			Transformer.debugMode(mode, "(3) Determining size\t");
 			long determiningTime = System.currentTimeMillis();
@@ -460,7 +404,7 @@ public class SAMCL implements Closeable{
 			Transformer.debugMode(mode, "(3-1) Calculating SER\t");
 			long serTime = System.currentTimeMillis();
 			//optimality is changed into maximizing. done!
-			this.caculatingSER(current_set, bestParticle.getWeight(), Zt, SER_set, global_set);
+			this.caculatingSER(current_set, bestParticle.getWeight(), laserData.data.beamranges, SER_set, global_set);
 			serTime = System.currentTimeMillis() - serTime;
 			
 			//Step 4: Local resampling
@@ -589,17 +533,17 @@ public class SAMCL implements Closeable{
 			Particle p = new Particle(
 				safe_edge+rand.nextInt(this.width-(2*safe_edge)), 
 				safe_edge+rand.nextInt(this.height-(2*safe_edge)), 
-				Transformer.Z2Th(rand.nextInt(this.orientation), orientation));
+				Transformer.Z2Th(rand.nextInt(this.sensor.getOrientation()), this.sensor.getOrientation()));
 			while ( !p.underSafeEdge(this.width, this.height, this.safe_edge) ||
 					this.grid.map_array(p.getX(), p.getY()) == Grid.GRID_OCCUPIED) {
 				p.setX(safe_edge+rand.nextInt(this.width-(2*safe_edge)));
 				p.setY(safe_edge+rand.nextInt(this.height-(2*safe_edge)));
-				p.setTh(Transformer.Z2Th(rand.nextInt(this.orientation), orientation));
+				p.setTh(Transformer.Z2Th(rand.nextInt(this.sensor.getOrientation()), this.sensor.getOrientation()));
 				
-				if(this.sensor.getModeltype().equals(ModelType.DEFAULT))
+				if( this.sensor.getModeltype().equals(ModelType.DEFAULT)||
+					this.sensor.getModeltype().equals(ModelType.BEAM_MODEL)){
 					p.setWeight(1/this.Nt);
-				if(this.sensor.getModeltype().equals(ModelType.BEAM_MODEL))
-					p.setWeight(1/this.Nt);
+				}	
 				else if(this.sensor.getModeltype().equals(ModelType.LOSS_FUNCTION)||
 						this.sensor.getModeltype().equals(ModelType.LOG_BEAM_MODEL))
 					p.setWeight(-Float.MAX_VALUE);
@@ -650,8 +594,10 @@ public class SAMCL implements Closeable{
 				for(Particle p : src){
 					int i = 0;
 					do{
-						if(i>10)
+						if(i>10){
+//							System.out.println("failed in prediction of Particle Filter");
 							continue first;
+						}
 						i++;
 //						Distribution.MotionSampling(p, u, (double)duration/1000, random, this.al); 
 						Distribution.OdemetryMotionSampling(p, currentPose, previousPose, duration, random, al);
@@ -667,32 +613,36 @@ public class SAMCL implements Closeable{
 			throw new Exception("The set is empty!\n");
 		}
 		if(dst.size()==0)
-			throw new Exception("there is no result!!!!");
+			throw new Exception("there is no result!!!! please check if the robot is located at an empty position.");
 		return System.currentTimeMillis() - sampleTime;
 	}
 	
-	public long[] weightAssignment( List<Particle> src, float[] robotMeasurements, boolean ignore, RobotState robot) throws Exception{
+	public List<Long> weightAssignment( List<Particle> src, 
+			boolean ignore, RobotState robot,
+			LaserData laserData
+			) throws Exception{
 		boolean previousState = robot.isMotorLocked();
-		long[] timers = new long[3];
+		//long[] timers = new long[3];
+		List<Long> ts = new ArrayList<Long>(3);
 		
 		if(ignore)
 			robot.lockMotor();
-		
-		timers[0] = this.raycastingUpdate(src);
+		ts.add(this.raycastingUpdate(src));
+		//timers[0] = this.raycastingUpdate(src);
 		
 		if(ignore)
 			robot.setMotorLock(previousState);
-		//update robot's sensor
-		robotMeasurements = robot.getMeasurements();
 		
-		if(robotMeasurements == null){
+		if(laserData.data.beamranges.size()==0){
 			System.out.println("something wrong.");
 			throw new Exception("robot measurement is null.");
 		}
-		
-		timers[1] = this.batchWeight(src, robotMeasurements);
-		timers[2] = 0;
-		return timers;
+		ts.add(this.batchWeight(src, laserData));
+		//timers[1] = this.batchWeight(src, robotMeasurements);
+		ts.add(0l);
+		//timers[2] = 0;
+		//return timers;
+		return ts;
 	}
 	
 	public long raycastingUpdate( List<Particle> src) throws Exception {
@@ -711,55 +661,18 @@ public class SAMCL implements Closeable{
 				System.exit(1);
 			}
 		} else {
-			//get measurements from local database and weight
-			/*int count=0;*/
-			for (Particle p : src) {
-				/*if(*/
-					this.grid.assignMeasurementsAnyway( this.table, this.onCloud, p)
-							/*==true)*/
-					/*count++*/;
-			}
-			/*System.out.println(count+ " particles have measurements.");*/
+			//get measurements from local database and weight.
+			//If there is no pre-caching data, executing ray-casting immediately. 
+			this.grid.assignMeasurementsAnyway(src);
 		}
 		return System.currentTimeMillis() - trasmission;
 	}
 	
-	public long batchWeight(List<Particle> src, float[] robotMeasurements) throws Exception {
+	public long batchWeight(List<Particle> src, LaserData laserData) throws Exception {
 		long weightTime = System.currentTimeMillis();
-		MCLLaserSensorData data = this.sensor.new MCLLaserSensorData(robotMeasurements, this.sensor, new Time(System.currentTimeMillis()));
-		this.sensor.updateSensor(src, data);
-		
+		this.sensor.calculateParticleWeight(src, laserData);
 		return System.currentTimeMillis() - weightTime;
 	}
-	
-	/*@Deprecated
-	private void weightAParticle(Particle p, float[] robotMeasurements) throws Exception{
-		//if the position is occupied.		
-		if( this.grid.map_array(p.getX(), p.getY())==Grid.GRID_EMPTY ) {
-			//if the particle has got the measurements or would get measurements from Grid
-			if(p.isIfmeasurements()){//FIXME
-				//optimality is changed into maximizing. done!
-				float w = 
-						Transformer.weight_BeamModel(p.getMeasurements(), robotMeasurements);
-				//Transformer.weight_BeamModel_Gauss(p.getMeasurements(), robotMeasurements);
-				p.setWeight(w*p.getWeight());
-			}else{
-				throw new Exception("no measurement in the particle: " + p+". Raycasting might be failed.");
-				//Cloud , Grid class------done
-				float[] measurements = this.grid.getMeasurements(this.table, onCloud, p.getX(), p.getY(), p.getTh());
-				p.setWeight(Transformer.WeightFloat(measurements, robotMeasurements));
-			}
-		}else{
-			//if the position is occupied, then assign the worst weight.
-			//optimality is changed into maxmizing so this value is the worst case. done!
-			if(this.sensor.getModeltype().equals(ModelType.DEFAULT))
-				p.setWeight(0);
-			else if(this.sensor.getModeltype().equals(ModelType.BEAM_MODEL))
-				p.setWeight(0);
-			else if(this.sensor.getModeltype().equals(ModelType.LOSS_FUNCTION))
-				p.setWeight(-Float.MAX_VALUE);
-		}
-	}*/
 	
 	/**
 	 * parameters:sensitive coefficient(Threshold),the ratio of the global samples and local samples(Alpha)
@@ -785,15 +698,15 @@ public class SAMCL implements Closeable{
 	 * @param best_weight 
 	 * @throws IOException 
 	 */
-	public void caculatingSER(List<Particle> current_set, float best_weight, float[] Zt, List<Particle> SER_set, List<Particle> global_set) throws Exception{
+	public void caculatingSER(List<Particle> current_set, float best_weight, List<Float> Zt, List<Particle> SER_set, List<Particle> global_set) throws Exception{
 		
 		
 		float normalized_weight = 0;
 		
-		if(this.sensor.getModeltype().equals(ModelType.DEFAULT))
+		if( this.sensor.getModeltype().equals(ModelType.DEFAULT) ||
+			this.sensor.getModeltype().equals(ModelType.BEAM_MODEL)){
 			normalized_weight = best_weight; 
-		else if(this.sensor.getModeltype().equals(ModelType.BEAM_MODEL))
-			normalized_weight = best_weight; 
+		}
 		else if(this.sensor.getModeltype().equals(ModelType.LOSS_FUNCTION)||
 				this.sensor.getModeltype().equals(ModelType.LOG_BEAM_MODEL)){
 			for(Particle p: current_set){
@@ -809,7 +722,7 @@ public class SAMCL implements Closeable{
 		//if (best_weight > this.XI)
 		if (normalized_weight<this.XI) {//if do calculate SER or not?/
 			/*Get the reference energy*/
-			float energy = Transformer.CalculateEnergy(Zt,this.grid.max_distance);
+			float energy = Transformer.CalculateEnergy(Zt,this.sensor.range_max);
 			float UpperBoundary = energy + this.deltaEnergy;
 			float LowerBoundary = energy - this.deltaEnergy;
 			if(LowerBoundary<0)
@@ -860,7 +773,7 @@ public class SAMCL implements Closeable{
 		for(int x = this.safe_edge ; x < this.width-this.safe_edge ; x++){
 			for (int y = this.safe_edge; y < this.height-this.safe_edge; y++) {
 				if (this.grid.map_array(x, y) == Grid.GRID_EMPTY) {
-					for(int z = 0; z < this.orientation; z++){
+					for(int z = 0; z < this.sensor.getOrientation(); z++){
 						/**
 						 * Define a position of the SER
 						 * Add this (x,y,z) to the SER_set 
@@ -868,7 +781,7 @@ public class SAMCL implements Closeable{
 						float temp1 = this.grid.G[x][y].getEnergy(z);
 						if( temp1 >= LowerBoundary &&
 								temp1 <= UpperBoundary){
-							SER_set.add(new Particle(x, y, Transformer.Z2Th(z, this.orientation)));
+							SER_set.add(new Particle(x, y, Transformer.Z2Th(z, this.sensor.getOrientation())));
 							//Particle parti = new Particle(x,y,r.nextInt(this.orientation));
 							//SER_set.add(parti);
 						}

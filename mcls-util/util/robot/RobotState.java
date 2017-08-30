@@ -6,16 +6,16 @@ import java.awt.Point;
 import java.awt.image.BufferedImage;
 import java.io.Closeable;
 import java.io.IOException;
+import java.sql.Time;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
-
-import org.apache.hadoop.hbase.client.HTable;
+import java.util.AbstractMap.SimpleEntry;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
-
+import com.beust.jcommander.ParametersDelegate;
 import samcl.SAMCL;
 import util.grid.Grid;
 import util.gui.Panel;
@@ -26,9 +26,31 @@ import util.gui.Window;
 import util.metrics.Distribution;
 import util.metrics.Particle;
 import util.metrics.Transformer;
-//TODO why don't extends Pose.class? A: Because this class is combined with JCommander, there is no way to assign pose without JCommander. 
+import util.sensor.LaserSensor;
+import util.sensor.data.LaserScanData; 
 public class RobotState extends Pose implements Runnable,Closeable{
 	
+	private boolean robotLock = false;
+	@Parameter(names = {"-rl","--motorlock"}, description = "initial state of motor's lock", required = false, arity = 1)
+	private boolean motorLock = false;
+	private boolean sensorUpdated = false;
+	private boolean closing = false;
+	//current Target
+	private int target = 0;
+	
+	private VelocityModel ut = new VelocityModel();
+	private Pose initRobot = null;
+	private List<Pose> path = null;
+	private LaserScanData scanData = null;
+	private List<Float> measurements = null;
+	private List<Point> measurement_true_points = null;
+	@ParametersDelegate
+	public LaserSensor laser = new LaserSensor();
+	private Grid grid = null;
+	
+	private Random rand = null;
+	private VelocityModel initModel = null;
+	private RobotController controller=null;
 	public static final double standardAngularVelocity = 3;// degree/second
 	public static final double standardVelocity = 0.01;// pixel/second
 	
@@ -37,9 +59,6 @@ public class RobotState extends Pose implements Runnable,Closeable{
 		//test for the sample motion model
 		RobotState robot = new RobotState(100,100,0);
 		SAMCL samcl = new SAMCL(
-				18, //orientation
-				"file:///home/wuser/backup/jpg/map.jpg",//map image file
-//				"hdfs:///user/eeuser/map1024.jpeg",
 				(float) 0.005, //delta energy
 				100, //total particle
 				(float) 0.001, //threshold xi
@@ -50,7 +69,7 @@ public class RobotState extends Pose implements Runnable,Closeable{
 		jc.addObject(samcl);
 		jc.parse(args);
 		samcl.onCloud = false;
-		samcl.setup();
+		samcl.setupGrid(robot.laser);
 		//below is for test.
 		Panel panel = new Panel(new BufferedImage(samcl.grid.width,samcl.grid.height, BufferedImage.TYPE_INT_ARGB));
 		Window samcl_window = new Window("samcl image", samcl,robot);
@@ -71,40 +90,26 @@ public class RobotState extends Pose implements Runnable,Closeable{
 		System.out.println(Arrays.toString(al));
 		VariablesController vc = new VariablesController(al);
 		Random random = new Random();
-//		double time = System.currentTimeMillis()/1000;
 		double time = 0.05;
 		Particle nextRobot = new Particle(0,0,0);
 		
 		robot.setVt(100);
 		robot.setWt(90);
-//		robot.unlock();
 		while(time<1){
 			i++;
 			Thread.sleep(20);
 			grap.drawImage(samcl.grid.map_image, null, 0, 0);
-			//System.out.println(robot.toString());
-//			px = robot.X;
-//			py = robot.Y;
-			//time = System.currentTimeMillis()/1000 - time;
 			time = i*0.001;
 			rx = robot.X;
 			ry = robot.Y;
 			rh = robot.H;
-			//System.out.println(robot);
-//			System.out.println("counter"+i);
-//			System.out.println("time="+time+"s");
 			for(Particle p : parts){
-				
-				
-//				if(i<100000000){
-					p.setX(rx);
-					p.setY(ry);
-					p.setTh(rh);
-//				}
+				p.setX(rx);
+				p.setY(ry);
+				p.setTh(rh);
 				
 				Distribution.MotionSampling(p, robot.getUt(), time, random, al);
 				Tools.drawPoint(grap,  p.getX(), p.getY(), p.getTh(), 4, Color.BLUE);
-//				System.out.println(p.toString());
 			}
 			
 			Tools.drawRobot(grap,  (int)Math.round(robot.X),  (int)Math.round(robot.Y), robot.H, 20, Color.ORANGE);
@@ -137,73 +142,12 @@ public class RobotState extends Pose implements Runnable,Closeable{
 					nextRobot.getY(), 
 					nextRobot.getTh()
 					, 10, Color.RED);
-//			this.x +  ( ut.getVelocity() * t * Math.cos( Math.toRadians(head) ) ) /*+ (int)(Math.round(Wt))*/;
-//			this.y = this.y +  ( ut.getVelocity() * t * Math.sin( Math.toRadians(head) ) ) /*+ (int)(Math.round(Wt))*/;
-//			this.head = Transformer.checkHeadRange((ut.getAngular_velocity() * t) + this.head);
 			panel.repaint();
-//			System.out.println(robot.toString());
-//			System.out.println(nextRobot.toString());
 			
 		}
-		
-		
-		//test the robot's update state
-		/*List<Pose> path = new ArrayList<Pose>();
-		path.add(new Pose(400,150,0));
-		path.add(new Pose(400,150,90));
-		path.add(new Pose(400,400,90));
-		path.add(new Pose(400,400,180));
-		path.add(new Pose(350,400,180));
-		path.add(new Pose(350,400,90));
-		path.add(new Pose(350,550,90));
-		path.add(new Pose(350,550,180));
-		path.add(new Pose(150,550,180));
-		path.add(new Pose(150,550,270));
-		path.add(new Pose(150,150,270));
-		path.add(new Pose(150,150,0));
-		//test
-		RobotState robot = new RobotState(150,150,0,path);
-		String[] sts = {
-//				"-rx","400.0",
-				"-rl","false"
-		};
-		new JCommander(robot,sts);
-		robot.setInitPose(robot.getPose());
-		//robot.setWt(1);
-		//robot.setVt(1);
-		Thread t = new Thread(robot);
-		t.start();
-		
-		@SuppressWarnings("unused")
-		RobotController lstn = new RobotController("robot controller", robot);
-		
-		
-		try {
-			System.out.println("sleep 2s .......");
-			Thread.sleep(2000);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-		System.out.println("set up velocity");
-		robot.setVt(10);
-		robot.setInitModel(robot.getModel());
-		//robot.setWt(1);
-		System.out.println("unlock robot");
-		//robot.unlock();
-		while(true){
-			try {
-				Thread.sleep(3);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-			System.out.println(robot.toString());
-		}*/
 	}
 
 	
-
-	@Parameter(names = {"-rl","--motorlock"}, description = "initial state of motor's lock", required = false, arity = 1)
-	private boolean motorLock = false;
 
 	public void reverseMotorLock(){
 		this.setMotorLock(!this.isMotorLocked());
@@ -225,8 +169,6 @@ public class RobotState extends Pose implements Runnable,Closeable{
 		this.motorLock = lock;
 	}
 
-	private boolean robotLock = false;
-	
 	public void reverseRobotLock(){
 		this.setRobotLock(!this.isRobotLocked());
 	}
@@ -236,23 +178,15 @@ public class RobotState extends Pose implements Runnable,Closeable{
 	}
 
 	public void setRobotLock(boolean lock) {
-		//System.out.println("Robot is "+(lock?"off":"on"));
 		this.robotLock = lock;
 	}
 
 	@Override
 	public void run(){
-		if(this.onCloud){
-			try {
-				this.table = this.grid.getTable(tableName);
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
 		long time = System.currentTimeMillis();
 		long odoUpdatePeriod=10;
 		long odoDuration, lsrDuration;
-		long lsrUpdatePeriod=1000;
+		long lsrUpdatePeriod=200;
 		long lastOdoUpdate=time;
 		long lastLsrUpdate=time;
 		while(!this.closing){
@@ -273,8 +207,8 @@ public class RobotState extends Pose implements Runnable,Closeable{
 							//System.out.println("Laser Updated: "+lsrDuration);
 							lastLsrUpdate=time;
 							try {
-								this.updateSensor();
-								//TODO laser updated flag
+//								this.updateSensor();
+								this.updateSensor2();
 							} catch (Exception e) {
 								e.printStackTrace();
 							}
@@ -349,46 +283,56 @@ public class RobotState extends Pose implements Runnable,Closeable{
 		}
 	}
 
-	//TODO laserVariance
-	private double laserVariance = 4; //Unit is pixels.
+	private void updateSensor2() throws Exception{
+		Pose pose = this.clone();
+		SimpleEntry<List<Float>, List<Point>> entry = Grid.getLaserDist(pose, new Time(System.currentTimeMillis()), this.grid, this.laser);
+		assignData(entry.getKey(), entry.getValue(), pose);
+	}
+	
+	@SuppressWarnings("unused")
 	private void updateSensor() throws Exception {
-		float[] m = this.grid.getMeasurementsAnyway(this.table , onCloud, this.X, this.Y, this.H);
-		//float[] m = this.grid.getMeasurementsOnTime(this);
-		Point[] mpts = new Point[m.length];
-		for(int i = 0 ; i < m.length; i++){
-			//TODO this unit is still pixels.
-			m[i] += (float)Distribution.sample_normal_distribution(laserVariance, rand);
-			if (m[i]<0)
-				m[i] = 0f;
-			else if(m[i]>this.grid.max_distance)
-				m[i] = this.grid.max_distance;
+		Pose pose = this.clone();
+		List<Float> m = this.grid.getMeasurementsAnyway(null , false, pose.X, pose.Y, pose.H);
+		ArrayList<Point> mpts = new ArrayList<Point>();
+		float tmp;
+		assert(this.laser.range_max==grid.laser.range_max);
+		for(int i = 0 ; i < m.size(); i++){
+			tmp = m.get(i) + (float)Distribution.sample_normal_distribution(this.laser.variance, rand);
+			if (tmp<0)
+				m.set(i, 0f);
+			else if(tmp>this.laser.range_max)
+				m.set(i,this.laser.range_max);
+			else
+				m.set(i,tmp);
 			
 			//drawing hitting points on obstacles.
 			//needing distance and orientation. 
 			//The orientation is obtained from robot's heading and sensor index.
 			int x = (int) Math.round(this.X+
-					m[i] * Math.cos( (this.H - 90.0 + i * this.grid.orientation_delta_degree) * Math.PI / 180)
+					tmp * Math.cos( (this.H - 90.0 + i * this.grid.laser.angle_resolution) * Math.PI / 180)
 					);
 			int y = (int) Math.round(this.Y+
-					m[i] * Math.sin( (this.H - 90.0+ i * this.grid.orientation_delta_degree) * Math.PI / 180)
+					tmp * Math.sin( (this.H - 90.0+ i * this.grid.laser.angle_resolution) * Math.PI / 180)
 					);
-			mpts[i] = new Point(x,y);
+			mpts.add(new Point(x,y));
 		}
+		assignData(m,mpts, pose);
+	}
+	
+	private void assignData(List<Float> m, List<Point> mpts, Pose pose) throws Exception{
 		while(isRobotLocked()){
 			Thread.sleep(0, 1);
 		}
 		this.setRobotLock(true);
 		//System.out.println("got robot lock in RS");
-		this.setMeasurements(m);
-		this.setMeasurement_points(mpts);
+		this.measurements= m;
+		this.measurement_true_points= mpts;
+		this.scanData = new LaserScanData(m, laser, new Time(System.currentTimeMillis()), pose);
 		this.setSensorUpdated(true);
 		this.setRobotLock(false);
-		Thread.sleep(0, 1);
-		//System.out.println("returned robot lock in RS");
 	}
 
-	private boolean sensorUpdated = false;
-	public void setSensorUpdated(boolean b) {
+	private void setSensorUpdated(boolean b) {
 		sensorUpdated = b;
 	}
 	public boolean isSensorUpdated(){
@@ -437,27 +381,6 @@ public class RobotState extends Pose implements Runnable,Closeable{
 	}
 
 
-	@Parameter(names = {"-cl","--cloud"}, description = "if be on the cloud, default is false", required = false)
-	private boolean onCloud;
-	/*	@Parameter(names = {"-rx","--robotx"}, description = "initialize robot's X-Axis", required = false, converter = DoubleConverter.class)
-	public double x;
-	@Parameter(names = {"-ry","--roboty"}, description = "initialize robot's Y-Axis", required = false, converter = DoubleConverter.class)
-	public double y;
-	@Parameter(names = {"-rh","--robothead"}, description = "initialize robot's Head", required = false, converter = DoubleConverter.class)
-	public double head;*/
-	@Parameter(names = {"-t","--table"}, description = "name of table", required = false)
-	private String tableName;
-	private VelocityModel ut = new VelocityModel();
-	private List<Pose> path = null;
-	//current Target
-	private int target = 0;
-	private float[] measurements = null;
-	private Point[] measurement_true_points = null;
-	private Grid grid = null;
-	private HTable table = null;
-	private Random rand = null;
-	
-
 	/**
 	 * @param x
 	 * @param y
@@ -466,97 +389,41 @@ public class RobotState extends Pose implements Runnable,Closeable{
 	 *  Grid and HTable are null.
 	 */
 	public RobotState(int x, int y, double head) throws IOException {
-		this(x, y, head, null, null, null);
+		this(x, y, head, null);
 	}
 	
-	/**
-	 * @param x
-	 * @param y
-	 * @param head
-	 * @param path
-	 * @throws IOException 
-	 */
-	public RobotState(int x, int y, double head, List<Pose> path) throws IOException {
-		this(x, y, head, null, null, path);
-	}
-
-	/**
-	 * @param x
-	 * @param y
-	 * @param head
-	 * @param grid
-	 * @throws IOException
-	 * HTable is null.
-	 */
-	public RobotState(int x, int y, double head, Grid grid) throws IOException {
-		this(x, y, head, grid, null, null);
-	}
-	
-	/**
-	 * @param x
-	 * @param y
-	 * @param head
-	 * @param grid
-	 * @param path
-	 * @throws IOException
-	 * HTable is null.
-	 */
-	public RobotState(int x, int y, double head, Grid grid, List<Pose> path) throws IOException {
-		this(x, y, head, grid, null, path);
-	}
-	
-	/**
-	 * @param x
-	 * @param y
-	 * @param head
-	 * @param grid
-	 * @param tableName
-	 * @throws IOException
-	 * HTable is null.
-	 */
-	public RobotState(int x, int y, double head, Grid grid, String tableName) throws IOException {
-		this(x, y, head, grid, tableName, null);
-	}
 	
 	/**
 	 * @param x initial pose of robot.
 	 * @param y initial pose of robot.
 	 * @param head initial head of robot.
 	 * @param grid where the sensor data from.
-	 * @param tableName 
 	 * @param path the navigation path must be continuity.
 	 * @throws IOException 
 	 */
-	public RobotState(int x, int y, double head, Grid grid, String tableName, List<Pose> path) throws IOException {
-		super();
-		System.out.println("initial robot");
+	public RobotState(int x, int y, double head, List<Pose> path) throws IOException {
 		this.X = x;
 		this.Y = y;
 		this.H = Transformer.checkHeadRange(head);
-		ut.setVelocity(0);
-		ut.setAngular_velocity(0);
-		
-		this.grid = grid;
-		this.tableName = tableName;
-		
 		
 		//Path
 		this.path = new ArrayList<Pose>();
 		if(path!=null)
 			this.path.addAll(path);
-		
 		//current Target
 		target = 0;
-		
+	}
+	
+	public void setupSimulationRobot(Grid grid){
+		this.grid = grid;
 		this.rand = new Random();
-		
+		ut.setVelocity(0);
+		ut.setAngular_velocity(0);
 		//initial state
 		setInitModel(this.ut);
 		setInitPose(this);
 	}
 	
-	private Pose initRobot = null;
-	private VelocityModel initModel = null;
 	private void setInitPose(Pose p) {
 		this.initRobot = new Pose(p);
 	}
@@ -564,7 +431,7 @@ public class RobotState extends Pose implements Runnable,Closeable{
 		this.initModel = new VelocityModel(m);
 	}
 	
-	public void initRobot(){
+	public void robotStartOver(){
 		if(initRobot!=null){
 			while(isRobotLocked()){
 				try {
@@ -613,59 +480,40 @@ public class RobotState extends Pose implements Runnable,Closeable{
 		ut.setAngular_velocity(wt);
 	}
 
-//	public int getX() {
-//		return (int)Math.round(this.X);
-//	}
-	
 	public void setX(double X) {
 		this.X = X;
-	}
-
-	public int getY() {
-		return (int)Math.round(this.Y);
 	}
 	
 	public void setY(double Y) {
 		this.Y = Y;
 	}
 	
-	public double getHead() {
-		return this.H;
-	}
-	
 	public void setHead(double Head) {
 		this.H = Head;
 	}
 
-	public float[] getMeasurements() {
+	public LaserScanData getLaserScan(){
+		while(isRobotLocked()){
+			try {
+				Thread.sleep(0, 1);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+		this.setRobotLock(true);
+		this.setSensorUpdated(false);
+		this.setRobotLock(false);
+		return scanData;
+	}
+	
+	public List<Float> getMeasurements() {
 		return measurements;
 	}
 	
-
-	public void setMeasurements(float[] measurements) {
-		this.measurements= measurements;
-		
-	}
-	
-	public void setMeasurement_points(Point[] mtps) {
-		this.measurement_true_points= mtps;
-		
-	}
-	
-	public Point[] getMeasurement_points() {
+	public List<Point> getMeasurement_points() {
 		return this.measurement_true_points;
 	}
-	
-	public boolean isOnCloud() {
-		return onCloud;
-	}
 
-	public void setOnCloud(boolean onCloud) {
-		this.onCloud = onCloud;
-	}
-
-	private RobotController controller=null;
-	
 	public RobotController getController() {
 		return controller;
 	}
@@ -676,14 +524,10 @@ public class RobotState extends Pose implements Runnable,Closeable{
 
 	@Override
 	public void close() throws IOException {
-		if(this.onCloud) 
-			table.close();
 		this.closing = true;
 		if(controller!=null)
 			controller.close();
 	}
-	private boolean closing = false;
-
 	public void setPose(Pose pose) {
 		this.X = pose.X;
 		this.Y = pose.Y;

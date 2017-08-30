@@ -17,8 +17,6 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.hadoop.util.ToolRunner;
 
-import util.metrics.Command;
-
 public class File2Hfile {
 	
 	public static void main(String[] args) throws Exception {

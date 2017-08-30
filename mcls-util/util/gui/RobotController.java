@@ -19,8 +19,8 @@ import util.robot.RobotState;
 
 @SuppressWarnings("serial")
 public class RobotController extends JFrame implements ActionListener{
-	@Parameter(names = "--visualization", help = false)
-	public boolean visualization;
+	@Parameter(names = "--visualization", help = false, required = false, arity=1)
+	public boolean visualization = false;
 	public String S[] = {
 			/*0*/"Pause/Continue",	/*1*/"Stop",		/*2*/"Terminate",
 			/*3*/"Converge",		/*4*/"Forward",		/*5*/"Initialize",
@@ -37,7 +37,7 @@ public class RobotController extends JFrame implements ActionListener{
 			
 			if(btn==B[0]){
 				//Pause/Continue
-				this.robot.reverseRobotLock();
+				this.robot.reverseMotorLock();
 			}
 			else if(btn==B[1]){
 				//Stop
@@ -63,7 +63,7 @@ public class RobotController extends JFrame implements ActionListener{
 			else if(btn==B[5]){
 				//Initialize
 				//System.out.println("Initialize robot");
-				this.robot.initRobot();
+				this.robot.robotStartOver();
 				
 			}
 			else if(btn==B[6]){
@@ -136,7 +136,7 @@ public class RobotController extends JFrame implements ActionListener{
 					Thread.sleep(33);
 				}
 			} catch (InterruptedException e) {
-				System.out.println("updateThread in RobotController is closed");
+				//System.out.println("updateThread in RobotController is closed");
 				//e.printStackTrace();
 			}
 		}
@@ -187,7 +187,7 @@ public class RobotController extends JFrame implements ActionListener{
 		this.setLayout(new BorderLayout(3,3));
 		
 		//set up contorl panel
-		System.out.println("initial "+ this.getTitle());
+		//System.out.println("initial "+ this.getTitle());
 		for (int i = 0; i < this.S.length; i++) {
 			B[i] = new Button(S[i]);
 			control_panel.add(B[i]);

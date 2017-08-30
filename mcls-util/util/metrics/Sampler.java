@@ -7,8 +7,8 @@ import javax.swing.JFrame;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
+import com.beust.jcommander.ParametersDelegate;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -19,6 +19,7 @@ import java.util.TreeMap;
 import util.grid.Grid;
 import util.gui.Panel;
 import util.metrics.Transformer;
+import util.sensor.LaserSensor;
 
 
 public class Sampler {
@@ -26,23 +27,26 @@ public class Sampler {
 	public boolean help;
 	
 	//sampling parameters
-	@Parameter(names = "--splitNumber", description = "How many parts the energy grid map should be split, default is 4.", required = false)
+	@Parameter(names = "--splitNumber", description = "How many parts the energy grid map should be split, default is 4.", required = false, arity = 1)
 	private int splitNumber = 4;
-	@Parameter(names = "--sample", description = "the number of samples, default number is 1000.", required = false)
+	@Parameter(names = "--sample", description = "the number of samples, default number is 1000.", required = false, arity = 1)
 	private int samples = 1000;
 	
 	//visualization window parameters
-	@Parameter(names = {"-vl","--visualization"}, description = "whether the visualization is performed, default is false", required = false)
+	@Parameter(names = {"-vl","--visualization"}, description = "whether the visualization is performed, default is false", required = false, arity = 1)
 	private boolean visualization = false;
 	private int statisticsRange = 100;
 	private int imageHeight = 300;
 	private int bandWidth = 3;
 	
+	@ParametersDelegate
+	private LaserSensor laser = new LaserSensor();
+	
 	//simulated sensor's parameters
-	@Parameter(names = {"-o","--orientation"}, description = "the resolution of orientation, default number is 18.", required = false)
+	@Parameter(names = {"-o","--orientation"}, description = "the resolution of orientation, default number is 18.", required = false, arity = 1)
 	private int orientation  = 18;
 	//ray-casting map
-	@Parameter(names = {"-i","--image"}, description = "the image of map, default is \"file:///Users/Jolly/git/Cloud-based MCL/jpg/simmap.jpg\"", required = false)
+	@Parameter(names = {"-i","--image"}, description = "the image of map, default is \"file:///Users/Jolly/git/Cloud-based MCL/jpg/simmap.jpg\"", required = false, arity = 1)
 	private  String imagePath = "file:///Users/Jolly/git/Cloud-based MCL/jpg/simmap.jpg";
 	
 	public static void main(String[] args) throws Exception{
@@ -85,8 +89,12 @@ public class Sampler {
 		int[] list = new int[statisticsRange];
 		Map<Float, Integer> splitKeysMap = new TreeMap<Float, Integer>();
 //		List<Float> splitKeys = new ArrayList<Float>();
-		
-		sampling(map, new Grid(orientation, orientation/2+1, imagePath), samples);
+		laser.angle_min = -90;
+		laser.angle_max = 90;
+		laser.angle_resolution = Math.round(360/orientation);
+		laser.range_min = 0f;
+		laser.range_max = -1;
+		sampling(map, new Grid(/*orientation, orientation/2+1, -1,*/ imagePath, laser), samples);
 		
 		statistic(splitKeysMap, list, map, columnWidth, statisticsRange);
 		
@@ -151,7 +159,8 @@ public class Sampler {
 	}
 	
 	private static void sampling(NavigableMap<Float, Integer> map, Grid grid, int samples) throws Exception {
-		grid.readmap(-1);
+//		assert(grid.orientation==grid.laser.getOrientation());
+		grid.readMapImageFromLocal();
 		int width = grid.width;
 		int height = grid.height;
 		Random random = new Random();
@@ -162,10 +171,11 @@ public class Sampler {
 				x = random.nextInt(width);
 				y = random.nextInt(height);
 			}
-			int z = random.nextInt(grid.orientation);
+			int z = random.nextInt(grid.laser.getOrientation());
 			List<Float> circle = grid.getLaserDist(x, y).getKey();
-			float[] measurements = Transformer.drawMeasurements(circle.toArray(new Float[circle.size()]), z);
-			float energy = Transformer.CalculateEnergy(measurements, grid.max_distance);
+			List<Float> measurements = Transformer.drawMeasurements(circle.toArray(new Float[circle.size()]), z);
+//			assert(grid.max_distance==grid.laser.range_max);
+			float energy = Transformer.CalculateEnergy(measurements, grid.laser.range_max);
 			
 			addOne(map,energy);
 		}		

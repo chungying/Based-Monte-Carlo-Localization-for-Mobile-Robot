@@ -13,7 +13,8 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 
-import util.sensor.MCLLaserSensor.MCLLaserSensorData;
+import util.measurementmodel.LaserModel;
+import util.measurementmodel.LaserModel.LaserData;
 
 public class Transformer {
 	
@@ -103,15 +104,15 @@ public class Transformer {
 		return (h%360+360)%360;
 	}
 	
-	public static float[] drawMeasurements(Float[] circles, int z) {
+	public static List<Float> drawMeasurements(Float[] circles, int z) {
 		int sensor_number = (circles.length/2) +1;
-		float[] measurements = new float[sensor_number];
+		List<Float> measurements = new ArrayList<Float>();
 		//int bias = (sensor_number - 1) / 2;
 		int globalIndex;
 		for (int sensorIndex = 0; sensorIndex < sensor_number; sensorIndex++) {
 			globalIndex = local2global(sensorIndex, z, circles.length);
 			//globalIndex = ( (z - bias + i + circles.length) % circles.length );
-			measurements[sensorIndex] = circles[globalIndex];
+			measurements.add( circles[globalIndex]);
 		}
 		return measurements;
 	}
@@ -154,16 +155,17 @@ public class Transformer {
 		return (((globalIndex-particleHead-Math.round(orientation*(360-90)/360))%360)+360)%360;
 	}
 
-	public static float weight_LogBeamModel(float[] hypData, MCLLaserSensorData data){
+	public static float weight_LogBeamModel(List<Float> hypData, LaserData data){
 		float logSum = 0f;
-		float[] obsData = data.getBeamRange();
-		for(int i=0;i< obsData.length;i++){
+		List<Float> obsData = data.data.beamranges;
+		LaserModel sensor = data.sensor;
+		for(int i=0;i< obsData.size();i++){
 			 
-			float prob =weight_SingleBeam(obsData[i], hypData[i],
-					data.sigma_hit,
-					data.lambda_short,
-					data.laser_max,
-					data.z_paras
+			float prob =weight_SingleBeam(obsData.get(i), hypData.get(i),
+					sensor.sigma_hit,
+					sensor.lambda_short,
+					sensor.range_max,
+					new float[]{sensor.z_hit,sensor.z_hit,sensor.z_hit,sensor.z_hit}
 					);
 			
 			logSum += Math.log(prob);
@@ -190,15 +192,16 @@ public class Transformer {
 		return p;
 	}
 	
-	public static float weight_BeamModel(float[] hypData, MCLLaserSensorData data) {
+	public static float weight_BeamModel(List<Float> hypData, LaserData data) {
 		float prob = 1.0f;
-		float[] obsData = data.getBeamRange();
-		for(int i=0;i< obsData.length;i++){
-			prob *= weight_SingleBeam(obsData[i], hypData[i],
-					data.sigma_hit,
-					data.lambda_short,
-					data.laser_max,
-					data.z_paras
+		List<Float> obsData = data.data.beamranges;
+		LaserModel sensor = data.sensor;
+		for(int i=0;i< obsData.size();i++){
+			prob *= weight_SingleBeam(obsData.get(i), hypData.get(i),
+					sensor.sigma_hit,
+					sensor.lambda_short,
+					sensor.range_max,
+					new float[]{sensor.z_hit,sensor.z_hit,sensor.z_hit,sensor.z_hit}
 					);
 		}
 		return prob;
@@ -296,7 +299,7 @@ public class Transformer {
 		return 1;
 	}
 	
-	public static float CalculateEnergy(float[] measurements,float max_dist) /*throws Exception*/{
+	public static float CalculateEnergy(List<Float> measurements,float max_dist) /*throws Exception*/{
 
 		if (measurements == null)
 			//throw new Exception("CalculateEnergy: the array is null.");
@@ -306,7 +309,7 @@ public class Transformer {
 			//energy+=m;
 			energy += (1- m/max_dist);
 		}
-		energy = energy/measurements.length;
+		energy = energy/measurements.size();
 		return energy;
 	}
 

@@ -21,58 +21,38 @@ public class Main {
 			String[] targs = {
 //					"-i","file:///Users/ihsumlee/Jolly/jpg/sim_map.jpg"
 //					"-i","file:///home/wuser/backup/jpg/test6.jpg"
-					"-i","file:///Users/Jolly/git/Cloud-based MCL/jpg/simmap.jpg"
-					,"-o","12"
+					//"-i","file:///Users/Jolly/git/Cloud-based MCL/jpg/simmap.jpg"
+					"-i","file:///Users/Jolly/git/Cloud-based MCL/jpg/map_8590.jpg"
 //					,"-rl","true"
-					,"-rx","50"
-					,"-ry","50"
+					,"-rx","30"
+					,"-ry","30"
+					,"-a", "0.7"
 //					,"-rh","50"
 //					,"-n","50"
 //					,"-p","20"
 					,"-D","false"
 					,"-c","true"
 //					,"--ignore", "true"
-					,"--showparticles"
+					,"--showparticles", "true"
 //					,"--period","50"
-					,"--logfile"
+					,"--logfile", "true"
 					,"-d","0.001"
 					,"-x","0.05"
 //					,"-t","test6.18.split"
 //					,"-cl"
-					,"--visualization"					
+					,"--visualization", "true"
+					,"--showmeasurements","true"
+					,"-o","12"
+					,"-lares","30"
+					,"-lrmax","50"
+					,"-max_dist", "50"
 					};
 			args = targs;
 		}
 		SAMCL samcl = null;
 		RobotState robot = null;
+		JCommander jc =null;
 		try{
-			/**
-			 * First step:
-			 * to create the localization algorithm
-			 * and setup the listener for SAMCL
-			 */
-			samcl = new SAMCL(
-					18, //orientation
-					//"file:///home/w514/map.jpg",//map image file
-					"hdfs:///user/eeuser/map1024.jpeg",
-					(float) 0.005, //delta energy
-					100, //total particle
-					(float) 0.001, //threshold xi
-					(float) 0.6, //rate of population
-					10);//competitive strength
-			JCommander jc = new JCommander();
-			jc.setAcceptUnknownOptions(true);
-			jc.addObject(samcl);
-			jc.parse(args);
-			if(samcl.help){
-				jc.usage();
-				System.exit(0);
-			}
-			samcl.setup();
-			if(!samcl.onCloud){
-				System.out.println("start to pre-caching");
-				samcl.preCaching();
-			}	
 			
 			/**
 			 * Second step:
@@ -92,16 +72,55 @@ public class Main {
 			path.add(new Pose(150,550,270));
 			path.add(new Pose(150,150,270));
 			path.add(new Pose(150,150,0));
-			robot = new RobotState(150, 150, 0, /*null*/samcl.grid, samcl.tableName, path);
+			robot = new RobotState(150, 150, 0, path);
 			jc = new JCommander();
 			jc.setAcceptUnknownOptions(true);
 			jc.addObject(robot);
 			jc.parse(args);
+			
+			/**
+			 * First step:
+			 * to create the localization algorithm
+			 * and setup the listener for SAMCL
+			 */
+			samcl = new SAMCL(
+//					18, //orientation
+					(float) 0.005, //delta energy
+					100, //total particle
+					(float) 0.001, //threshold xi
+					(float) 0.6, //rate of population
+					10);//competitive strength
+			jc = new JCommander();
+			jc.setAcceptUnknownOptions(true);
+			jc.addObject(samcl);
+			jc.parse(args);
+			if(samcl.help){
+				jc.usage();
+				System.exit(0);
+			}
+			
+			samcl.setupGrid(robot.laser);
+			if(!samcl.onCloud){
+				System.out.println("start to pre-caching");
+				samcl.preCaching();
+			}	
+
+			robot.setupSimulationRobot(samcl.grid);
+			
 			//TODO setup robot
-			@SuppressWarnings("unused")
 			RobotController robotController = new RobotController("robot controller", robot,samcl);
-			@SuppressWarnings("unused")
+			jc = new JCommander();
+			jc.setAcceptUnknownOptions(true);
+			jc.addObject(robotController);
+			jc.parse(args);
+			robotController.setVisible(robotController.visualization);
 			VariablesController vc = new VariablesController(samcl);
+			jc = new JCommander();
+			jc.setAcceptUnknownOptions(true);
+			jc.addObject(vc);
+			jc.parse(args);
+			vc.setVisible(vc.visualization);
+			
 			Thread t = new Thread(robot);
 			t.start();
 			/**
@@ -124,11 +143,12 @@ public class Main {
 					e.printStackTrace();
 				}
 				robot.setRobotLock(true);
-				robot.initRobot();
+				robot.robotStartOver();
 			}
 			
 		}
 		catch (Exception e){
+			e.printStackTrace();
 			System.exit(-1);
 		}
 		finally{

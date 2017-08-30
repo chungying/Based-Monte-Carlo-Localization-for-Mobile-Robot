@@ -22,6 +22,7 @@ import org.apache.hadoop.mapreduce.Reducer;
 
 import util.grid.Grid;
 import util.metrics.Transformer;
+import util.sensor.LaserSensor;
 
 public class Reducer2Hbase 
 	extends Reducer<IntWritable, RectangleWritableComparable, ImmutableBytesWritable, Put>{
@@ -79,12 +80,17 @@ public class Reducer2Hbase
 		for (RectangleWritableComparable value: values) {
 			try {
 				context.getCounter(Counters.A).increment(1);
-				Grid gridmap = new Grid(orientation, (orientation/2)+1, path);
-
-				gridmap.readmap2Hbase(path, context);
-
-				gridmap.pre_compute(value.x.get(), value.y.get(), value.width.get(),
-						value.height.get());
+				LaserSensor laserConfig = new LaserSensor();
+				laserConfig.angle_min = -90;
+				laserConfig.angle_max = 90;
+				laserConfig.angle_resolution = Math.round(360/orientation);
+				laserConfig.range_min = 0f;
+				laserConfig.range_max = -1;
+				Grid gridmap = new Grid(/*orientation, (orientation/2)+1, -1,*/ path, laserConfig);
+//				assert(gridmap.orientation==gridmap.laser.getOrientation());
+				gridmap.readMapImageFromHadoop(path, context);
+				//TODO if there is range_max of laser beam, replace -1 with range_max.
+				gridmap.pre_compute(value.x.get(), value.y.get(), value.width.get(), value.height.get()/*, -1*/);
 				context.getCounter(Counters.A).increment(1);
 				//int rowkey;
 				String row_str = new String();
@@ -103,11 +109,11 @@ public class Reducer2Hbase
 						//put.setWriteToWAL(false);
 						put.setDurability(Durability.SKIP_WAL);
 						
-						for (int k = 0; k < gridmap.orientation; k++) {
+						for (int k = 0; k < gridmap.laser.getOrientation(); k++) {
 
 							context.getCounter(Counters.D).increment(1);
 							
-							String measurements = String.valueOf(gridmap.G[i][j].circle_measurements[k]);
+							String measurements = String.valueOf(gridmap.G[i][j].circle_measurements.get(k));
 							
 							put.add(Family_Distance,
 									Bytes.toBytes(String.valueOf(k)),

@@ -1,7 +1,12 @@
 package util.robot;
 
-public class VelocityModel {
+public class VelocityModel implements Cloneable{
 	
+	@Override
+	public VelocityModel clone() throws CloneNotSupportedException {
+		VelocityModel newObj = new VelocityModel(this);
+		return newObj;
+	}
 	public VelocityModel() {
 		super();
 	}

@@ -13,6 +13,7 @@ import org.apache.hadoop.mapreduce.Mapper;
 
 import util.grid.Grid;
 import util.metrics.Transformer;
+import util.sensor.LaserSensor;
 
 public class Image2Mapper extends Mapper< Text, RectangleSplit, ImmutableBytesWritable, Put>{
 	private enum Counters {
@@ -62,10 +63,18 @@ public class Image2Mapper extends Mapper< Text, RectangleSplit, ImmutableBytesWr
 		int recHeight = value.getRectangle().height.get();
 		
 		try{
-			Grid gridmap = new Grid(orientation, (orientation/2)+1, pathStr);
-			gridmap.readmap2Hfile(pathStr, context.getConfiguration());
+			//TODO create LaserSensor from configuration
+			LaserSensor laserConfig = new LaserSensor();
+			laserConfig.angle_min = -90;
+			laserConfig.angle_max = 90;
+			laserConfig.angle_resolution = Math.round(360/orientation);
+			laserConfig.range_min = 0f;
+			laserConfig.range_max = -1;
+			Grid gridmap = new Grid(/*orientation, (orientation/2)+1, -1,*/ pathStr, laserConfig);
+			gridmap.readMapImageFromHadoop(pathStr, context.getConfiguration());
 			long time = System.currentTimeMillis();
-			gridmap.pre_compute( x, y, recWidth, recHeight);
+			//TODO if there is range_max of laser beam, replace -1 with range_max.
+			gridmap.pre_compute( x, y, recWidth, recHeight/*, -1*/);
 			time = System.currentTimeMillis() - time;
 			System.out.println("the time of pre-compute is " + time +" ms.");
 			//TODOdone send out the PUT and IMMUTABLEBYTESWRITABLE

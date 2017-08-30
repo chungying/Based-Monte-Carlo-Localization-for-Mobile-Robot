@@ -22,6 +22,7 @@ import endpoint.services.generated.OewcProtos2;
 import endpoint.services.generated.OewcProtos.OewcRequest;
 import endpoint.services.generated.RpcProxyProtos;
 import samcl.SAMCL;
+import util.measurementmodel.LaserModel.LaserData;
 import util.metrics.Particle;
 import util.metrics.Transformer;
 import util.robot.RobotState;
@@ -32,10 +33,10 @@ import util.robot.RobotState;
  */
 public class IMCLROE extends SAMCL{
 	
-	public IMCLROE(boolean cloud, int orientation, String mapFilename,
+	public IMCLROE(boolean cloud, int orientation,
 			float deltaEnergy, int nt, float xI, float aLPHA,
 			int tournamentPresure) throws IOException {
-		super(cloud, orientation, mapFilename, deltaEnergy, nt, xI, aLPHA,
+		super(cloud,/* orientation,*/ deltaEnergy, nt, xI, aLPHA,
 				tournamentPresure);
 	}
 
@@ -98,31 +99,39 @@ public class IMCLROE extends SAMCL{
 		}*/
 	}
 	
-	@Parameter(names = {"-E","--endpoint"}, description = "choose the endpoint type, oewc, oewc2, and proxy modes.", required = false)
+	@Parameter(names = {"-E","--endpoint"}, 
+			description = "choose the endpoint type, oewc, oewc2, and proxy modes.", 
+			arity = 1, required = false)
 	public int endpoint = 2;
 	
 	@Override
-	public long[] weightAssignment(List<Particle> src,
-			float[] robotMeasurements, boolean ignore, RobotState robot)
-			throws Exception {
+	public List<Long> weightAssignment(List<Particle> src,
+			/*List<Float> robotMeasurements,*/ boolean ignore, RobotState robot,
+			LaserData laserData
+			)throws Exception {
 		// TODO 
-		robotMeasurements = robot.getMeasurements();
-		long[] timers = new long[3];
+//		robotMeasurements = robot.getMeasurements();
+		//long[] timers = new long[3];
+		List<Long> ts = null;
 		//remove duplicated particle in X-Y domain
 				Transformer.filterParticle(src);
 				//choose endpoint
 				if(this.endpoint==1){
 					Transformer.debugMode(mode, "choose the proxy endpoint version.\n");
-					timers = this.proxyEndpoint(src, robotMeasurements);
+					//timers = this.proxyEndpoint(src, robotMeasurements);
+					ts = this.proxyEndpoint(src, /*robotMeasurements*/laserData);
 				}
 				else if(this.endpoint==2){
 					Transformer.debugMode(mode, "choose the oewc2 endpoint version.\n");
-					timers = this.oewc2Endpoint(src, robotMeasurements, 1000);
+					//timers = this.oewc2Endpoint(src, robotMeasurements, 1000);
+					ts = this.oewc2Endpoint(src, /*robotMeasurements*/laserData, 1000);
 				}
 				else{
 					Transformer.debugMode(true, "there is inappropriate endpoint\n");
 				}
-		return timers;
+		//return timers;
+		return ts;		
+		
 	}
 
 //	@Override
@@ -151,7 +160,7 @@ public class IMCLROE extends SAMCL{
 		}
 	}*/
 
-	private long[] proxyEndpoint(final List<Particle> src, final float[] robotMeasurements) {
+	private List<Long> proxyEndpoint(final List<Particle> src, final LaserData laserData) {
 		// TODO proxy endpoint
 		
 		final List<Pair<Map<Long, String>, OewcProtos2.OewcResponse>> results=Collections.synchronizedList(
@@ -176,17 +185,17 @@ public class IMCLROE extends SAMCL{
 						OewcProtos2.Particle.newBuilder()
 							.setX((float)p.getDX())
 							.setY((float)p.getDY())
-							.setZ(Transformer.th2Z(p.getTh(), orientation)).build()
+							.setZ(Transformer.th2Z(p.getTh(), sensor.getOrientation())).build()
 					);
 				}
-				List<Float> Zt = new ArrayList<Float>();
-				for(float f: robotMeasurements){
-					Zt.add(new Float(f));
-				}
+//				List<Float> Zt = new ArrayList<Float>();
+//				for(float f: robotMeasurements){
+//					Zt.add(new Float(f));
+//				}
 				
 				OewcProtos2.OewcRequest.Builder builder = OewcProtos2.OewcRequest.newBuilder();
 				builder.addAllParticles(ps);
-				builder.addAllMeasurements(Zt);
+				builder.addAllMeasurements(laserData.data.beamranges);
 				
 				endpoint.getCalculationResult(controller, builder.build(), done);
 				//get the results.
@@ -250,29 +259,35 @@ public class IMCLROE extends SAMCL{
 								op.getX(), 
 								op.getY(), 
 								// TODO change Z of OewcProtos2.OewcResponse into Integer. 
-								Transformer.Z2Th((int)op.getZ(), orientation), 
+								Transformer.Z2Th((int)op.getZ(), this.sensor.getOrientation()), 
 								op.getW())
 						);
 			}
 		}
 
 		//change the result to src
-		
-		long[] timers = new long[3];
+		List<Long> ts = new ArrayList<Long>();
+		long t1 = Collections.max(durationsOEWC);
+		long t2 = Collections.max(durationsReadingHDFS);
+		ts.add(durationAll-t1);
+		ts.add(t2-t1);
+		ts.add(t2);
+		/*long[] timers = new long[3];
 		timers[2] = Collections.max(durationsReadingHDFS);
 		timers[1] = Collections.max(durationsOEWC);
 		timers[0] = durationAll - timers[1];
-		timers[1] -= timers[2];
+		timers[1] -= timers[2];*/
 
 //		System.out.print("\t");
 		
 		src.clear();
 		src.addAll(result);
 		
-		return timers;
+		//return timers;
+		return ts;
 	}
 
-	private long[] oewc2Endpoint(final List<Particle> src, final float[] robotMeasurements, int endkey) {
+	private List<Long> oewc2Endpoint(final List<Particle> src, final LaserData laserData, int endkey) {
 		// TODO oewc version 2 endpoint
 		
 		Batch.Call<OewcProtos2.Oewc2Service, Pair<Map<String, Long>,OewcProtos2.OewcResponse>> call = 
@@ -296,17 +311,17 @@ public class IMCLROE extends SAMCL{
 						OewcProtos2.Particle.newBuilder()
 							.setX((float)p.getDX())
 							.setY((float)p.getDY())
-							.setZ(Transformer.th2Z(p.getTh(), orientation)).build()
+							.setZ(Transformer.th2Z(p.getTh(), sensor.getOrientation())).build()
 					);
 				}
-				List<Float> Zt = new ArrayList<Float>();
-				for(float f: robotMeasurements){
-					Zt.add(new Float(f));
-				}
+//				List<Float> Zt = new ArrayList<Float>();
+//				for(float f: data){
+//					Zt.add(new Float(f));
+//				}
 				
 				OewcProtos2.OewcRequest.Builder builder = OewcProtos2.OewcRequest.newBuilder();
 				builder.addAllParticles(ps);
-				builder.addAllMeasurements(Zt);
+				builder.addAllMeasurements(laserData.data.beamranges);
 
 				//get the results.
 				endpoint.getOewc2Result(controller, builder.build(), done);
@@ -381,17 +396,23 @@ public class IMCLROE extends SAMCL{
 								op.getX(), 
 								op.getY(), 
 								// TODO change Z of OewcProtos2.OewcResponse into Integer. 
-								Transformer.Z2Th((int)op.getZ(), orientation), 
+								Transformer.Z2Th((int)op.getZ(), sensor.getOrientation()), 
 								op.getW())
 						);
 			}
 		}
 		
-		long[] timers = new long[3];
+		List<Long> ts = new ArrayList<Long>(3);
+		long t1 = Collections.max(durationsOEWC);
+		long t2 = Collections.max(durationsReadingHDFS);
+		ts.add(durationAll-t1);
+		ts.add(t2-t1);
+		ts.add(t2);
+		/*long[] timers = new long[3];
 		timers[2] = Collections.max(durationsReadingHDFS);
 		timers[1] = Collections.max(durationsOEWC);
 		timers[0] = durationAll - timers[1];
-		timers[1] -= timers[2];
+		timers[1] -= timers[2];*/
 
 //		for(Integer i : particlesNo){
 //			System.out.print(i+",");
@@ -402,7 +423,8 @@ public class IMCLROE extends SAMCL{
 		//change the result to src
 		src.clear();
 		src.addAll(result);
-		return timers;
+		//return timers;
+		return ts;
 	}
 
 	/*@Deprecated

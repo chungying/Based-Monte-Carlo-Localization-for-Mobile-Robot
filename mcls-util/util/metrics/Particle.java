@@ -1,5 +1,7 @@
 package util.metrics;
 
+import java.util.List;
+
 public class Particle implements Cloneable{
 	/**
 	 * constructor
@@ -17,7 +19,7 @@ public class Particle implements Cloneable{
 	 * assgned from outside
 	 */
 	private boolean ifmeasurements = false;
-	private float[] measurements;
+	private List<Float> measurements;
 
 	/**
 	 * 
@@ -135,11 +137,11 @@ public class Particle implements Cloneable{
 		}
 	}
 
-	public float[] getMeasurements() {
+	public List<Float> getMeasurements() {
 		return measurements;
 	}
 
-	public void setMeasurements(float[] m) {
+	public void setMeasurements(List<Float> m) {
 		if(m==null)
 			this.ifmeasurements = false;
 		else

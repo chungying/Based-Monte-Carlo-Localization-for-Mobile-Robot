@@ -7,7 +7,9 @@ import org.apache.hadoop.hbase.client.HBaseAdmin;
 import com.beust.jcommander.Parameter;
 
 public class CreateTable extends Base{
-	@Parameter(names = {"-i","--input"}, description = "the path of image, default is \"hdfs:///user/eeuser/jpg/sim_map.jpg\"", required = true)
+	@Parameter(names = {"-i","--input"}, 
+			description = "the path of image, default is \"hdfs:///user/eeuser/jpg/sim_map.jpg\"", 
+			required = true, arity = 1)
 	public String tableName = "hdfs:///user/eeuser/jpg/sim_map.jpg";
 
 	@SuppressWarnings("resource")

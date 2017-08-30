@@ -14,12 +14,11 @@ import com.beust.jcommander.JCommander;
 import util.gui.RobotController;
 import util.gui.VariablesController;
 import util.gui.Window;
+import util.measurementmodel.MCLLaserModel.ModelType;
 import util.metrics.Particle;
-import util.metrics.Transformer;
 import util.robot.Pose;
 import util.robot.RobotState;
 import util.robot.VelocityModel;
-import util.sensor.MCLLaserSensor.ModelType;
 
 public class Test extends MCL{
 
@@ -61,12 +60,7 @@ public class Test extends MCL{
 					 */
 					final Test mcl = new Test(false,
 							18, //orientation
-							//"file:///home/w514/map.jpg",//map image file
-							"hdfs:///user/eeuser/map1024.jpeg",
-							(float) 0.005, //delta energy
 							100, //total particle
-							(float) 0.001, //threshold xi
-							(float) 0.6, //rate of population
 							10);//competitive strength
 					JCommander jc = new JCommander();
 					jc.setAcceptUnknownOptions(true);
@@ -76,14 +70,15 @@ public class Test extends MCL{
 						jc.usage();
 						System.exit(0);
 					}
-					mcl.setup();
+					
 					/**
 					 * Second step:
 					 * to create a robot
 					 * setup the listener of Robot
 					 * */
 					List<Pose> path = new ArrayList<Pose>();
-					RobotState robot = new RobotState(60, 60, 0, mcl.grid, mcl.tableName, path);
+					RobotState robot = new RobotState(60, 60, 0, /*mcl.tableName, */path);
+					robot.setupSimulationRobot(mcl.grid);
 					jc = new JCommander();
 					jc.setAcceptUnknownOptions(true);
 					jc.addObject(robot);
@@ -100,6 +95,8 @@ public class Test extends MCL{
 					jc.addObject(vc);
 					jc.parse(args);
 					vc.setVisible(vc.visualization);
+					
+					mcl.setupGrid(robot.laser);
 					Thread t = new Thread(robot);
 					t.start();
 					/**
@@ -261,9 +258,8 @@ public class Test extends MCL{
 				"roboty:" + roboty + " ";
 	}
 	
-	public Test(boolean cloud, int orientation, String mapFilename, float deltaEnergy, int nt, float xI, float aLPHA,
-			int tournamentPresure) throws IOException {
-		super(cloud, orientation, mapFilename, deltaEnergy, nt, xI, aLPHA, tournamentPresure);
+	public Test(boolean cloud, int orientation, int nt,	int tournamentPresure) throws IOException {
+		super(cloud, orientation, nt, tournamentPresure);
 	}
 
 }

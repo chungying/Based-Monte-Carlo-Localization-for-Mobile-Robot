@@ -35,8 +35,8 @@ public class Oewc {
 		return new AbstractMap.SimpleEntry<Integer, Float>(bestZ, bestWeight);
 	}
 	
-	static public Entry<Integer, Float> singleParticleModified(float[] Zt, float[] circles) throws Exception{
-		if(Zt.length > circles.length)
+	static public Entry<Integer, Float> singleParticleModified(List<Float> Zt, float[] circles) throws Exception{
+		if(Zt.size() > circles.length)
 			throw new Exception("cannot calculate OEWC!!!!!!!!!!!");
 		float weight;
 		int bestZ =0;
@@ -44,12 +44,12 @@ public class Oewc {
 		for(int z = 0 ; z < circles.length; z++){
 			//calculate the weight
 			weight = 0;
-			for(int i = 0 ; i < Zt.length;i++){
+			for(int i = 0 ; i < Zt.size();i++){
 				weight = weight + Math.abs(
-						Zt[i]-
+						Zt.get(i)-
 						circles[Transformer.local2global(i, z, circles.length)]); 
 			}
-			weight = weight/Zt.length;
+			weight = weight/Zt.size();
 			//if the weight is better, keep it.
 			if(bestWeight>weight){
 				bestWeight = weight;

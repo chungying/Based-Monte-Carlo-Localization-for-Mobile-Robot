@@ -1,22 +1,22 @@
-package util.sensormodel;
+package util.sensormodel.callbackfunc;
 
+import java.util.List;
+
+import util.measurementmodel.LaserModel.LaserData;
 import util.metrics.Particle;
 import util.metrics.Transformer;
 
-public class BeamModel extends BasicSensorModel{
-	
+public class BeamModel
+extends SensorModelCallback<List<Particle>, LaserData, Float>{
+
 	@Override
-	public Float call() throws Exception {
-		if(this.isupdated == false){
-			return null;
-		}
-		
+	public Float call(List<Particle> set, LaserData data) {
 		Float total = 0.0f;
-		for(Particle p : this.set){
+		for(Particle p : set){
 			
 			if(p.isIfmeasurements()){//FIXME
 				//optimality is changed into maximizing. done!
-				float[] a = p.getMeasurements();
+				List<Float> a = p.getMeasurements();
 				//float w = Transformer.weight_BeamModel_Gauss(a,b);
 				float w = Transformer.weight_BeamModel(a, data);
 				p.setWeight(w);
@@ -40,7 +40,7 @@ public class BeamModel extends BasicSensorModel{
 			}
 		}
 
-		this.isupdated = false;
 		return total;
 	}
+
 }

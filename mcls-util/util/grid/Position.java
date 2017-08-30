@@ -29,9 +29,7 @@ public class Position {
 				 * and setup the listener for S	AMCL
 				 */
 				final SAMCL samcl = new SAMCL(
-						18, //orientation
-						//"file:///home/w514/map.jpg",//map image file
-						"hdfs:///user/eeuser/map1024.jpeg",
+//						18, //orientation
 						(float) 0.005, //delta energy
 						100, //total particle
 						(float) 0.001, //threshold xi

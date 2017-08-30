@@ -18,7 +18,9 @@ abstract public class Base implements Closeable, Runnable{
 		super();
 	}
 	
-	@Parameter(names = {"-t","--tableName"}, description = "the name of HBase table, default is \"map.512.4.split\"", required = false)
+	@Parameter(names = {"-t","--tableName"}, 
+			description = "the name of HBase table, default is \"map.512.4.split\"", 
+			required = false, arity = 1)
 	public String tableName = "test5.18.split";
 	
 	protected HTable table = null;

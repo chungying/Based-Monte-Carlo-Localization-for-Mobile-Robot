@@ -6,17 +6,17 @@ import java.util.Map.Entry;
 
 import samcl.SAMCL;
 import util.grid.Grid;
+import util.measurementmodel.LaserModel.LaserData;
 import util.metrics.Particle;
 import util.metrics.Transformer;
 import util.oewc.Oewc;
-import util.robot.RobotState;
 
 public class SAMCLROE extends SAMCL{
 
 	
 
 	@Override
-	public long batchWeight( List<Particle> src, float[] robotMeasurements)
+	public long batchWeight( List<Particle> src, LaserData laserData)
 			throws Exception {
 		
 		long weightTime = System.currentTimeMillis();
@@ -25,8 +25,9 @@ public class SAMCLROE extends SAMCL{
 		for(Particle p : src){
 				if (this.grid.map_array(p.getX(), p.getY()) == Grid.GRID_EMPTY) {
 					Entry<Integer, Float> entry = Oewc.singleParticleModified(
-							robotMeasurements, p.getMeasurements());
-					p.setTh(Transformer.Z2Th(entry.getKey(), this.orientation));
+							laserData.data.beamranges/*robotMeasurements*/, 
+							p.getMeasurements());
+					p.setTh(Transformer.Z2Th(entry.getKey(), this.sensor.getOrientation()));
 					p.setWeight(entry.getValue());
 				} else {
 					//if the position is occupied, then assign the worst weight.
@@ -36,10 +37,10 @@ public class SAMCLROE extends SAMCL{
 		return System.currentTimeMillis() - weightTime;
 	}
 
-	public SAMCLROE(int orientation, String mapFilename, float deltaRnergy,
+	public SAMCLROE(/*int orientation,*/ float deltaRnergy,
 			int nt, float xI, float aLPHA, int tournamentPresure)
 			throws IOException {
-		super(orientation, mapFilename, deltaRnergy, nt, xI, aLPHA,
+		super(/*orientation, */deltaRnergy, nt, xI, aLPHA,
 				tournamentPresure);
 	}
 

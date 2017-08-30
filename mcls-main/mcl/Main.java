@@ -21,9 +21,8 @@ public class Main {
 					//"-i","file:///home/wuser/backup/jpg/test6.jpg"
 					"-i"
 					//,"file:///Users/Jolly/git/Cloud-based MCL/jpg/simmap.jpg"
-					,"file:///Users/Jolly/workspace/dataset/intel-map.png"
-					,"-max_dist", "50"
-					,"-o","36"
+					,"file:///Users/Jolly/workspace/dataset/intel_lab/intel-map.png"
+					
 					,"-rl","true"
 					,"-rx","60"
 					,"-ry","60"
@@ -33,45 +32,19 @@ public class Main {
 					,"-D","false"
 					//,"-c","true"//forcing initial convergence of particles.
 					,"--ignore", "true"
-					,"--showparticles"
+					,"--showparticles", "true"
 					,"--period","50"
-					,"--logfile"
-					,"--visualization"
-					,"--showmeasurements"
-					,"--sensor_model", "1"
+					,"--logfile", "true"
+					,"--visualization", "true"
+					,"--showmeasurements", "true"
+					,"-o","72"
+					,"-lares","5"
+					,"-lrmax","100"
+					,"-max_dist", "100"
 					};
 			args = targs;
 		}
-		
-		/**
-		 * First step:
-		 * to create the localization algorithm
-		 * and setup the listener for SAMCL
-		 */
-		//TODO parameter 
-		final MCL mcl = new MCL(false,
-				18, //orientation
-				//"file:///home/w514/map.jpg",//map image file
-				"hdfs:///user/eeuser/map1024.jpeg",
-				(float) 0.005, //delta energy
-				100, //total particle
-				(float) 0.001, //threshold xi
-				(float) 0.6, //rate of population
-				10);//competitive strength
-		JCommander jc = new JCommander();
-		jc.setAcceptUnknownOptions(true);
-		jc.addObject(mcl);
-		jc.parse(args);
-		if(mcl.help){
-			jc.usage();
-			System.exit(0);
-		}
-		mcl.setup();
-//				if(!mcl.onCloud){
-//					System.out.println("start to pre-caching");
-//					mcl.Pre_caching();
-//				}	
-		
+		JCommander jc = null;
 		/**
 		 * Second step:
 		 * to create a robot
@@ -90,12 +63,39 @@ public class Main {
 		path.add(new Pose(150,550,270));
 		path.add(new Pose(150,150,270));
 		path.add(new Pose(150,150,0));
-		RobotState robot = new RobotState(60, 60, 0, /*null*/mcl.grid, mcl.tableName, path);
+		RobotState robot = new RobotState(60, 60, 0, path);
 		jc = new JCommander();
 		jc.setAcceptUnknownOptions(true);
 		jc.addObject(robot);
 		jc.parse(args);
-		//TODO setup robot
+		
+		/**
+		 * First step:
+		 * to create the localization algorithm
+		 * and setup the listener for SAMCL
+		 */
+		//TODO parameter 
+		final MCL mcl = new MCL(false,
+				18, //orientation
+				100, //total particle
+				10);//competitive stress of tournament selection
+		jc = new JCommander();
+		jc.setAcceptUnknownOptions(true);
+		jc.addObject(mcl);
+		jc.parse(args);
+		if(mcl.help){
+			jc.usage();
+			System.exit(0);
+		}
+		mcl.setupGrid(robot.laser);
+		
+		robot.setupSimulationRobot(mcl.grid);
+		
+	
+		/**
+		 * Third step:
+		 * Setting up controllers
+		 */
 		RobotController robotController = new RobotController("robot controller", robot,mcl);
 		jc = new JCommander();
 		jc.setAcceptUnknownOptions(true);
@@ -108,6 +108,8 @@ public class Main {
 		jc.addObject(vc);
 		jc.parse(args);
 		vc.setVisible(vc.visualization);
+		
+		
 		Thread t = new Thread(robot);
 		t.start();
 		/**
@@ -125,7 +127,7 @@ public class Main {
 			robot.goStraight();
 			mcl.run(robot, window);
 			robot.setRobotLock(true);
-			robot.initRobot();
+			robot.robotStartOver();
 		}	
 		mcl.close();
 		robot.close();

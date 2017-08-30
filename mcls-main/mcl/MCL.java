@@ -5,8 +5,6 @@ import java.util.List;
 
 import samcl.SAMCL;
 import util.metrics.Particle;
-import util.metrics.Transformer;
-import util.robot.RobotState;
 
 public class MCL extends SAMCL{
 	
@@ -18,15 +16,19 @@ public class MCL extends SAMCL{
 	}
 
 	@Override
-	public void caculatingSER(List<Particle> current_set, float best_weight, float[] Zt, List<Particle> SER_set, List<Particle> global_set)
+	public void caculatingSER(List<Particle> current_set, float best_weight, List<Float> Zt, List<Particle> SER_set, List<Particle> global_set)
 			throws IOException {
 		//Do nothing in MCL
 	}
 
-	public MCL(boolean cloud, int orientation, String mapFilename,
-			float deltaEnergy, int nt, float xI, float aLPHA,
+	public MCL(boolean cloud, 
+			int orientation, //TODO should be replaced by laser
+//			float deltaEnergy, //TODO No need for MCL
+			int nt, 
+//			float xI, //TODO No need for MCL
+//			float aLPHA,//TODO No need for MCL
 			int tournamentPresure) throws IOException {
-		super(cloud, orientation, mapFilename, deltaEnergy, nt, xI, aLPHA,
+		super(cloud, /*orientation,*/ 0/*deltaEnergy*/, nt, 0/*xI*/, 0/*aLPHA*/,
 				tournamentPresure);
 	}
 

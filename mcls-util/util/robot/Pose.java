@@ -5,15 +5,17 @@ import com.beust.jcommander.converters.DoubleConverter;
 
 import util.metrics.Transformer;
 
-public class Pose {
+public class Pose implements Cloneable{
+	public Pose clone() throws CloneNotSupportedException{
+		return (Pose) super.clone();
+	}
 	public static final double ERROR = 0.05;
-	@Parameter(names = {"-rx","--robotx"}, description = "initialize robot's X-Axis", required = false, converter = DoubleConverter.class)
+	@Parameter(names = {"-rx","--robotx"}, description = "initialize robot's X-Axis", required = false, arity = 1, converter = DoubleConverter.class)
 	public double X;
-	@Parameter(names = {"-ry","--roboty"}, description = "initialize robot's Y-Axis", required = false, converter = DoubleConverter.class)
+	@Parameter(names = {"-ry","--roboty"}, description = "initialize robot's Y-Axis", required = false, arity = 1, converter = DoubleConverter.class)
 	public double Y;
-	
 	//unit:degree
-	@Parameter(names = {"-rh","--robothead"}, description = "initialize robot's Head", required = false, converter = DoubleConverter.class)
+	@Parameter(names = {"-rh","--robothead"}, description = "initialize robot's Head", required = false, arity = 1, converter = DoubleConverter.class)
 	public double H;
 	
 	
@@ -87,7 +89,7 @@ public class Pose {
 	
 	@Override
 	public String toString() {
-		return String.format("Pose[ %.4f %.4f %.4f]", X, Y, H);
+		return String.format("%.4f %.4f %.4f", X, Y, H);
 	}
 
 }
