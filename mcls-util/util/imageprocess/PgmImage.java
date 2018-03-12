@@ -1,12 +1,27 @@
 package util.imageprocess;
 
-import java.awt.*;
-import java.awt.event.*;
-import java.awt.image.*;
-import java.io.*;
-import javax.swing.*;
-import java.util.*;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Graphics;
+import java.awt.Rectangle;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.awt.image.BufferedImage;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.EOFException;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map.Entry;
+import java.util.Scanner;
+
+import javax.swing.JFrame;
 /**
  * Thanks for jxue providing this class online.
  * https://john.cs.olemiss.edu/~jxue/teaching/csci112_S11/notes/hw1/PgmImage.java
@@ -59,9 +74,29 @@ public class PgmImage extends Component {
 	
 	public PgmImage(String filename, String outputFile) {
 		pixels = null;
-		readPGM(filename);
+		DataInputStream dis=null;
+		try {
+			dis = new DataInputStream(new BufferedInputStream(new FileInputStream(filename)));
+			readPGM(dis);
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
+		finally{
+			if(dis!=null)
+				try {
+					dis.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+		}
+		
 		if(outputFile.length()>0)
 			savePGM(outputFile);
+	}
+	
+	public PgmImage(DataInputStream dis){
+		if(dis != null)
+			readPGM(dis);
 	}
 
 	ArrayList<Byte> bytes = new ArrayList<Byte>();
@@ -70,7 +105,7 @@ public class PgmImage extends Component {
 	int cols,rows, maxValue;
 	private void savePGM(String filename) {
 		try{
-			Map<Integer,Integer> histogram = new HashMap<Integer,Integer>();
+			HashMap<Integer,Integer> histogram = new HashMap<Integer,Integer>();
 			int blackThresh= (int)Math.round((1-0.65)*maxValue);
 			for(int row = 0 ; row < rows ; row++){
 				for(int col = 0 ; col < cols ; col++){
@@ -132,12 +167,13 @@ public class PgmImage extends Component {
 	}
 
 	// load gray scale pixel values from a PGM format image
-	public void readPGM(String filename){
+	public void readPGM(DataInputStream dis){
 		Scanner infile = null;
 		try {
 			//this Scanner infile is for reading the meta data
-			infile = new Scanner(new FileReader(filename));
-		    // process the top 4 header lines
+			dis.mark(1000000);
+			infile = new Scanner(dis);
+			// process the top 4 header lines
 		    String filetype=infile.nextLine();
 		    System.out.println("comment is : " + infile.nextLine());	   	   	   
 	   	   	cols = infile.nextInt();
@@ -149,25 +185,22 @@ public class PgmImage extends Component {
 	   	   	 * it is able to read P5 and P2 format
 	   	   	 */
 	   	   	if(filetype.equalsIgnoreCase("p5")){
-//		   	   	infile.close();
-		    	DataInputStream dis = new DataInputStream(
-						    			new BufferedInputStream(
-						    					new FileInputStream(filename)));
+		    	dis.reset();
 		    	bytes.clear();
 		    	int total = cols*rows;
+		    	
 		    	try{
 		    		int progress = total/100;
 		    		for(;;){
 		    			for(int count = 0 ; count < progress; count++){
-			    			Byte b = dis.readByte();
-			    			bytes.add(b);
+			    			bytes.add(dis.readByte());
 		    			}
 		    			int p = (int) Math.round((double)bytes.size()/(double)total*100.0);
 		    			if(p%10==0)
 		    				System.out.println("Has read " + p + "%");
 	    			}
 		    	}catch(EOFException e){
-		    		dis.close();
+		    		//dis.close();
 		    	}
 		    	headerSize = bytes.size()-total;
 		    	int whiteThresh= (int)Math.round((1-0.196)*maxValue);
@@ -210,7 +243,6 @@ public class PgmImage extends Component {
 
 		    }else if(filetype.equalsIgnoreCase("p2")){
 		    	pixels = new int[rows][cols];	   	       
-		   	   	System.out.println("Reading in image from " + filename + " of size " + rows + " by " + cols);
 		   	   	// process the rest lines that hold the actual pixel values
 		   	   	for (int r=0; r<rows; r++) 
 		   	   		for (int c=0; c<cols; c++)
@@ -218,10 +250,8 @@ public class PgmImage extends Component {
 
 				if (pixels != null)
 					pix2img();
-//		   	   	infile.close();
 		    }else{
 		    	System.out.println("[readPGM]Cannot load the image type of "+filetype);
-		    	return;
 		    }        
 	   	   	
 	    } catch(FileNotFoundException fe) {
@@ -234,6 +264,7 @@ public class PgmImage extends Component {
 	    }finally{
 	    	infile.close();
 	    }
+
 	}
 	// overrides the paint method of Component class
 	public void paint(Graphics g) {
