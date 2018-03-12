@@ -68,15 +68,15 @@ public class ImageSpliterInputFormat extends FileInputFormat<Text, RectangleSpli
 				}
                                 BufferedImage image = null;
 				if(path.toString().contains(".pgm") || path.toString().contains(".PGM"))
-                                {
-                                  image = new PgmImage(path.toString()).img;
-                                }
+				{
+					image = new PgmImage(path.toString()).img;
+				}
 				else
-                                {
-				  FSDataInputStream inputStream = fs.open(path);
-				  image = ImageIO.read(inputStream);
-				  inputStream.close();
-                                }
+				{
+					FSDataInputStream inputStream = fs.open(path);
+					image = ImageIO.read(inputStream);
+					inputStream.close();
+				}
 				int imageWidth = image.getWidth();
 				int imageHeight = image.getHeight();
 				//fs.close();
