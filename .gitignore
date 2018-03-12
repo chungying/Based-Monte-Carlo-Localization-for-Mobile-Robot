@@ -5,4 +5,5 @@ bin
 .gitignore.swp
 .settings
 .metadata
-
+*.swp
+.gradle

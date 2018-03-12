@@ -9,6 +9,8 @@ import javax.imageio.ImageIO;
 
 import mapreduce.type.RectangleWritableComparable;
 
+import util.imageprocess.PgmImage;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -64,12 +66,19 @@ public class ImageSpliterInputFormat extends FileInputFormat<Text, RectangleSpli
 					fs = path.getFileSystem(job.getConfiguration());
 					blkLocations = fs.getFileBlockLocations(file, 0, length);
 				}
-				
-				FSDataInputStream inputStream = fs.open(path);
-				BufferedImage image = ImageIO.read(inputStream);
+                                BufferedImage image = null;
+				if(path.toString().contains(".pgm") || path.toString().contains(".PGM"))
+                                {
+                                  image = new PgmImage(path.toString()).img;
+                                }
+				else
+                                {
+				  FSDataInputStream inputStream = fs.open(path);
+				  image = ImageIO.read(inputStream);
+				  inputStream.close();
+                                }
 				int imageWidth = image.getWidth();
 				int imageHeight = image.getHeight();
-				inputStream.close();
 				//fs.close();
 				
 				int mapNumber = 1;
