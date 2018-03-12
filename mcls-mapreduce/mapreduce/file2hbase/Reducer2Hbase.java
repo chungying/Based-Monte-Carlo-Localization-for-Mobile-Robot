@@ -20,9 +20,9 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.io.*;
 import org.apache.hadoop.mapreduce.Reducer;
 
+import util.Transformer;
 import util.grid.Grid;
-import util.metrics.Transformer;
-import util.sensor.LaserSensor;
+import util.pf.sensor.laser.LaserSensor;
 
 public class Reducer2Hbase 
 	extends Reducer<IntWritable, RectangleWritableComparable, ImmutableBytesWritable, Put>{
@@ -86,7 +86,8 @@ public class Reducer2Hbase
 				laserConfig.angle_resolution = Math.round(360/orientation);
 				laserConfig.range_min = 0f;
 				laserConfig.range_max = -1;
-				Grid gridmap = new Grid(/*orientation, (orientation/2)+1, -1,*/ path, laserConfig);
+				Grid gridmap = new Grid(/*orientation, (orientation/2)+1, -1,*/ path);
+				gridmap.laser.setupSensor(laserConfig);
 //				assert(gridmap.orientation==gridmap.laser.getOrientation());
 				gridmap.readMapImageFromHadoop(path, context);
 				//TODO if there is range_max of laser beam, replace -1 with range_max.
@@ -161,6 +162,8 @@ public class Reducer2Hbase
 					}
 				}
 				System.out.println("last key: "+row_str.toString());
+				//TODO close grid map
+				gridmap.close();
 			} catch (Exception e) {
 				context.getCounter(Counters.J).increment(1);
 				e.printStackTrace();

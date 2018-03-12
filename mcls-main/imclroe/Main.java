@@ -3,9 +3,7 @@ package imclroe;
 import java.util.ArrayList;
 import java.util.List;
 
-import util.gui.RobotController;
-import util.gui.VariablesController;
-import util.gui.Window;
+import util.grid.Grid;
 import util.robot.Pose;
 import util.robot.RobotState;
 
@@ -45,34 +43,11 @@ public class Main {
 					,"-o","18"
 					,"-lares","20"
 					,"-lrmax","-1"
-					,"-max_dist", "-1"
 					};
 			args = targs;
 		}
 		JCommander jc =null;
-		/**
-		 * Second step:
-		 * to create a robot
-		 * setup the listener of Robot
-		 * */
-		List<Pose> path = new ArrayList<Pose>();
-		path.add(new Pose(400,150,0));
-		path.add(new Pose(400,150,90));
-		path.add(new Pose(400,400,90));
-		path.add(new Pose(400,400,180));
-		path.add(new Pose(350,400,180));
-		path.add(new Pose(350,400,90));
-		path.add(new Pose(350,550,90));
-		path.add(new Pose(350,550,180));
-		path.add(new Pose(150,550,180));
-		path.add(new Pose(150,550,270));
-		path.add(new Pose(150,150,270));
-		path.add(new Pose(150,150,0));
-		RobotState robot = new RobotState(150, 150, 0, /*null*//*imclroe.tableName,*/ path);
-		jc = new JCommander();
-		jc.setAcceptUnknownOptions(true);
-		jc.addObject(robot);
-		jc.parse(args);
+		
 		
 		/**
 		 * First step:
@@ -96,52 +71,58 @@ public class Main {
 			System.exit(0);
 		}
 		
-		imclroe.setupGrid(robot.laser);
-		if(!imclroe.onCloud){
+		Grid grid = new Grid();
+		jc = new JCommander();
+		jc.setAcceptUnknownOptions(true);
+		jc.addObject(grid);
+		jc.parse(args);
+		imclroe.setupMCL(grid);
+//		if(!imclroe.onCloud){
 			System.out.println("start to pre-caching");
-			imclroe.preCaching();
-		}	
+			imclroe.preCaching(grid);
+//		}	
 		
-		robot.setupSimulationRobot(imclroe.grid);
-		
-		
-		//TODO setup robot
-		RobotController robotController = new RobotController("robot controller", robot,imclroe);
+		/**
+		 * Second step:
+		 * to create a robot
+		 * setup the listener of Robot
+		 * */
+		List<Pose> path = new ArrayList<Pose>();
+		path.add(new Pose(400,150,0));
+		path.add(new Pose(400,150,90));
+		path.add(new Pose(400,400,90));
+		path.add(new Pose(400,400,180));
+		path.add(new Pose(350,400,180));
+		path.add(new Pose(350,400,90));
+		path.add(new Pose(350,550,90));
+		path.add(new Pose(350,550,180));
+		path.add(new Pose(150,550,180));
+		path.add(new Pose(150,550,270));
+		path.add(new Pose(150,150,270));
+		path.add(new Pose(150,150,0));
+		RobotState robot = new RobotState(path);
 		jc = new JCommander();
 		jc.setAcceptUnknownOptions(true);
-		jc.addObject(robotController);
+		jc.addObject(robot);
 		jc.parse(args);
-		robotController.setVisible(robotController.visualization);
-		VariablesController vc = new VariablesController(imclroe);
-		jc = new JCommander();
-		jc.setAcceptUnknownOptions(true);
-		jc.addObject(vc);
-		jc.parse(args);
-		vc.setVisible(vc.visualization);
+		robot.setupSimulationRobot(grid);
 		
-		imclroe.setupGrid(robot.laser);
 		Thread t = new Thread(robot);
 		t.start();
 		/**
 		 * Third step:
 		 * start to run samcl
 		 */
-		//TODO WINDOW
-		Window window = new Window("samcl image", imclroe,robot);
 		
 		//TODO test 2014/06/19
 		int counter = 0;
 		while(!imclroe.isClosing()){
+			System.out.println(counter + " times mcl.");
 			counter++;
-			window.setTitle("samcl image:"+String.valueOf(counter));
-			robot.goStraight();
-			imclroe.run(robot, window);
-			robot.setRobotLock(true);//TODO thread sychronized
+//			robot.goStraight();
+			imclroe.run(robot, grid);
 			robot.robotStartOver();
 		}
-		
-		imclroe.close();
-		robot.close();
 	}
 	
 }

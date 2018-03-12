@@ -10,7 +10,7 @@ import java.awt.event.MouseMotionListener;
 import javax.swing.ImageIcon;
 
 /**
- * @author w514
+ * @author jolly
  *
  */
 @SuppressWarnings("serial")

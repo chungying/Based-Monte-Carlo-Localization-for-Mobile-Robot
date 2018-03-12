@@ -11,9 +11,9 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 
+import util.Transformer;
 import util.grid.Grid;
-import util.metrics.Transformer;
-import util.sensor.LaserSensor;
+import util.pf.sensor.laser.LaserSensor;
 
 public class Image2Mapper extends Mapper< Text, RectangleSplit, ImmutableBytesWritable, Put>{
 	private enum Counters {
@@ -70,7 +70,8 @@ public class Image2Mapper extends Mapper< Text, RectangleSplit, ImmutableBytesWr
 			laserConfig.angle_resolution = Math.round(360/orientation);
 			laserConfig.range_min = 0f;
 			laserConfig.range_max = -1;
-			Grid gridmap = new Grid(/*orientation, (orientation/2)+1, -1,*/ pathStr, laserConfig);
+			Grid gridmap = new Grid(/*orientation, (orientation/2)+1, -1,*/ pathStr);
+			gridmap.laser.setupSensor(laserConfig);
 			gridmap.readMapImageFromHadoop(pathStr, context.getConfiguration());
 			long time = System.currentTimeMillis();
 			//TODO if there is range_max of laser beam, replace -1 with range_max.
@@ -125,6 +126,8 @@ public class Image2Mapper extends Mapper< Text, RectangleSplit, ImmutableBytesWr
 					}
 				}
 			}
+			//TODO cloase grid
+			gridmap.close();
 		}catch(Exception e){
 			System.out.println(e);	
 		}

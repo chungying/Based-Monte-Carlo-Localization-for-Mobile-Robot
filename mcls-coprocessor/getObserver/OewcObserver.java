@@ -23,10 +23,10 @@ import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 
-import util.metrics.Transformer;
+import util.Transformer;
 
 /**
- * @author w514
+ * @author jolly
  *
  */
 public class OewcObserver extends BaseRegionObserver{

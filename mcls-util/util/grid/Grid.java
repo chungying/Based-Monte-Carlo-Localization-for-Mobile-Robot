@@ -3,26 +3,22 @@
  */
 package util.grid;
 
+import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.Graphics2D;
+import java.awt.GraphicsEnvironment;
 import java.awt.Point;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseMotionListener;
 import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
+import java.io.Closeable;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
-import java.sql.Time;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.TreeMap;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -31,6 +27,7 @@ import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JScrollPane;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -38,6 +35,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
+import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.HConnectionManager;
@@ -53,33 +51,40 @@ import org.apache.hadoop.hbase.filter.RowFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Threads;
 import org.apache.hadoop.mapreduce.Reducer.Context;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParametersDelegate;
 
-import util.gui.MouseListener;
-import util.gui.Panel;
-import util.gui.Tools;
-import util.gui.Window;
-import util.metrics.Particle;
-import util.metrics.Transformer;
-import util.robot.Pose;
+import util.gui.ImagePanel;
+import util.Transformer;
+import util.gui.FrameOwner;
+import util.gui.GraphicTools;
+import util.gui.WindowFrame;
+import util.imageprocess.PgmImage;
+import util.pf.Particle;
+import util.pf.sensor.laser.LaserSensor;
 import util.robot.RobotState;
-import util.sensor.LaserSensor;
 
 /**
- * @author w514
+ * @author jolly
  * 
  */
-public class Grid extends MouseAdapter {
-	public int RPCcount = 0;
-
+public class Grid implements FrameOwner, Closeable {
+	private int RPCcount = 0;
+	public int getRPCcount(){
+		int c = RPCcount;
+		RPCcount=0;
+		return c;
+	}
 	public enum Counters {
 		READMAP, READ_SUCCEED, READ_FAILED
 	}
 
 	/**
-	 * needed class
+	 * nested class
+	 * TODO this should be replaced by util.grid.Position
 	 */
 	public static class position {
 		public int sensor_number;
@@ -218,16 +223,16 @@ public class Grid extends MouseAdapter {
 	 * windows
 	 */
 	public JFrame show_window;
-	public JFrame map_window;
+//	private JFrame map_window;
 	public JLabel show_window_label;
 	public ImageIcon show_window_label_icon;
-	public MouseAdapter mouse_adapter;
+//	public MouseAdapter mouse_adapter;
 
 	public BufferedImage map_image;
 	public BufferedImage showimage;
 	public BufferedImage temp_image;
-	public MouseListener mouseListener;
-	public MouseMotionListener mouse = new MouseMotionListener() {
+//	public MouseListener mouseListener;
+	/*public MouseMotionListener mouse = new MouseMotionListener() {
 
 		@Override
 		public void mouseDragged(MouseEvent e) {
@@ -239,57 +244,28 @@ public class Grid extends MouseAdapter {
 
 		}
 
-	};
-	/**
-	 * readmap()
-	 */
-	private boolean[][] map_array;
-	/**
-	 * 
-	 */
+	};*/
+
+	public boolean[][] map_array;
 	public position[][] G = null;
 
-	
-	//Done! these four members should be replaced by LaserSensor laser.
-//	private int orientation;//Done! this member has been removed and replaced by laser.getOrientation().
-//	private double orientation_delta_degree;//Done! this member has been removed and replaced by laser.angle_resolution.
-//	private int sensor_number;//Done! this member has been removed and replaced by laser.rangeCount().
-//	private float max_distance;//Done! this member has been removed and replaced by laser.range_max.
-	
+	@ParametersDelegate
 	public LaserSensor laser = new LaserSensor();
+
+	@Parameter(names = {"-cl","--cloud"}, description = "if there on the cloud is or not, default is false", required = false, arity = 1)
+	public boolean onCloud = false;
+	
 	@Parameter(names = {"-i","--image"}, 
 			description = "the image file of the map", 
 			required = true, arity = 1)
-	public String map_filename = "";
+	public String mapFilename = "";
+	
 	/**
-	 * @param Sensor_number
-	 *            :the third dimension
 	 * @param filename
 	 *            :jpg,png...
-	 * @throws MalformedURLException
 	 */
-	public Grid(//int orientation, //done should be replaced by LaserSensor
-			//int Sensor_number, //done should be replaced by LaserSensor
-			//float range_max, //done should be replaced by LaserSensor
-			String filename, LaserSensor sensor) {
-		//Done! should be replaced by laser.getOrientation()
-//		this.orientation = sensor.getOrientation();
-		//replaced by this.laser.angle_resolution
-//		this.orientation_delta_degree = 360 / orientation;
-		//replaced by this.laser.rangeCount()
-//		this.sensor_number = sensor.rangeCount();
-//		this.max_distance = sensor.range_max;
-		
-		this.map_filename = filename;
-		try {
-			this.laser.setupSensor(sensor);
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
-	public Grid(LaserSensor sensor){
-		this("",sensor);
+	public Grid(String filename) {
+		this.mapFilename = filename;
 	}
 	
 
@@ -303,6 +279,8 @@ public class Grid extends MouseAdapter {
 	private byte[] energy = null;
 	
 	public HTable getTable(String tablename) throws IOException{
+		if(!this.onCloud)
+			return null;
 		if(tablename != null){
 			System.out.println("get new HTable from Grid.");
 			ThreadPoolExecutor pool = new ThreadPoolExecutor(3,  Integer.MAX_VALUE, 60l, TimeUnit.SECONDS,
@@ -317,9 +295,18 @@ public class Grid extends MouseAdapter {
 		}
 	}
 	
+	private boolean closed = false; 
+	@Override
 	public void close() throws IOException {
-		if(connection!=null)connection.close();
-		if(window!=null)window.dispose();
+		if(!closed){
+			closed = true;
+			System.out.println("closing " + this.getClass().getName());
+			if(connection!=null)
+				connection.close();
+			if(windowFrame!=null){
+				windowFrame.dispose();
+			}
+		}
 	}
 
 	public void setupHBaseConnection(Configuration conf) throws IOException {
@@ -330,23 +317,78 @@ public class Grid extends MouseAdapter {
 		connection = HConnectionManager.createConnection(conf);
 		
 	}
-	private Window window = null;
+	
+	private ImagePanel imagePanel = null;
+	private JScrollPane sp = null;
 	private Graphics2D grap = null;
-	private Panel image_panel = null;
-	boolean visualization=true;
+	private WindowFrame windowFrame = null;
+	public boolean windowClosedFlag = false;
+	@Parameter(names = "--visualization", help = false, required = false, arity=1)
+	public boolean visualization=true;
 
-	public void setupWindow(RobotState robot){
-		//1. initialization
-		//1.1 window
-		window = new Window("intell research lab Seattle", this,robot);
-		//1.2 image and graphics
-		BufferedImage image = new BufferedImage(this.width,this.height, BufferedImage.TYPE_INT_ARGB);
-		grap=image.createGraphics();
-		grap.drawImage(this.map_image, null, 0, 0);
-		image_panel = new Panel(image);
-		window.add(image_panel);
-		window.setVisible(visualization);
+	public void setupCloseableObjs(Closeable... closeObjs){
+		if (windowFrame == null)
+			setupFrame(visualization);
+		if(windowFrame != null)
+			windowFrame.setupCloseList(closeObjs);
+	}
+	
+	@Override
+	public void setupFrame(boolean visualization) {
+		if(visualization==false){
+			windowClosedFlag = true;
+			return;
+		}
+		if (windowFrame == null) {
+			//TODO check availibility of headless mode
+			//1. initialization
+			//1.3 setup window
+			windowFrame = new WindowFrame("intell research lab Seattle", this);
+			windowFrame.setLayout(new BorderLayout());
+			int width = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds().width;
+			int height = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds().height;
+			if(this.width>width && this.height > height)
+				windowFrame.setExtendedState(JFrame.MAXIMIZED_BOTH); 
+			//1.1 reading image for setting up panel
+			//1.2 setup graphics for drawing panel
+			BufferedImage image = new BufferedImage(this.width, this.height, BufferedImage.TYPE_INT_ARGB);
+			grap = image.createGraphics();
+			grap.drawImage(this.map_image, null, 0, 0);
+			imagePanel = new ImagePanel(image);
+			imagePanel.setPreferredSize(new Dimension(this.width, this.height));
+			//1.4 setup scroll panel 
+			sp = new JScrollPane(imagePanel);
+			windowFrame.getContentPane().add(sp, BorderLayout.CENTER);
+//			sp.getHorizontalScrollBar().addAdjustmentListener(new AdjustmentListener(){
+//				@Override
+//				public void adjustmentValueChanged(AdjustmentEvent arg0) {
+//					System.out.println("horizontal bar value: " + sp.getHorizontalScrollBar().getValue());
+//					System.out.println("vertical bar value: " + sp.getVerticalScrollBar().getValue());
+//				}
+//			});
+//			sp.getVerticalScrollBar().addAdjustmentListener(new AdjustmentListener(){
+//				@Override
+//				public void adjustmentValueChanged(AdjustmentEvent arg0) {
+//					System.out.println("horizontal bar value: " + sp.getHorizontalScrollBar().getValue());
+//					System.out.println("vertical bar value: " + sp.getVerticalScrollBar().getValue());
+//				}
+//			});
+			windowClosedFlag = false;
+			windowFrame.pack();
+			windowFrame.setVisible(visualization);
+		}
+	}
+
+
+	@Override
+	public void setFrameLocation(int x, int y) {
+		windowFrame.setLocation(x, y);
 		
+	}
+
+
+	public void drawPoints(List<Particle> set){
+		GraphicTools.drawBatchPoint(grap, set, 1, Color.PINK);
 	}
 	
 	/**
@@ -364,38 +406,53 @@ public class Grid extends MouseAdapter {
 	}
 	
 	public void drawHypothesisRobot(int x, int y, double th,int size, Color color) {
-		Tools.drawRobot(grap, x, y, th, size, color);
+		if(visualization==false)
+			return;
+		GraphicTools.drawRobot(grap, x, y, th, size, color);
 	}
 	
 	public void drawLaserPoint(int x, int y){
-		Tools.drawPoint(grap, x, y, -1.0, 4, Color.RED);
+		if(visualization==false)
+			return;
+		GraphicTools.drawPoint(grap, x, y, -1.0, 4, Color.RED);
 	}
 	
+	public void drawConfidence(int x, int y, double th, double[][] cov){
+		if(visualization==false)
+			return;
+		GraphicTools.drawConfidentZone(grap, x, y, th, cov);
+	}
 	public void drawBestSolution(int x, int y, double th){
-		Tools.drawRobot(grap, x, y, th, 8, Color.BLUE);
+		if(visualization==false)
+			return;
+		GraphicTools.drawRobot(grap, x, y, th, 8, Color.BLUE);
 	}
 
 	public void drawRobot(RobotState robot){
+		if(visualization==false || robot==null)
+			return;
 		//2. drawing Robot
-		if(robot!=null){
-			Tools.drawRobot(grap, (int)Math.round(robot.X), (int)Math.round(robot.Y), robot.H, 10, Color.RED);
-			//3. drawing sensor hits
-			if(robot.getMeasurement_points()!=null){
-				for(Point p: robot.getMeasurement_points()){
-					drawLaserPoint(p.x, p.y);
-				}	
-			}
-		}
+		GraphicTools.drawRobot(grap, (int)Math.round(robot.X), (int)Math.round(robot.Y), robot.H, 10, Color.RED);
+		//3. drawing sensor hits
+//		if(robot.getMeasurement_points()!=null){
+//			for(Point p: robot.getMeasurement_points()){
+//				drawLaserPoint(p.x, p.y);
+//			}	
+//		}
 	}
 	
 	public void refresh(){
+		if(visualization==false)
+			return;
 		//1. refreshing image
 		grap.drawImage(this.map_image, null, 0, 0);
 	}
 	
 	public void repaint(){
+		if(visualization==false)
+			return;
 		//final step of drawing
-		image_panel.repaint();
+		imagePanel.repaint();
 	}
 
 	
@@ -424,8 +481,9 @@ public class Grid extends MouseAdapter {
 
 		ResultScanner scanner = table.getScanner(scan);
 		 
-		for (Result[] results = scanner.next(caching); results.length != 0; results = scanner
-				.next(caching)) {
+		for (Result[] results = scanner.next(caching); 
+				results.length != 0;
+				results = scanner.next(caching)) {
 			// for count RPC
 			this.RPCcount++;
 			for (Result result : results) {
@@ -612,14 +670,23 @@ public class Grid extends MouseAdapter {
 	}
 	
 	public boolean assignMeasurementsAnyway(List<Particle> src) throws Exception{
+		int count=0;
 		for(Particle p: src){
-			if(map_array[p.getX()][p.getY()] == Grid.GRID_OCCUPIED)
+			boolean status = map_array[p.getX()][p.getY()] == Grid.GRID_OCCUPIED;
+			if(status){
 				p.setMeasurements(null);
-			else
+				count++;
+			}else{
 				p.setMeasurements(this.getMeasurementsAnyway( null, false, p.getX(), p.getY(), p.getTh()));
-			if( !p.isIfmeasurements()){
-				throw new Exception("cannot get measurements for this particle.");
 			}
+			
+//			if( !p.isIfmeasurements()){
+//				throw new Exception("cannot get measurements for this particle.");
+//			}
+		}
+		if(count==src.size()){
+			System.out.println/*throw new Exception*/("all of particles have no measurements.");
+			return false;
 		}
 		return true;
 	}
@@ -658,10 +725,10 @@ public class Grid extends MouseAdapter {
 	}
 	
 	
-	public double angle_min=0; 		//start angle of the scan [rad]
+	/*public double angle_min=0; 		//start angle of the scan [rad]
 	public double angle_max=0;     	//end angle of the scan [rad]
 	public double angle_increment=Math.toRadians(45);	// angular distance between measurements [rad]
-	//Unit of getlaserdist has to be changed to pixel. done!
+	@Deprecated
 	public float[] getMeasurementsOnTime(Pose pos){
 		
 		int count=(int)Math.floor((angle_max-angle_min)/angle_increment) +1;
@@ -670,7 +737,7 @@ public class Grid extends MouseAdapter {
 			ranges[i] = (float)map_calc_range(pos.X,pos.Y,Math.toRadians(pos.H)+angle_min + (i*angle_increment),100);
 		}
 		return ranges;
-	}
+	}*/
 	
 	/**
 	 * @param table if onCloud is true , read table from table.
@@ -696,61 +763,13 @@ public class Grid extends MouseAdapter {
 			return this.G[(int)Math.round(x)][(int)Math.round(y)].getMeasurements(Transformer.th2Z(head,this.laser.getOrientation()));
 	}
 
-	public SimpleEntry<List<Float>, List<Point>> getLaserDist(int x, int y){
-//		assert(this.max_distance==this.laser.range_max);
-		return getLaserDist(x, y, this.laser.range_max);
-	}
-	
-	static public SimpleEntry<Float, Point> raycasting(){
-		int checkX=0, checkY=0;
-		
-		return new SimpleEntry<Float, Point>(0f, new Point(checkX,checkY));
-	}
-	
-	static public SimpleEntry<List<Float>, List<Point>>/*LaserScanData*/ getLaserDist(Pose p, Time stamp, Grid grid, LaserSensor laser){
-		Pose pos = null;
-		try {
-			pos = p.clone();
-		} catch (CloneNotSupportedException e) {
-			e.printStackTrace();
-		}
-		
-		List<Float> measurements = new ArrayList<Float>();
-		List<Point>  measurementPoints = new ArrayList<Point>();
-		int checkX, checkY;
-		float max_bearing = (float)pos.H+laser.angle_max;
-		int step;
-		// double orientation_degree = this.orientation_delta_degree;
-		for (float bearing = (float)pos.H+laser.angle_min; 
-				bearing < max_bearing ; 
-				bearing+=laser.angle_resolution) {
-			step = 0;
-			checkX = (int)Math.round(pos.X);
-			checkY = (int)Math.round(pos.Y);
-			while (grid.map_array(checkX, checkY) == Grid.GRID_EMPTY) {
-				step++;//begin from 1 unit length.
-				checkX = (int) Math.round((pos.X + step
-						* Math.cos(bearing * Math.PI / 180)));
-				checkY = (int) Math.round((pos.Y + step
-						* Math.sin(bearing * Math.PI / 180)));
-				//check max_dist
-				if(step>=laser.range_max)
-					break;
-			}
-			//Unit of measurements has to be changed into pixel. done!
-			/*measurements.add(1 - (float) Math.sqrt(((checkX - x) * (checkX - x))
-					+ ((checkY - y) * (checkY - y))) / this.max_distance);*/
-			measurements.add((float) Math.sqrt(((checkX - pos.X) * (checkX - pos.X))
-					+ ((checkY - pos.Y) * (checkY - pos.Y))));
 
-			measurementPoints.add(new Point(checkX, checkY));
+	public SimpleEntry<List<Float>, List<Point>> getLaserDist(int x, int y){
+	//		assert(this.max_distance==this.laser.range_max);
+			return getLaserDist(x, y, this.laser.range_max);
 		}
-		
-		//return new LaserScanData(scan, laser, stamp, pos);
-		return new SimpleEntry<List<Float>, List<Point>>(measurements, measurementPoints);
-		
-	}
-	
+
+
 	/**
 	 * @param x x-axis value of the position
 	 * @param y y-axis value of the position
@@ -892,7 +911,7 @@ public class Grid extends MouseAdapter {
 	 *            MouseAdapter
 	 * 
 	 */
-	public void start_mouse(MouseAdapter listener) {
+	/*public void start_mouse(MouseAdapter listener) {
 		this.showimage = new BufferedImage(map_image.getWidth(),
 				map_image.getHeight(), BufferedImage.TYPE_INT_ARGB);
 
@@ -908,9 +927,9 @@ public class Grid extends MouseAdapter {
 		this.show_window.setSize(width, height);
 		this.show_window.setVisible(true);
 
-	}
+	}*/
 
-	@Override
+	/*@Override
 	public void mouseMoved(MouseEvent e) {
 		try {
 			super.mouseMoved(e);
@@ -942,7 +961,7 @@ public class Grid extends MouseAdapter {
 		} catch (Exception e1) {
 			e1.printStackTrace();
 		}
-	}
+	}*/
 
 //	private void readmap(float max_dist, String filename) throws IOException {
 //		this.map_filename = filename;
@@ -952,7 +971,10 @@ public class Grid extends MouseAdapter {
 	//using default filename
 	public void readMapImageFromLocal() throws IOException {
 		try {
-			this.map_image = ImageIO.read(new URL(this.map_filename));
+			if(mapFilename.contains(".pgm") || mapFilename.contains(".PGM"))
+				this.map_image = new PgmImage(mapFilename).img;
+			else
+				this.map_image = ImageIO.read(new URL(this.mapFilename));
 			this.convert2OccupiedMap(this.map_image);
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -1007,55 +1029,68 @@ public class Grid extends MouseAdapter {
 		Color black = new Color(0, 0, 0);
 		Color white = new Color(255,255,255);
 		Color pixel;
+		int count1=0,count2=0,count3=0;
 		for (int x = 0; x < map_image2.getWidth(); x++) {
 			for (int y = 0; y < map_image2.getHeight(); y++) {
 				pixel = new Color(map_image2.getRGB(x, y));
-				if (pixel.equals(black))
+				if (pixel.equals(black)){
 					map_array[x][y] = Grid.GRID_OCCUPIED;
-				else if (pixel.equals(white))
+					count1++;
+				}
+				else if (pixel.equals(white)){
 					map_array[x][y] = Grid.GRID_EMPTY;
-				else
+					count2++;
+				}
+				else{
 					map_array[x][y] = Grid.GRID_OCCUPIED;
+					count3++;
+				}
 			}
 		}
+		assert(count1!=0||count3!=0);
+		assert(count2!=0);
 	}
 
 
 	private double totalProgress;
 	private double currentProgress;
+	
 
 	/**
 	 * 
 	 */
 	public void pre_compute() {
-//		assert(this.orientation==this.laser.getOrientation());
-		this.totalProgress = this.width*this.height;
-		int progress = 0;
-//		assert(this.max_distance==this.laser.range_max);
-		this.G = new position[this.width][this.height];
-		for (int x = 0; x < this.width ; x++) {
-			for (int y = 0; y < this.height ; y++) {
-				this.currentProgress = x*y;
-				if(Math.round(this.currentProgress/this.totalProgress)>progress){
-					progress++;
-					System.out.println("pre-caching progress"+progress+"%");
-				}
-				
-				List<Float> measurements = new ArrayList<Float>();
-				List<Point> measurement_points = new ArrayList<Point>();
-				if (x == 0) {
-					
-					for (int k = 0; k < this.laser.getOrientation(); k++) {
-						measurements.add(0f);
-						measurement_points.add(new Point(x, y));
+		if (this.onCloud) {
+			//TODO check what part of initialization of HBase connection should be moved to here.
+		}
+		else{
+			this.totalProgress = this.width * this.height;
+			int progress = 0;
+			this.G = new position[this.width][this.height];
+			for (int x = 0; x < this.width; x++) {
+				for (int y = 0; y < this.height; y++) {
+					this.currentProgress = x * y;
+					if (Math.round(this.currentProgress / this.totalProgress) > progress) {
+						progress++;
+						System.out.println("pre-caching progress" + progress + "%");
 					}
-				} else {
-					// Unit of G has to be changed into pixel. done!
-					this.getlaserdist(x, y, measurements, measurement_points, this.laser.range_max);
-					
+
+					List<Float> measurements = new ArrayList<Float>();
+					List<Point> measurement_points = new ArrayList<Point>();
+					if (x == 0) {
+
+						for (int k = 0; k < this.laser.getOrientation(); k++) {
+							measurements.add(0f);
+							measurement_points.add(new Point(x, y));
+						}
+					} else {
+						// Unit of G has to be changed into pixel. done!
+						this.getlaserdist(x, y, measurements, measurement_points, this.laser.range_max);
+
+					}
+					this.G[x][y] = new position(measurements, this.laser.range_max, measurement_points);
 				}
-				this.G[x][y] = new position(measurements, this.laser.range_max, measurement_points);
-			}
+			} 
 		}
 	}
 
@@ -1064,6 +1099,8 @@ public class Grid extends MouseAdapter {
 	 * @param y
 	 * @param width
 	 * @param height
+	 * 
+	 * This function is mainly invoked by the cloud-based program. TODO this.laser in the cloud might not be initialized.
 	 */
 	public void pre_compute(int x, int y, int width, int height) {
 //		assert(this.orientation==this.laser.getOrientation());
@@ -1144,81 +1181,31 @@ public class Grid extends MouseAdapter {
 		}
 	}
 
-	public static void main(String[] args) throws IOException{
-
-		//test distribution
-		int orientation = 4;
-		LaserSensor laserConfig = new LaserSensor();
-		laserConfig.angle_min = -90;
-		laserConfig.angle_max = 90;
-		laserConfig.angle_resolution = Math.round(360/orientation);
-		laserConfig.range_min = 0f;
-		laserConfig.range_max = -1;
-		Grid grid = new Grid(/*4,4,-1,*/"file:///home/wuser/backup/jpg/sim_map.jpg",null);
-		grid.readMapImageFromLocal();
-		
-		int situation[] = {1,2,4,8,16};
-			for (int j : situation) {
-				int number = j;
-				List<Integer> list = new ArrayList<Integer>();
-				for (int i = 0; i <= number; i++) {
-					list.add(i * (1000 / number));
-				}
-				Map<Integer, Integer> map = new TreeMap<Integer, Integer>();
-				for (int i = 0; i < number; i++) {
-					map.put(i, 0);
-				}
-				Random rand = new Random();
-				for (int x = 0; x < grid.width; x++) {
-					for (int y = 0; y < grid.height; y++) {
-						if (grid.map_array(x, y) == Grid.GRID_EMPTY) {
-							rand.setSeed(Long.parseLong(Transformer.xy2String(
-									x, y)));
-
-							for (int i = 0; i < number; i++) {
-								int r = rand.nextInt(1000);
-								if (r >= list.get(i) && r < list.get(i + 1)) {
-									map.put(i, map.get(i) + 1);
-								}
-							}
-						}
-					}
-
-				}
-				System.out.println(map);
-			}
-		
-		//test getTable time period
-		/*Configuration conf = HBaseConfiguration.create();
-		Grid grid = new Grid(4,4,"file:///home/wuser/backup/jpg/test6.jpg");
-		grid.readmap();
-		HTable[] tables = new HTable[10];
-		try {
-			grid.setupTable(conf);
-			
-			int n = 10;
-			long time = System.currentTimeMillis();
-			for(int i = 0 ; i < n; i++){
-				tables[i] = grid.getTable("test6.18.split");
-				Result r = tables[i].get(new Get(Bytes.toBytes("r1")));
-				System.out.println(r.toString());
-			}
-			time = System.currentTimeMillis() - time;
-			System.out.println("time : " + time +" ms");
-		} catch (Exception e) {
-			e.printStackTrace();
-		}finally{
-			for(HTable t: tables)
-				t.close();
-			grid.closeTable();
-		}*/
-	}
 
 	private void checkRangeMax() {
 //		assert(this.max_distance==this.laser.range_max);
 		if(laser.range_max<=0){
 			//diagonal length of map image
 			this.laser.range_max = (float) Point2D.Float.distance(0.0, 0.0, (double) this.width, (double) this.height);
+		}
+	}
+
+
+	public void setupGrid() throws Exception {
+		if(this.onCloud){
+			//retrieve map image from the cloud and initialize this.table
+			System.out.println("cloud setup");
+			Logger.getRootLogger().setLevel(Level.WARN);
+			Configuration conf = HBaseConfiguration.create();
+			this.setupHBaseConnection(conf);
+			this.readMapImageFromHadoop(this.mapFilename, conf);
+			
+			
+		}else{
+			//retrieve map image from local filesystem
+			System.out.println("local setup");
+			this.readMapImageFromLocal();
+			
 		}
 	}
 }

@@ -5,17 +5,15 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 
 import com.beust.jcommander.JCommander;
 
-import util.gui.RobotController;
-import util.gui.VariablesController;
-import util.gui.Window;
-import util.measurementmodel.MCLLaserModel.ModelType;
-import util.metrics.Particle;
+import util.grid.Grid;
+import util.pf.Particle;
+import util.pf.sensor.laser.LaserModel.LaserModelData;
+import util.pf.sensor.laser.MCLLaserModel.ModelType;
 import util.robot.Pose;
 import util.robot.RobotState;
 import util.robot.VelocityModel;
@@ -25,101 +23,87 @@ public class Test extends MCL{
 	
 	
 	public static void main(String[] args) throws Throwable {
-			//for debug mode
-					if(args.length==0){
-						String[] targs = {
-								"-i"
-								//,"file:///Users/Jolly/workspace/dataset/intel-map.png"//506m with 587 pixels
-								,"file:///Users/Jolly/git/Cloud-based MCL/jpg/map_8590.jpg"
-								,"-max_dist", "30"//10m is about 35 pixels
-								,"-o","36"
-	//							,"-rl","true"
-								,"-rx","60"
-								,"-ry","60"
-	//							,"-rh","50"
-	//							,"-n","50"
-	//							,"-p","20"
-								,"-D","false"
-	//							,"-c","true"
-								,"--ignore", "true"
-	//							,"--showparticles"
-								,"--period","500"
-								,"--logfile"
-								,"--visualization"
-								,"--showmeasurements"
-								,"--showparticles"
-								,"--sensor_model", "1"
-								};
-						args = targs;
-					}
-					
-					/**
-					 * First step:
-					 * to create the localization algorithm
-					 * and setup the listener for SAMCL
-					 */
-					final Test mcl = new Test(false,
-							18, //orientation
-							100, //total particle
-							10);//competitive strength
-					JCommander jc = new JCommander();
-					jc.setAcceptUnknownOptions(true);
-					jc.addObject(mcl);
-					jc.parse(args);
-					if(mcl.help){
-						jc.usage();
-						System.exit(0);
-					}
-					
-					/**
-					 * Second step:
-					 * to create a robot
-					 * setup the listener of Robot
-					 * */
-					List<Pose> path = new ArrayList<Pose>();
-					RobotState robot = new RobotState(60, 60, 0, /*mcl.tableName, */path);
-					robot.setupSimulationRobot(mcl.grid);
-					jc = new JCommander();
-					jc.setAcceptUnknownOptions(true);
-					jc.addObject(robot);
-					jc.parse(args);
-					RobotController robotController = new RobotController("robot controller", robot,mcl);
-					jc = new JCommander();
-					jc.setAcceptUnknownOptions(true);
-					jc.addObject(robotController);
-					jc.parse(args);
-					robotController.setVisible(robotController.visualization);
-					VariablesController vc = new VariablesController(mcl);
-					jc = new JCommander();
-					jc.setAcceptUnknownOptions(true);
-					jc.addObject(vc);
-					jc.parse(args);
-					vc.setVisible(vc.visualization);
-					
-					mcl.setupGrid(robot.laser);
-					Thread t = new Thread(robot);
-					t.start();
-					/**
-					 * Third step:
-					 * start to run mcl
-					 */
-					Window window = new Window("mcl image", mcl,robot);
-	
-	
-					window.setTitle("mcl image:");
-					robot.goStraight();
-					mcl.run(robot, window);
-					robot.setRobotLock(true);
-					mcl.close();
-					robot.close();
+		//for debug mode
+		if(args.length==0){
+			String[] targs = {
+					"-i"
+					//,"file:///Users/Jolly/workspace/dataset/intel-map.png"//506m with 587 pixels
+					,"file:///Users/Jolly/git/Cloud-based MCL/jpg/map_8590.jpg"
+					,"--lrmax", "30"//10m is about 35 pixels
+					,"-o","36"
+//							,"-rl","true"
+					,"-rx","60"
+					,"-ry","60"
+//							,"-rh","50"
+//							,"-n","50"
+//							,"-p","20"
+					,"-D","false"
+//							,"-c","true"
+					,"--ignore", "true"
+//							,"--showparticles"
+					,"--period","500"
+					,"--logfile"
+					,"--visualization"
+					,"--showmeasurements"
+					,"--showparticles"
+					,"--sensor_model", "1"
+					};
+			args = targs;
 		}
+		
+		/**
+		 * First step:
+		 * to create the localization algorithm
+		 * and setup the listener for SAMCL
+		 */
+		Test mcl = new Test(false,
+				18, //orientation
+				100, //total particle
+				10);//competitive strength
+		JCommander jc = new JCommander();
+		jc.setAcceptUnknownOptions(true);
+		jc.addObject(mcl);
+		jc.parse(args);
+		if(mcl.help){
+			jc.usage();
+			System.exit(0);
+		}
+		
+		Grid grid = new Grid();
+		jc = new JCommander();
+		jc.setAcceptUnknownOptions(true);
+		jc.addObject(grid);
+		jc.parse(args);
+		mcl.setupMCL(grid);
+		
+		/**
+		 * Second step:
+		 * to create a robot
+		 * setup the listener of Robot
+		 * */
+		RobotState robot = new RobotState();
+		jc = new JCommander();
+		jc.setAcceptUnknownOptions(true);
+		jc.addObject(robot);
+		jc.parse(args);
+		robot.setupSimulationRobot(grid);
+		Thread t = new Thread(robot);
+		t.start();
+		/**
+		 * Third step:
+		 * start to run mcl
+		 */
+		mcl.run(robot, grid);
+		mcl.close();
+		robot.close();
+	}
 
 	int shift = 25;
 	int squaresize= 101;
 	boolean ifshift = false;
 	int headerWidth, headerHeight, robotIdx,rx,ry;
 	@Override
-	public void globalSampling(List<Particle> set, RobotState robot) {
+	public void globalSampling(List<Particle> set, RobotState robot, Grid grid) {
 		//initialization of particles at all positions.
 		int totalParticle;
 		int begx,endx,begy,endy;
@@ -136,10 +120,10 @@ public class Test extends MCL{
 			totalParticle = squaresize*squaresize;
 		}else{
 			begx = 0;
-			endx = this.grid.width;
+			endx = grid.width;
 			begy = 0;
-			endy = this.grid.height;
-			totalParticle = this.grid.height*this.grid.width;
+			endy = grid.height;
+			totalParticle = grid.height*grid.width;
 		}
 		this.headerWidth = endx-begx; 
 		this.headerHeight= endy-begy;
@@ -147,12 +131,15 @@ public class Test extends MCL{
 		for(int x =  begx; x < endx; x++){
 			for(int y = begy; y < endy; y++){
 				Particle p = new Particle(x,y,robot.H);
-				if(this.sensor.getModeltype().equals(ModelType.DEFAULT))
-					p.setWeight(1/totalParticle);
-				if(this.sensor.getModeltype().equals(ModelType.BEAM_MODEL))
-					p.setWeight(1/totalParticle);
-				else if(this.sensor.getModeltype().equals(ModelType.LOSS_FUNCTION))
-					p.setWeight(-Float.MAX_VALUE);
+				if(this.sensor.getModeltype().equals(ModelType.DEFAULT) ||
+					this.sensor.getModeltype().equals(ModelType.BEAM_MODEL)){
+//					p.setWeight(1/totalParticle);
+					p.setWeightForNomalization(1/totalParticle);
+				}
+				else if(this.sensor.getModeltype().equals(ModelType.LOSS_FUNCTION)){
+//					p.setWeight(-Float.MAX_VALUE);
+					p.setWeightForNomalization(-Double.MAX_VALUE);
+				}
 				set.add(p);
 			}
 		}
@@ -192,7 +179,10 @@ public class Test extends MCL{
 	int totalcount = 0;
 	int diff_count = 0;
 	@Override
-	public void localResampling(List<Particle> src, List<Particle> dst, Particle bestParticle) {
+	public void localResampling(List<Particle> src, List<Particle> dst,
+			RobotState robot,
+			LaserModelData laserData,
+			Grid grid) {
 		dst.addAll(src);
 		this.records = dst;
 		
@@ -201,17 +191,13 @@ public class Test extends MCL{
 		if(ifshift){
 			rp = dst.get(this.robotIdx);
 		}else{
-			rp = dst.get(30*this.grid.height+30);
+			rp = dst.get(30*grid.height+30);
 		}
 		System.out.println("Robot " + rp);
-		System.out.println("Best  " + bestParticle);
 		System.out.println(diff_count + " difference(s) out of " + totalcount + " runs.");
 		totalcount++;
 
-		if(rp.getWeight()!=bestParticle.getWeight()){
-			diff_count++;
-			writedown();
-		}else if(totalcount<=5){
+		if(totalcount<=5){
 			writedown();
 		}else if(this.ifShowSER){
 			this.ifShowSER = false;
@@ -238,7 +224,7 @@ public class Test extends MCL{
             
             //write the whole particles.
             for(Particle p : records)
-            	writer.write(p.getX() + " " + p.getY() + " " + p.getWeight() + "\n");
+            	writer.write(p.getX() + " " + p.getY() + " " + p.getNomalizedWeight() + "\n");
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
@@ -259,7 +245,7 @@ public class Test extends MCL{
 	}
 	
 	public Test(boolean cloud, int orientation, int nt,	int tournamentPresure) throws IOException {
-		super(cloud, orientation, nt, tournamentPresure);
+		super(/*cloud ,orientation, nt, tournamentPresure*/);
 	}
 
 }

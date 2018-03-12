@@ -18,7 +18,7 @@ import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 
-import util.metrics.Transformer;
+import util.Transformer;
 import util.oewc.Oewc;
 
 public class OewcObserver3 extends BaseRegionObserver{

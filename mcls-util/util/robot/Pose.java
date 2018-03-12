@@ -3,11 +3,11 @@ package util.robot;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.converters.DoubleConverter;
 
-import util.metrics.Transformer;
+import util.Transformer;
 
 public class Pose implements Cloneable{
-	public Pose clone() throws CloneNotSupportedException{
-		return (Pose) super.clone();
+	public Pose clone() {
+		return new Pose(this);
 	}
 	public static final double ERROR = 0.05;
 	@Parameter(names = {"-rx","--robotx"}, description = "initialize robot's X-Axis", required = false, arity = 1, converter = DoubleConverter.class)
@@ -85,6 +85,14 @@ public class Pose implements Cloneable{
 	
 	public static double deltaTheta(double currentTh, double previousTh){
 		return (Transformer.checkHeadRange(currentTh-previousTh)+180)%360-180;
+	}
+	
+	public Pose minus(Pose pose){
+		Pose result =this.clone();
+		result .X = this.X-pose.X;
+		result .Y = this.Y-pose.Y;
+		result .H = deltaTheta(this.H,pose.H);
+		return result;
 	}
 	
 	@Override

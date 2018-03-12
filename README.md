@@ -39,7 +39,7 @@ $export SPLITKEYS=`hadoop jar mcls-all-7.jar util.metrics.Sampler -i file:///Use
 -o is the resolution of orientation.  
 --splitNumber is the number of region nodes.  
    
-## 6) Upload map.jpg into HDFS  
+## 6) Upload map.jpg into HDFS ��
 If you need more detailed instructions, access to the website ( http://hadoop.apache.org/docs/r2.7.2/hadoop-project-dist/hadoop-common/FileSystemShell.html ) or refer to the book, Hadoop: The definitive guide.  
 The simple instructions could be obtained by typing the following command.  
 $hadoop help  
@@ -87,14 +87,14 @@ Following for checking
 $echo $HADOOP_CLASSPATH  
   
 ## 2) Execute the localization program  
-$hadoop jar mcls-all-7.jar imclroe.Main -i file:///home/ubuntu/simmap.jpg -o 18 -cl -t simmap.18.4 -rx 250 -ry 170 --delta 0.0001 --xi 0.05   
+$hadoop jar mcls-all-7.jar imclroe.Main -i file:///home/ubuntu/simmap.jpg -o 18 -cl -t simmap.18.4 -rx 250 -ry 170 --samcldelta 0.0001 --samclxi 0.05   
 -i is the route of map image  
 -o is the resolution of the map  
 If there is "-cl", it means this execution will use the cloud compute  
 -t is TABLENAME  
 -rx and -ry are not necessary, because the initial coordinate can be tuned via User Interface.
---delta is the parameter for the size of Similar Energy Region. This can be tuned via User Interface.  
---xi is the sensitivity for detecting kidnapping situation  
+--samcldelta is the parameter for the size of Similar Energy Region. This can be tuned via User Interface.  
+--samclxi is the sensitivity for detecting kidnapping situation  
   
   
 # Touble Shooting:  
@@ -112,7 +112,9 @@ The command checks file status. Please find the folder where storing HFiles of H
 $hadoop fs -ls hdfs:///user/hbase/...  
 
 The command change the ownership.  
-$hadoop fs -chown [-R] [OWNER][:[GROUP]] URI [URI]  
+```
+$ hadoop fs -chown [-R] [OWNER][:[GROUP]] URI [URI]
+``` 
 -R is recursive, which means, if URI is a folder, all of the sub-folders and files in URI will be changed.  
 OWNER is the user who is going to own URI.  
 GROUP is the group who is going to own URI.  
@@ -122,7 +124,7 @@ The command change the permission. Please refer to the instruction website.
 $hadoop fs -chmod ...   
   
 ## 3) Deleting HBase Tables
-$./removeTable.sh TABLENAME  
+$./removeTable.sh TABLENAME ��
   
 ## 4) Making shell scripts executable  
 $chmod a+x createTable.sh removeTable.sh  

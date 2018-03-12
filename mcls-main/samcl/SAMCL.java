@@ -1,151 +1,63 @@
-/**
- * 
- */
 package samcl;
 
-import java.awt.Color;
-import java.awt.Graphics2D;
 import java.awt.Point;
-import java.awt.image.BufferedImage;
 import java.io.Closeable;
-import java.io.IOException;
-import java.net.MalformedURLException;
+import java.sql.Time;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.AbstractMap.SimpleEntry;
 
-import javax.swing.JFrame;
-
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.HTable;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.apache.hadoop.hbase.util.Threads;
 
+import util.Distribution;
+import util.Transformer;
 import util.grid.Grid;
-import util.gui.Panel;
-import util.gui.Tools;
-import util.measurementmodel.LaserModel.LaserData;
-import util.measurementmodel.MCLLaserModel;
-import util.measurementmodel.MCLLaserModel.ModelType;
-import util.metrics.Distribution;
-import util.metrics.Particle;
-import util.metrics.Transformer;
+import util.grid.GridTools;
+import util.gui.FrameOwner;
+import util.gui.VariablesController;
+import util.pf.Particle;
+import util.pf.sensor.data.LaserScanData;
+import util.pf.sensor.laser.MCLLaserModel;
+import util.pf.sensor.laser.LaserModel.LaserModelData;
+import util.pf.sensor.laser.MCLLaserModel.ModelType;
+import util.pf.sensor.odom.callbackfunc.MCLMotionModel;
+import util.recorder.PoseWithCovariance;
+import util.recorder.PoseWithTimestamp;
+import util.recorder.Record;
 import util.robot.Pose;
 import util.robot.RobotState;
 import util.robot.VelocityModel;
-import util.sensor.LaserSensor;
+
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParametersDelegate;
 import com.beust.jcommander.converters.FloatConverter;
 
 /**
- * @author w514
+ * @author jolly
  *part1:Sampling total particles
  *part2:Determining the size of the global sample set and the local sample set
  *part3:Resampling local samples
  *part4:Drawing global samples
  *part5:Combining two particle sets
  */
-public class SAMCL implements Closeable{
-	static class MyEntry<K, V> implements Map.Entry<K, V>{
-		private final K key;
-		private V value;
-		
-		MyEntry(K key, V value){
-			this.key = key;
-			this.value = value;
-		}
-		
-		@Override
-		public K getKey() {
-			return this.key;
-		}
-
-		@Override
-		public V getValue() {
-			return this.value;
-		}
-
-		@Override
-		public V setValue(V value) {
-			V old = this.value;
-			this.value = value;
-			return old;
-		}
-		
+public class SAMCL implements Closeable, FrameOwner{	
+	public SAMCL() {		
+		this.al = MCLMotionModel.al.clone();
 	}
 	
-	/**
-	 * @param orientation angular resolution
-	 * @param mapFilename 
-	 * @param deltaEnergy dor defining the SER
-	 * @param nt population 
-	 * @param xI threshold 
-	 * @param aLPHA rate of population
-	 * @param tournamentPresure competetive strength
-	 * @throws IOException 
-	 */
-	public SAMCL(/*int orientation, String mapFilename,*/ float deltaEnergy, int nt, float xI, float aLPHA, int tournamentPresure) 
-			throws IOException {
-		this(false/*, orientation, mapFilename*/, deltaEnergy, nt, xI, aLPHA, tournamentPresure);
-	}
-	
-	/**
-	 * @param orientation angular resolution
-	 * @param mapFilename 
-	 * @param deltaEnergy dor defining the SER
-	 * @param nt population 
-	 * @param xI threshold 
-	 * @param aLPHA rate of population
-	 * @param tournamentPresure competetive strength
-	 * @throws IOException 
-	 */
-	public SAMCL(boolean cloud, 
-			float deltaEnergy,
-			int nt,
-			float xI, 
-			float aLPHA, 
-			int tournamentPresure) throws IOException {
-		this.onCloud = cloud;
-		this.deltaEnergy = deltaEnergy;
-		this.Nt = nt;
-		this.XI = xI;
-		this.ALPHA = aLPHA;
-		this.tournamentPresure = tournamentPresure;
-		
-		this.al = Distribution.al.clone();
-		
-	}
-	
-	public void setupGrid(LaserSensor robotLaser) throws Exception{
-		this.sensor.setupSensor(robotLaser);//Done! copy configue from robot's laser sensor
-		//Done! remove this.orientation, this.sensorNumber, this.max_distance
-		this.grid= new Grid( this.mapFilename, robotLaser);
-		
-		if(this.onCloud){
-			System.out.println("cloud setup");
-			Logger.getRootLogger().setLevel(Level.WARN);
-			Configuration conf = HBaseConfiguration.create();
-			grid.setupHBaseConnection(conf);
-			grid.readMapImageFromHadoop(this.mapFilename, conf);
-			this.table = this.grid.getTable(this.tableName);
-			
-		}else{
-			System.out.println("local setup");
-			grid.readMapImageFromLocal();
-			
-		}
-		this.width = this.grid.width;
-		this.height = this.grid.height;
+	public void setupMCL(Grid grid) throws Exception{
+		this.sensor.setupSensor(grid.laser);
+		this.table = grid.getTable(this.tableName);
+		//Setting up windows for showing images
+		this.setupFrame(grid.visualization);
 		//TODO add a condition to choose if start mouse function or not
 		//precomputed_grid.start_mouse(precomputed_grid);
 	}
 
 
+	private boolean terminated = false;
 	private boolean terminating = false;
 	public void setTerminating(boolean terminate) {
 		this.terminating = terminate;
@@ -153,11 +65,9 @@ public class SAMCL implements Closeable{
 	private void setTerminated(boolean terminated) {
 		this.terminated = terminated;
 	}
-	public boolean isTerminating() {
+	private boolean isTerminating() {
 		return this.terminating ;
 	}
-
-	private boolean terminated = false;
 	public boolean hasTerminated() {
 		return this.terminated ;
 	}
@@ -176,29 +86,33 @@ public class SAMCL implements Closeable{
 	}
 	
 	@Override
-	public void close() throws IOException {
-		if(!isClosing())
-			setClosing(true);
-		if(!isTerminating())
-			setTerminating(true);
-//		while(!this.hasTerminated())
-//			this.setTerminating(true);
-		if(this.onCloud){
-			this.table.close();
-			this.grid.close();
+	public void close(){
+		if (!closed) {
+			System.out.println("closing " + this.getClass().getName());
+			if (!isClosing())
+				setClosing(true);
+			if (!isTerminating())
+				setTerminating(true);
+			if (this.table != null) {
+				try {
+					this.table.close();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}finally{
+					this.table = null;
+				}
+			}
+			if (vc != null){
+				this.vc.close();
+				vc.dispose();
+				vc = null;
+			}
+			this.customizedClose();
+			this.closed = true;
 		}
-		
-		this.customizedClose();
-		
-		this.closed = true;
 	}
-	protected void customizedClose() {
-
-		
-	}
-
-	@Parameter(names = "--visualization", help = false, required = false, arity = 1)
-	public boolean visualization;
+	
+	protected void customizedClose(){}
 
 	@Parameter(names = "--help", help = true)
 	public boolean help;
@@ -225,79 +139,75 @@ public class SAMCL implements Closeable{
 	public boolean ignore = false;
 	
 	@Parameter(names = {"-D","--debug"}, description = "start up/stop debug mode, default is to start up", required = false, arity = 1)
-	public boolean mode = true;
+	public boolean debugMode = false;
 	
 	@Parameter(names = "--period", description = "the period of an executed time.", required = false, arity = 1)
 	private int period = 0;
 
-	//check the parameters 
-	@Parameter(names = {"-cl","--cloud"}, description = "if there on the cloud is or not, default is false", required = false, arity = 1)
-	public boolean onCloud = false;
-
-	//for Pre_caching()
-	@Parameter(names = {"-i","--image"}, 
-			description = "the image of map, default is \"file:///home/eeuser/map1024.jpeg\"", 
-			required = true, arity = 1)
-	public String mapFilename = "file:///home/eeuser/map1024.jpeg";
-	
 	//for Caculating_SER()
-	@Parameter(names = {"-d","--delta"}, description = "the delta of SER, default is 0.01", required = false, arity = 1, converter = FloatConverter.class)
-	//public String deltaEnergyStr = null;
+	@Parameter(names = {"-d","--samcldelta"}, description = "the delta of SER, default is 0.01", required = false, arity = 1, converter = FloatConverter.class)
 	public float deltaEnergy = (float)0.01;
 	
 	//for Determining_size()
-	@Parameter(names = {"-x","--xi"}, description = "the sensitive coefficient, default is 0.1", required = false, arity = 1, converter = FloatConverter.class)
-	//public String xiStr = null;
+	@Parameter(names = {"-x","--samclxi"}, description = "the sensitive coefficient, default is 0.1", required = false, arity = 1, converter = FloatConverter.class)
 	public float XI = (float)0.1;
 	
-	@Parameter(names = {"-a","--alpha"}, description = "the ratio of population(global:local), default is 0.6", required = false, arity = 1, converter = FloatConverter.class)
+	@Parameter(names = {"-a","--samclalpha"}, description = "the ratio of population(global:local), default is 0.6", required = false, arity = 1, converter = FloatConverter.class)
 	public float ALPHA = (float)0.6;
 	
-	@Parameter(names = {"-n","--number"}, description = "the number of total population, default is 100 particles.", required = false, arity = 1)
+	@Parameter(names = {"--resampleinterval"}, description = "the interval of resmapling, default is 1.", required = false, arity = 1)
+	int resampleInterval = 1;
+	
+	@Parameter(names = {"-n","--numberofparticles"}, description = "the number of total population, default is 100 particles.", required = true, arity = 1)
 	public int Nt = 100;
 
 	@Parameter(names = {"-t","--tableName"}, description = "the name of HBase table, default is \"map.512.4.split\"", required = false, arity = 1)
 	public String tableName = "map.512.4.split";
 	
-	@Parameter(names = {"-p","--presure"}, description = "the tournament presure, default is 10 particles.", required = false, arity = 1)
+	@Parameter(names = {"-p","--tournamentPresure"}, description = "the tournament presure, default is 10 particles.", required = false, arity = 1)
 	private int tournamentPresure = 10;
+	
+	@Parameter(names = {"--updateMinDistance"}, 
+			description = "the tournament presure, default is 10 particles.", 
+			required = false, arity = 1)
+	private double dThresh = 0.001;
+	
+	@Parameter(names = {"--updateMinAngle"}, 
+			description = "the tournament presure, default is 10 particles.", 
+			required = false, arity = 1)
+	private double aThresh = 0.001;
 	
 	//for sensor model of particle filter
 	@ParametersDelegate
-	public MCLLaserModel sensor =  new MCLLaserModel();
+	protected MCLLaserModel sensor = new MCLLaserModel();
 	
-	//Done! replace the following three members by sensor.range_max, sensor.getOrientation(), and sensor.rangesCount()
-//	@Parameter(names = {"-max_dist"}, description = "the max distance the sensor can measure in the unit of pixel, default is the diagonal length of input map image.", required = false, arity = 1)
-//	private int max_distance = -1;
-//	@Parameter(names = {"-o","--orientation"}, description = "the number of orientation of a cell, default is 18.", required = false, arity = 1)
-//	private int orientation = 18;	
-//	private int sensorNumber;
+//	@ParametersDelegate
+	protected MCLMotionModel odomModel = new MCLMotionModel();
 	
-	private int width;
-	private int height;
-	//for Pre_caching()
-	public Grid grid;
-	//for Sample_total_particles()
-	
+	/**
+	 * Internal source of randomness.
+	 */
+//	protected static Random randSeed;
+
+	/**
+	 * Initialize the static variables.
+	 */
+//	static {
+//		randSeed = new RandomAdaptor(new MersenneTwister());
+//	}
+
 	//for Determining_size()
 	protected int Nl;
 	protected int Ng;
+	
+	//for differential odometry model
 	public double[] al;
-	
-	
-	
-	//Done! replace this vairable with the variable of ModelType modeltype in MCLLaserSensor sensor.
-	//@Parameter(names = {"-sm","--sensor_model"}, description = "selection of sensor model of particle filter, default model is importance factor.", required = false, arity = 1)
-	//public int sensormodel_selection = 1;
 
 	/**
-	 * input:Map(M)
-	 * output:3-Dimentional grid(G3D),energy grid(GE)
-	 * needed function:laser ranger, 
-	 * properties:Sensor number,
-	 * @throws MalformedURLException 
+	 * 
+	 * @param grid
 	 */
-	public void preCaching() {
+	public void preCaching(Grid grid) {
 		//start to computing all of the grid of 3-dimension
 		System.out.println("computing...");
 		long startTime = System.currentTimeMillis();
@@ -310,244 +220,290 @@ public class SAMCL implements Closeable{
 	 * run SAMCL
 	 * @throws Throwable 
 	 */
-	public void run(RobotState robot, JFrame samcl_window) throws Throwable{
-		boolean mode = false;
-		this.setTerminating(false);
-		this.setTerminated(false);
-		
-		System.out.println("press enter to continue.");
-		System.in.read();
+	public void run(RobotState robot, Grid grid) throws Exception{
+		if(this.isClosing())
+			return;
 		System.out.println("start!");
+		if(this.debugMode)
+			System.out.print(
+				"counter\t"	+
+				"particleNo\t" +
+				"timeOverAll\t"+
+				"iteration\t"+
+				"predictionTime\t"+
+				"raycastingTime\t"+
+				"weightTime\t"+
+				"otherTransmissionTime\t"+
+				"determiningTime\t"+
+				"serTime\t"+
+				"localResamplingTime\t"+
+				"combiminingTime\t"+
+				"best X\t"+
+				"best Y\t"+
+				"best H\t"+
+				"robot X\t"+
+				"robot Y\t"+
+				"robot H\t"+
+				"\n");
+		
+		//because this function might be restarted, it is necessary to define these status here.
+		boolean debugMode = false;
+		this.setTerminated(false);
+		this.setTerminating(false);
 
-		List<Particle> local_set = new ArrayList<Particle>();
-		List<Particle> global_set = new ArrayList<Particle>();
-		//in order to be thread-safe, use CopyOnWriteArrayList.
-		List<Particle> current_set = new CopyOnWriteArrayList<Particle>();
-		List<Particle> last_set = new CopyOnWriteArrayList<Particle>();
-		List<Particle> SER_set = new CopyOnWriteArrayList<Particle>();
-		Particle bestParticle = null;
+		ArrayList<Particle> local_set = new ArrayList<Particle>();
+		ArrayList<Particle> global_set = new ArrayList<Particle>();
+		ArrayList<Particle> current_set = new ArrayList<Particle>();
+		ArrayList<Particle> last_set = new ArrayList<Particle>();
+		ArrayList<Particle> SER_set = new ArrayList<Particle>();
+		Particle bestParticle = null;//for calculating SER
 		
-		//Drawing the image
-		BufferedImage samcl_image = new BufferedImage(this.grid.width,this.grid.height, BufferedImage.TYPE_INT_ARGB);
-		Graphics2D grap = samcl_image.createGraphics();
-		grap.drawImage(this.grid.map_image, null, 0, 0);
-		Panel image_panel = new Panel(samcl_image);
-		samcl_window.add(image_panel);
-		samcl_window.setVisible(this.visualization);
-		
-		//initial motion model for particle filter
-		Pose previousPose = new Pose((Pose)robot);
-		Pose currentPose = null;
-		VelocityModel u = new VelocityModel();
-		while(robot.getLaserScan()==null){
-			Thread.sleep(0, 1);
-			System.out.println("robot is not ready");
-		}
-		//Initial Particles 
-		this.globalSampling(last_set, robot);
-		
-		System.out.print(
-						"counter\t"	+
-						"time\t"+
-						"duration\t"+
-						"weight time\t"+
-						"SER time\t"+
-						"transmission time\t"+
-						"best X\t"+
-						"best Y\t"+
-						"best H\t"+
-						"best W\t"+
-						"robot X\t"+
-						"robot Y\t"+
-						"robot H\t"+
-						"\n");
+		Record record = new Record();
 		
 		int counter = 0;
-		long time = 0, duration = 0, startTime = System.currentTimeMillis();
+		long time = 0, iterationTime = 0, startTime = 0;
 		
-		while(!this.isTerminating()){
+		//initial motion model for particle filter
+		PoseWithTimestamp previousPose = new PoseWithTimestamp((Pose)robot, new Time(System.currentTimeMillis()));
+		PoseWithTimestamp odometryPose = null;
+		VelocityModel u = new VelocityModel();
+		LaserModelData laserDataWithModel = null;
+		LaserScanData laserData = null;
+		
+		laserData = robot.getLaserScan();
+		while(laserData == null){
+			Thread.sleep(0, 1);
+			laserData = robot.getLaserScan();
+			
+		}
+		laserDataWithModel = new LaserModelData(laserData, this.sensor);
+		
+		//Initial Particles 
+		this.globalSampling(current_set, robot, grid);
+		//Initial Weighting
+		this.weightAssignment(current_set, robot, laserDataWithModel, grid);
+		//TODO Is initial resampling required?
+//		this.localResampling(current_set, last_set, robot, laserDataWithModel);
+		last_set.addAll(current_set);
+		PoseWithCovariance estimate = estimatePose(last_set, new PoseWithCovariance(laserDataWithModel.data.timeStamp));
+		updateImagePanel(grid, robot, estimate, current_set, null);
+		startTime = System.currentTimeMillis();
+		while(!this.isTerminating() && (!robot.isAllTasksOver() && !robot.isRobotClosing())){
 			if(this.convergeFlag){
 				this.converge(last_set, robot);
 			}
-			
-			//TODO if isSensorUpdated() is true, execute an iteration of particle filter
-			
 			time = System.currentTimeMillis();
-			counter = counter +1;
+			counter++;
 			
-			//Setp 1: Prediction
-			Transformer.debugMode(mode, "(1) Sampling\t");
-			currentPose = new Pose(robot);
+			//update robot's sensor data
+			//TODO adding Gaussian noise
+			odometryPose = new PoseWithTimestamp((Pose)robot, new Time(System.currentTimeMillis()));
 			u.setModel(robot.getUt());
-			current_set.clear();
-			long sampleTime = this.predictionParticles(last_set, current_set, u, currentPose, previousPose, duration);
-			previousPose = currentPose;
+			//check if the delta of robot odometric data exceeds a threshold value.
+			//if the delta value is larger than the threshold, robotMoved is true.
+			Pose delta = odometryPose.minus(previousPose);
+			boolean robotMoved = Math.abs(delta.X)>dThresh || 
+					Math.abs(delta.Y)>dThresh ||
+					Math.abs(delta.H)>aThresh;
 			
+			//check if robot's sensor is updated, then newSensor is true.
+			boolean newSensor = false;
+			if(robot.isSensorUpdated()){
+				laserDataWithModel = new LaserModelData(robot.getLaserScan(), this.sensor);
+				newSensor = true;
+			}
 			
-			//Step 2: Weighting
-			Transformer.debugMode(mode, "(2) Weighting\t");
-			long transmission1, weightTime, transmission2;
-			LaserData laserData = new LaserData(robot.getLaserScan(), this.sensor);
-			List<Long> times = this.weightAssignment(current_set, /*Zt,*/ ignore, robot, laserData);
-			transmission1 = times.get(0);
-			weightTime = times.get(1);
-			transmission2 = times.get(2);
-			//Step 3: Determining size
-			Transformer.debugMode(mode, "(3) Determining size\t");
-			long determiningTime = System.currentTimeMillis();
-			//optimality is changed into maximizing.
-			//bestParticle = Transformer.minParticle(current_set); 
-			bestParticle = Transformer.maxParticle(current_set); 
-			this.determiningSize(bestParticle);
-			determiningTime = System.currentTimeMillis() - determiningTime;
-			//Step 3-1: Calculating SER
-			Transformer.debugMode(mode, "(3-1) Calculating SER\t");
-			long serTime = System.currentTimeMillis();
-			//optimality is changed into maximizing. done!
-			this.caculatingSER(current_set, bestParticle.getWeight(), laserData.data.beamranges, SER_set, global_set);
-			serTime = System.currentTimeMillis() - serTime;
+			if(!robotMoved){
+				current_set.clear();
+				current_set.addAll(last_set);
+				//wait for a while then check update information again.
+				Threads.sleep(1);
+			}else if(robotMoved==true && newSensor==true){
+				//if robotMoved is true and newSensor is true, update sensory model and make robotMoved and newSensor false.
+				robotMoved = false; 
+				newSensor = false;
+				
+				//TODO if updateMeasurement is true, update odometric model.
+				//Setp 1: Prediction
+				Transformer.debugMode(debugMode, "(1) Sampling\t");
+				//, then predict the pose of hypotheses
+				long predictionTime= this.predictionParticles(last_set, current_set, u, odometryPose, previousPose, iterationTime);
+				// and current odometry data became old data.
+				previousPose = odometryPose;
+				
+				//Step 2: Weighting
+				Transformer.debugMode(debugMode, "(2) Weighting\t");
+				long raycastingTime, weightTime, otherTransmisionTime;
+				List<Long> times = this.weightAssignment(current_set, robot, laserDataWithModel, grid);
+				raycastingTime = times.get(0);
+				weightTime = times.get(1);
+				otherTransmisionTime = times.get(2);
+				
+				//Step 3: Determining sizes of local set and global set
+				Transformer.debugMode(debugMode, "(3) Determining size\t");
+				long determiningTime = System.currentTimeMillis();
+				//bestParticle = Transformer.minParticle(current_set); 
+				bestParticle = Transformer.maxParticle(current_set); 
+				this.determiningSize(bestParticle);
+				determiningTime = System.currentTimeMillis() - determiningTime;
+				//Step 3-1: Calculating SER
+				Transformer.debugMode(debugMode, "(3-1) Calculating SER\t");
+				long serTime = System.currentTimeMillis();
+				this.caculatingSER(current_set, bestParticle, laserDataWithModel.data.beamranges, SER_set, global_set, grid);
+				serTime = System.currentTimeMillis() - serTime;
 			
-			//Step 4: Local resampling
-			Transformer.debugMode(mode, "(4) Local resampling\t");
-			long localResamplingTime = System.currentTimeMillis();
-			//optimality is changed into maximizing. done!
-			this.localResampling(current_set, local_set, bestParticle);
-			localResamplingTime = System.currentTimeMillis() - localResamplingTime;
-//			System.out.println("\tlocal set size : \t" + local_set.size());
+				//Step 4: Local resampling
+				Transformer.debugMode(debugMode, "(4) Local resampling\t");
+				long localResamplingTime = System.currentTimeMillis();
+				if((counter%resampleInterval)==0){
+					this.localResampling(current_set, local_set, robot, laserDataWithModel, grid);
+				}else{
+					local_set.clear();
+					local_set.addAll(current_set);
+				}
+				
+				localResamplingTime = System.currentTimeMillis() - localResamplingTime;
 			
-			//Step 5: Combimining
-			Transformer.debugMode(mode, "(5) Combimining\n");
-			long combiminingTime = System.currentTimeMillis();
-			last_set.clear();
-			last_set.addAll(this.combiningSets(local_set, global_set));
-			local_set.clear();
-			global_set.clear();
-			combiminingTime = System.currentTimeMillis() - combiminingTime;
+				//Step 5: Combimining
+				Transformer.debugMode(debugMode, "(5) Combimining\n");
+				long combiminingTime = System.currentTimeMillis();
+				last_set.clear();
+				last_set.addAll(this.combiningSets(local_set, global_set));
+				local_set.clear();
+				global_set.clear();
+				combiminingTime = System.currentTimeMillis() - combiminingTime;
+				
+				//Averaging Particle
+				long averageTime = System.currentTimeMillis();
+				estimate = estimatePose(last_set, new PoseWithCovariance(laserDataWithModel.data.timeStamp));
+				averageTime = System.currentTimeMillis() - averageTime;
+				
+				//TODO is this delay required?
+				this.delay(this.period);
 			
-			//TODO Averagin Particle
-			long averageTime = System.currentTimeMillis();
-//			Particle averagePose = this.averagePose(current_set);
-			averageTime = System.currentTimeMillis() - averageTime;
-			//show out the information
-			/**
-			 * best particle
-			 * average position
-			 * robot position
-			 * time
-			 * is succeeded?
-			 * */
-			//log()
-			
-			
-			
-			
-			this.delay(this.period);
-			
-			//draw image 
-			long drawingTime = System.currentTimeMillis();
-			if(this.visualization)
-				this.drawing(grap, samcl_window, robot, bestParticle, current_set, SER_set);
-			drawingTime = System.currentTimeMillis() - drawingTime;
-			
-			//update image
-			image_panel.repaint();
-			if(this.ignore)
-				duration = System.currentTimeMillis() - time - transmission1;
-			else
-				duration = System.currentTimeMillis() - time;
+				//timer
+				if(this.ignore)
+					iterationTime = System.currentTimeMillis() - time - raycastingTime;
+				else
+					iterationTime = System.currentTimeMillis() - time;
 			
 
-			Transformer.debugMode(false,
-					"Best position          :"+bestParticle.toString()+"\n",
-					"Robot position         : \t" + robot+"\n",
-					"Sensitive              : \t" + this.XI+"\n",
-					"RPC counter            : \t" + this.grid.RPCcount+"\n",
-					"Sampling Time	        : \t" + sampleTime + "\tms"+"\n",
-					"Weighting Time	        : \t" + weightTime + "\tms"+"\n",
-					"Determing Size Time    : \t" + determiningTime + "\tms"+"\n",
-					"Caculating SER Time    : \t" + serTime + "\tms"+"\n",
-					"Local Resampling Time  : \t" + localResamplingTime + "\tms"+"\n",
-					"Combining Time	        : \t" + combiminingTime + "\tms"+"\n",
-					"Averaging Time	        : \t" + averageTime + "\tms"+"\n",
-					"Drawing Time	        : \t" + drawingTime + "\tms"+"\n",
-					"Default Delay Time     : \t" + this.period + "\tms"+"\n",
-					"Alpha argument         : \t" + Arrays.toString(this.al) + "\n",
-					
-					"*************************\n"
-					);
-			
-			this.grid.RPCcount = 0;
+				Transformer.debugMode(false,
+						"Best position          :"+bestParticle.toString()+"\n",
+						"Robot position         : \t" + robot+"\n",
+						"Sensitive              : \t" + this.XI+"\n",
+						"RPC counter            : \t" + grid.getRPCcount()+"\n",
+						"Prediction Time        : \t" + predictionTime + "\tms"+"\n",
+						"Weighting Time	        : \t" + weightTime + "\tms"+"\n",
+						"Determing Size Time    : \t" + determiningTime + "\tms"+"\n",
+						"Caculating SER Time    : \t" + serTime + "\tms"+"\n",
+						"Local Resampling Time  : \t" + localResamplingTime + "\tms"+"\n",
+						"Combining Time	        : \t" + combiminingTime + "\tms"+"\n",
+						"Averaging Time	        : \t" + averageTime + "\tms"+"\n",
+						"Default Delay Time     : \t" + this.period + "\tms"+"\n",
+						"Alpha argument         : \t" + Arrays.toString(this.al) + "\n",
+						
+						"*************************\n"
+						);
 			
 			
-			if(this.mode){
-				System.out.print(
-						"counter\t"	+
-						"time\t"+
-						"duration\t"+
-						"weight time\t"+
-						"SER time\t"+
-						"transmission time\t"+
-						"best X\t"+
-						"best Y\t"+
-						"best H\t"+
-						"best W\t"+
-						"robot X\t"+
-						"robot Y\t"+
-						"robot H\t"+
-						"\n");
+			
+				if(this.debugMode){
+//					System.out.print(
+//							"counter\t"	+
+//							"particleNo\t" +
+//							"timeOverAll\t"+
+//							"iteration\t"+
+//							"predictionTime\t"+
+//							"raycastingTime\t"+
+//							"weightTime\t"+
+//							"otherTransmissionTime\t"+
+//							"determiningTime\t"+
+//							"serTime\t"+
+//							"localResamplingTime\t"+
+//							"combiminingTime\t"+
+//							"best X\t"+
+//							"best Y\t"+
+//							"best H\t"+
+//							"robot X\t"+
+//							"robot Y\t"+
+//							"robot H\t"+
+//							"\n");
+				
+					System.out.format("%5d\t",counter);
+					System.out.format("%5d\t",last_set.size());
+					System.out.format("%5d\t",time-startTime);//Execution time from the beginning.
+					System.out.format("%5d\t",iterationTime);//time for this iteration.
+					System.out.format("%5d\t",predictionTime);//time for prediction.
+					System.out.format("%5d\t",raycastingTime);//time for raycasting.
+					System.out.format("%5d\t",weightTime);//time for weighting.
+					System.out.format("%5d\t",otherTransmisionTime);//time for other transmission
+					System.out.format("%5d\t",determiningTime);//time for finding the best particle
+					System.out.format("%5d\t",serTime);//time for SER.
+					System.out.format("%5d\t",localResamplingTime);//time for regular resampling.
+					System.out.format("%5d\t",combiminingTime);//time for combining global and local particle sets.
+					System.out.format("%.5f\t",estimate.X);
+					System.out.format("%.5f\t",estimate.Y);
+					System.out.format("%.5f\t",estimate.H);
+					System.out.format("%.5f\t",robot.X);
+					System.out.format("%.5f\t",robot.Y);
+					System.out.format("%.5f\t",robot.H);
+					System.out.println();
+				}
+			//TODO Transformer.log
 			}
-			System.out.format("%5d\t",counter);
-			System.out.format("%5d\t",time-startTime);
-			System.out.format("%5d\t",duration);
-			System.out.format("%5d\t",weightTime);
-			System.out.format("%5d\t",duration - weightTime - transmission1 - transmission2);
-			System.out.format("%5d\t",serTime);
-			System.out.format("%5d\t",transmission1);
-			System.out.format("%5d\t",transmission2);
-			System.out.format("%.5f\t",bestParticle.getDX());
-			System.out.format("%.5f\t",bestParticle.getDY());
-			System.out.format("%.5f\t",bestParticle.getTh());
-			System.out.format("%.5f\t",bestParticle.getWeight());
-			System.out.format("%.5f\t",robot.X);
-			System.out.format("%.5f\t",robot.Y);
-			System.out.format("%.5f\t",robot.H);
-			System.out.println();
+			//collecting data
+			Record.collect(record, estimate, laserDataWithModel.data.groundTruthPose, odometryPose);
+			//painting 
+			updateImagePanel(grid, robot, estimate, current_set, SER_set);
 			
-//			Transformer.log(
-//					"counter:", counter,
-//					"time", time,
-//					"duration:", duration,
-//					"batch weight time: ", weightTime,
-//					"SER duration", serTime,
-//					bestParticle, 
-//					robot, 
-//					averagePose);
-		
 		}
 		this.setTerminated(true);
+		Record.allRecords.add(record);
+	}
+
+	private VariablesController vc = null;
+	@Override
+	public void setupFrame(boolean visualization) {
+		if(visualization==false)
+			return;
+		if(vc == null){
+			vc = new VariablesController();
+			vc.setInstance(this);
+		}
+		vc.setVisible(true);
 	}
 	
-	public void globalSampling(List<Particle> set, RobotState robot){
-		Random rand = new Random();
+	@Override
+	public void setFrameLocation(int x, int y){
+		vc.setLocation(x, y);
+	}
+
+	public void globalSampling(List<Particle> set, RobotState robot, Grid grid) throws Exception{
+//		Random randSeed = new Random();
 		for (int i = 0; i < this.Nt; i++) {
 			Particle p = new Particle(
-				safe_edge+rand.nextInt(this.width-(2*safe_edge)), 
-				safe_edge+rand.nextInt(this.height-(2*safe_edge)), 
-				Transformer.Z2Th(rand.nextInt(this.sensor.getOrientation()), this.sensor.getOrientation()));
-			while ( !p.underSafeEdge(this.width, this.height, this.safe_edge) ||
-					this.grid.map_array(p.getX(), p.getY()) == Grid.GRID_OCCUPIED) {
-				p.setX(safe_edge+rand.nextInt(this.width-(2*safe_edge)));
-				p.setY(safe_edge+rand.nextInt(this.height-(2*safe_edge)));
-				p.setTh(Transformer.Z2Th(rand.nextInt(this.sensor.getOrientation()), this.sensor.getOrientation()));
-				
-				if( this.sensor.getModeltype().equals(ModelType.DEFAULT)||
-					this.sensor.getModeltype().equals(ModelType.BEAM_MODEL)){
-					p.setWeight(1/this.Nt);
-				}	
-				else if(this.sensor.getModeltype().equals(ModelType.LOSS_FUNCTION)||
-						this.sensor.getModeltype().equals(ModelType.LOG_BEAM_MODEL))
-					p.setWeight(-Float.MAX_VALUE);
+				safe_edge+Distribution.seed.nextInt(grid.width-(2*safe_edge)), 
+				safe_edge+Distribution.seed.nextInt(grid.height-(2*safe_edge)), 
+				Transformer.Z2Th(Distribution.seed.nextInt(this.sensor.getOrientation()), this.sensor.getOrientation()));
+			while ( !p.underSafeEdge(grid.width, grid.height, this.safe_edge) ||
+					grid.map_array(p.getX(), p.getY()) == Grid.GRID_OCCUPIED) {
+				p.setX(safe_edge+Distribution.seed.nextInt(grid.width-(2*safe_edge)));
+				p.setY(safe_edge+Distribution.seed.nextInt(grid.height-(2*safe_edge)));
+				p.setTh(Transformer.Z2Th(Distribution.seed.nextInt(this.sensor.getOrientation()), this.sensor.getOrientation()));	
 			}
+			if( this.sensor.getModeltype().equals(ModelType.DEFAULT)||
+				this.sensor.getModeltype().equals(ModelType.BEAM_MODEL)){
+//				p.setWeight(1/this.Nt);
+				p.setWeightForNomalization(1.0/this.Nt);
+			}	
+			else if(this.sensor.getModeltype().equals(ModelType.LOSS_FUNCTION)||
+					this.sensor.getModeltype().equals(ModelType.LOG_BEAM_MODEL)){
+//				p.setWeight(-Float.MAX_VALUE);
+				p.setWeightForNomalization(-Double.MAX_VALUE);
+			}
+			if(grid.map_array[p.getX()][p.getY()] == Grid.GRID_OCCUPIED)
+				throw new Exception("the uniformly spreaded pose is occupied.");
 			set.add(p);
 		}
 	}
@@ -555,22 +511,82 @@ public class SAMCL implements Closeable{
 	public void converge(List<Particle> current, RobotState robot){
 		current.clear();
 		for(int i = 0;i< this.Nt;i++){
-			current.add(new Particle(robot.X, robot.Y, robot.H));
+			current.add(new Particle(robot.X, robot.Y, robot.H, 1.0/Nt));
 		}
 		this.convergeFlag = false;
 	}
+
+	public static enum QuantityType{Length, Angle;}
+	private static QuantityType[] types = new QuantityType[]{QuantityType.Length, QuantityType.Length, QuantityType.Angle};
 	
-	@SuppressWarnings("unused")
-	private Particle averagePose(List<Particle> src_set) {
-		double xSum = 0;
-		double ySum = 0;
-		double zSum = 0;
-		for(Particle p : src_set){
-			xSum = xSum + p.getDX();
-			ySum = ySum + p.getDY();
-			zSum = zSum + p.getTh();
+	private static PoseWithCovariance estimatePose(List<Particle> particleSet, PoseWithCovariance estimate) {
+//	private SimpleEntry<Particle, double[][]> estimatePose(List<Particle> particleSet, PoseWithCovariance estimate) {
+//		double xSum = 0;
+//		double ySum = 0;
+//		double thCosSum = 0, thSinSum = 0;
+//		double totalW = 0;
+//		for(Particle p : particleSet){
+//			totalW += p.getNomalizedWeight();
+//			xSum = xSum + p.getNomalizedWeight()*p.getDX();
+//			ySum = ySum + p.getNomalizedWeight()*p.getDY();
+//			thCosSum = thCosSum + p.getNomalizedWeight()*Math.cos(Math.toRadians(p.getTh()));
+//			thSinSum = thSinSum + p.getNomalizedWeight()*Math.sin(Math.toRadians(p.getTh()));
+//		}
+		Object[] sums = new Object[types.length];
+		double[] means = new double[types.length];
+		double[][] covAccu = new double[types.length-1][types.length-1];
+		double totalWeight = 0;
+		for(int i = 0 ; i < types.length ; i++){
+			if(types[i] == QuantityType.Length){
+				sums[i] = new Double(0.0);
+			}else if(types[i] == QuantityType.Angle){
+				sums[i] = new Double[]{.0, .0};
+			}
 		}
-		return new Particle(xSum/src_set.size(), ySum/src_set.size(), zSum/src_set.size());
+		for(Particle p : particleSet){
+			//for estimating the particle set
+			totalWeight+=p.getNomalizedWeight();
+			for(int i = 0 ; i < types.length ; i++){
+				if(types[i] == QuantityType.Length){
+					sums[i] = ((Double)sums[i]) + p.getNomalizedWeight()*p.getStates()[i];
+					for(int j = 0 ; j < covAccu[i].length ; j++){
+						if(types[j] == QuantityType.Length)
+						covAccu[i][j] += p.getNomalizedWeight() * p.getStates()[i] * p.getStates()[j];
+					}
+				}else if(types[i] == QuantityType.Angle){
+					((Double[])sums[i])[0] = ((Double[])sums[i])[0] + p.getNomalizedWeight()*Math.cos(Math.toRadians(p.getStates()[i]));
+					((Double[])sums[i])[1] = ((Double[])sums[i])[1] + p.getNomalizedWeight()*Math.sin(Math.toRadians(p.getStates()[i]));
+				}
+			}
+			
+		}
+		
+		//mean values
+		for(int i = 0 ; i < types.length ; i++){
+			if(types[i] == QuantityType.Length){
+				means[i] = ((Double)sums[i])/totalWeight;
+			}else if(types[i] == QuantityType.Angle){
+				means[i] = Math.toDegrees(Math.atan2( ((Double[])sums[i])[1],  ((Double[])sums[i])[0]));
+			}
+		}
+		estimate.X = means[0];
+		estimate.Y = means[1];
+		estimate.H = means[2];
+		
+		//covariance
+		for(int i = 0 ; i < types.length ; i++){
+			if(types[i] == QuantityType.Length){
+				for(int j = 0 ; j < covAccu[i].length ; j++){
+					if(types[j] == QuantityType.Length){
+						estimate.cov[i][j] = covAccu[i][j]/totalWeight - means[i] * means[j];
+					}
+				}
+			}else if(types[i] == QuantityType.Angle){
+				Double[] v = (Double[])sums[i];
+				estimate.cov[i][i] = Math.toDegrees(-2 * Math.log(Math.sqrt(v[0]*v[0] + v[1]*v[1])));
+			}
+		}
+		return estimate;
 	}
 	
 	/**
@@ -587,49 +603,31 @@ public class SAMCL implements Closeable{
 			Pose previousPose,
 			long duration) throws Exception{
 		long sampleTime = System.currentTimeMillis();
-
-		Random random = new Random();
-		if(!src.isEmpty()){
-			first:
-				for(Particle p : src){
-					int i = 0;
-					do{
-						if(i>10){
-//							System.out.println("failed in prediction of Particle Filter");
-							continue first;
-						}
-						i++;
-//						Distribution.MotionSampling(p, u, (double)duration/1000, random, this.al); 
-						Distribution.OdemetryMotionSampling(p, currentPose, previousPose, duration, random, al);
-					}while(!Distribution.boundaryCheck(p, this.grid));
-					
-					dst.add(p.clone());
-					
-					//this.pixel_sampling(p, 11, 7, random);
-				}
+		dst.clear();
+//		odomModel.prediction();
+		for(Particle p : src){
+			Particle predictedParticle = MCLMotionModel.OdemetryMotionSampling(p, currentPose, previousPose, duration, /*randSeed,*/ al);
+			p.setX(predictedParticle.getDX());
+			p.setY(predictedParticle.getDY());
+			p.setTh(predictedParticle.getTh());
+			dst.add(p);
 		}
-		else{
-			System.out.println("*********the src_set is empty!!!!!!");
-			throw new Exception("The set is empty!\n");
-		}
-		if(dst.size()==0)
-			throw new Exception("there is no result!!!! please check if the robot is located at an empty position.");
 		return System.currentTimeMillis() - sampleTime;
 	}
 	
 	public List<Long> weightAssignment( List<Particle> src, 
-			boolean ignore, RobotState robot,
-			LaserData laserData
+			RobotState robot,
+			LaserModelData laserData,
+			Grid grid
 			) throws Exception{
 		boolean previousState = robot.isMotorLocked();
 		//long[] timers = new long[3];
 		List<Long> ts = new ArrayList<Long>(3);
 		
 		if(ignore)
-			robot.lockMotor();
-		ts.add(this.raycastingUpdate(src));
+			robot.setMotorLock(true);
+		ts.add(this.raycastingUpdate(src, grid));
 		//timers[0] = this.raycastingUpdate(src);
-		
 		if(ignore)
 			robot.setMotorLock(previousState);
 		
@@ -637,7 +635,7 @@ public class SAMCL implements Closeable{
 			System.out.println("something wrong.");
 			throw new Exception("robot measurement is null.");
 		}
-		ts.add(this.batchWeight(src, laserData));
+		ts.add(this.batchWeight(src, laserData, grid));
 		//timers[1] = this.batchWeight(src, robotMeasurements);
 		ts.add(0l);
 		//timers[2] = 0;
@@ -645,13 +643,13 @@ public class SAMCL implements Closeable{
 		return ts;
 	}
 	
-	public long raycastingUpdate( List<Particle> src) throws Exception {
+	public long raycastingUpdate( List<Particle> src, Grid grid) throws Exception {
 		long trasmission = System.currentTimeMillis();
 		//get sensor data of all particles.
-		if (this.onCloud) {
-			//get measurements from cloud  and weight
+		if (grid.onCloud) {
+			//get measurements from cloud and assign the measurement to particles
 			try {
-				this.grid.getBatchFromCloud2(this.table, src);
+				grid.getBatchFromCloud2(this.table, src);
 			} catch (Exception e) {
 				System.out.println(e.getMessage());
 				e.printStackTrace();
@@ -661,14 +659,23 @@ public class SAMCL implements Closeable{
 				System.exit(1);
 			}
 		} else {
-			//get measurements from local database and weight.
+			//get measurements from local database.
 			//If there is no pre-caching data, executing ray-casting immediately. 
-			this.grid.assignMeasurementsAnyway(src);
+//			boolean status = this.grid.assignMeasurementsAnyway(src);
+			
+			//calculate raycasting right away
+			for(Particle p:src){
+				SimpleEntry<List<Float>, List<Point>> e = GridTools.getLaserDist(grid, sensor, p.getDX(), p.getDY(), p.getTh());
+				if(e == null)
+					p.setMeasurements(null);
+				else
+					p.setMeasurements(e.getKey());
+			}
 		}
 		return System.currentTimeMillis() - trasmission;
 	}
 	
-	public long batchWeight(List<Particle> src, LaserData laserData) throws Exception {
+	public long batchWeight(List<Particle> src, LaserModelData laserData, Grid grid) throws Exception {
 		long weightTime = System.currentTimeMillis();
 		this.sensor.calculateParticleWeight(src, laserData);
 		return System.currentTimeMillis() - weightTime;
@@ -681,7 +688,7 @@ public class SAMCL implements Closeable{
 	 */
 	public void determiningSize(Particle bestParticle){
 		//Particle bestParticle = Transformer.minParticle(src);
-		if (bestParticle.getWeight() < this.XI) {
+		if (/*bestParticle.getWeight() < this.XI ||*/ bestParticle.getNomalizedWeight()<this.XI) {
 			this.Nl = this.Nt;
 		}	
 		else {
@@ -696,31 +703,39 @@ public class SAMCL implements Closeable{
 	 * output:similar energy region(SER)
 	 * @param current_set 
 	 * @param best_weight 
-	 * @throws IOException 
 	 */
-	public void caculatingSER(List<Particle> current_set, float best_weight, List<Float> Zt, List<Particle> SER_set, List<Particle> global_set) throws Exception{
+	public void caculatingSER(
+			List<Particle> current_set, 
+			Particle bestParticle, 
+			List<Float> Zt, 
+			List<Particle> SER_set, 
+			List<Particle> global_set,
+			Grid grid) throws Exception{
 		
 		
-		float normalized_weight = 0;
-		
+//		float normalized_weight = 0;
+		double normalizedW = 0;
 		if( this.sensor.getModeltype().equals(ModelType.DEFAULT) ||
 			this.sensor.getModeltype().equals(ModelType.BEAM_MODEL)){
-			normalized_weight = best_weight; 
+//			normalized_weight = bestParticle.getWeight(); 
+			normalizedW = bestParticle.getNomalizedWeight();
 		}
 		else if(this.sensor.getModeltype().equals(ModelType.LOSS_FUNCTION)||
 				this.sensor.getModeltype().equals(ModelType.LOG_BEAM_MODEL)){
 			for(Particle p: current_set){
-				if(p.getWeight()!=-Float.MAX_VALUE)
-					normalized_weight+=p.getWeight();
+//				if(p.getWeight()!=-Float.MAX_VALUE)
+//					normalized_weight+=p.getWeight();
+				assert(p.getNomalizedWeight()!=-Double.MAX_VALUE);
+				normalizedW+=p.getNomalizedWeight();
 			}
-			normalized_weight = 1 - best_weight/normalized_weight;
+//			normalized_weight = 1 - bestParticle.getWeight()/normalized_weight;
+			normalizedW = 1 - bestParticle.getNomalizedWeight()/normalizedW;
 		}
 		
-		//optimality is changed into maximizing. done!
 		//If normalized best weight ranging from 0.0 to 1.0 is lower than a positive parameter XI
 		//then SER is calculated.
 		//if (best_weight > this.XI)
-		if (normalized_weight<this.XI) {//if do calculate SER or not?/
+		if (/*normalized_weight<this.XI ||*/ normalizedW < this.XI) {//if do calculate SER or not?/
 			/*Get the reference energy*/
 			float energy = Transformer.CalculateEnergy(Zt,this.sensor.range_max);
 			float UpperBoundary = energy + this.deltaEnergy;
@@ -730,10 +745,10 @@ public class SAMCL implements Closeable{
 			if(UpperBoundary>1.0f)
 				UpperBoundary = 1.0f;
 			SER_set.clear();
-			if (onCloud) {
-				this.cloudCaculatingSER(SER_set, LowerBoundary, UpperBoundary);
+			if (grid.onCloud) {
+				this.cloudCaculatingSER(SER_set, LowerBoundary, UpperBoundary, grid);
 			}else{
-				this.localCaculatingSER(SER_set, LowerBoundary,  UpperBoundary);
+				this.localCaculatingSER(SER_set, LowerBoundary,  UpperBoundary, grid);
 			}
 			//Step 3-2: Global resampling
 //			System.out.println("(4)\tGlobal resampling\t");
@@ -741,9 +756,9 @@ public class SAMCL implements Closeable{
 			if (SER_set.size()>0) {
 				global_set.clear();
 				int randIdx;
-				Random random = new Random();
+//				Random randSeed = new Random();
 				for (int i = 0; i < this.Ng; i++) {
-					randIdx = random.nextInt(SER_set.size());
+					randIdx = Distribution.seed.nextInt(SER_set.size());
 					//Particle particleC = src.get(rand).clone();
 					Particle particle = new Particle(
 							SER_set.get(randIdx).getDX(), 
@@ -761,24 +776,26 @@ public class SAMCL implements Closeable{
 		}
 	}
 	
-	private void cloudCaculatingSER(List<Particle> SER_set, float LowerBoundary, float UpperBoundary) throws IOException{
+	private void cloudCaculatingSER(List<Particle> SER_set, float LowerBoundary, float UpperBoundary, Grid grid){
 		SER_set.clear();
-		//TODO return List<Particle>
-		//System.out.println("start to scan in caculating SER on the cloud");
-		this.grid.scanFromHbase(this.table, SER_set, LowerBoundary, UpperBoundary);
+		try {
+			grid.scanFromHbase(this.table, SER_set, LowerBoundary, UpperBoundary);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 
-	private void localCaculatingSER(List<Particle> SER_set, float LowerBoundary, float UpperBoundary){
+	private void localCaculatingSER(List<Particle> SER_set, float LowerBoundary, float UpperBoundary, Grid grid){
 		SER_set.clear();
-		for(int x = this.safe_edge ; x < this.width-this.safe_edge ; x++){
-			for (int y = this.safe_edge; y < this.height-this.safe_edge; y++) {
-				if (this.grid.map_array(x, y) == Grid.GRID_EMPTY) {
+		for(int x = this.safe_edge ; x < grid.width-this.safe_edge ; x++){
+			for (int y = this.safe_edge; y < grid.height-this.safe_edge; y++) {
+				if (grid.map_array(x, y) == Grid.GRID_EMPTY) {
 					for(int z = 0; z < this.sensor.getOrientation(); z++){
 						/**
 						 * Define a position of the SER
 						 * Add this (x,y,z) to the SER_set 
 						 */
-						float temp1 = this.grid.G[x][y].getEnergy(z);
+						float temp1 = grid.G[x][y].getEnergy(z);
 						if( temp1 >= LowerBoundary &&
 								temp1 <= UpperBoundary){
 							SER_set.add(new Particle(x, y, Transformer.Z2Th(z, this.sensor.getOrientation())));
@@ -795,18 +812,19 @@ public class SAMCL implements Closeable{
 	 * input:the number of local samples(NL),particles(xt),weight(wt)
 	 * output:XLt
 	 */
-	public void localResampling(List<Particle> src, List<Particle> dst, Particle bestParticle){
+	public void localResampling(List<Particle> src, List<Particle> dst,
+			RobotState robot,
+			LaserModelData laserData,
+			Grid grid){
 		dst.clear();
-		dst.add(bestParticle);
+
 		for (int i = dst.size(); i < this.Nl; i++) {
 			//Roulette way
 			//Tournament way
-			//optimality is changed into maximizing. done!
 			Particle particle = Transformer.tournament(tournamentPresure, src);
 			dst.add(particle.clone());
 			//System.out.println();
 		}
-		System.out.println(bestParticle);
 	}
 	
 	
@@ -818,6 +836,8 @@ public class SAMCL implements Closeable{
 	private List<Particle> combiningSets(List<Particle> set1, List<Particle> set2){
 		List<Particle> results = new ArrayList<Particle>(set1);
 		results.addAll(set2);
+		for(Particle p:results)
+			p.setWeightForNomalization(1.0/results.size());
 		return results;
 	}
 	
@@ -829,41 +849,47 @@ public class SAMCL implements Closeable{
 			e.printStackTrace();
 		}
 	}
-	public void drawing(Graphics2D grap, JFrame window
-			, RobotState robot, Particle bestParticle, List<Particle> particles, List<Particle> SER){
-		//Graphics2D grap = samcl_image.createGraphics();
-		grap.drawImage(this.grid.map_image, null, 0, 0);
-		
+	
+	private void updateImagePanel(
+			Grid grid,
+			RobotState robot, 
+			PoseWithCovariance estimate, 
+			List<Particle> particles,
+			List<Particle> SER){
+		if(!grid.visualization)
+			return;
+		//drawing
+		grid.refresh();
+
 		//SER
-		if (SER.size() >= 1&&this.ifShowSER) {
-			Tools.drawBatchPoint(grap, SER, 1, Color.PINK);
-		}
+		if(SER!=null)
+			grid.drawPoints(SER);
 		
 		//Particles
-		if(this.ifShowParticles){
-			//Tools.drawBatchPoint(grap, particles, 2, Color.BLUE);
+		if(this.ifShowParticles && particles.size()>0){
 			for(Particle p: particles){
-				Tools.drawRobot(grap, p.getX(), p.getY(), p.getTh(), 4, Color.BLUE);
+				grid.drawHypothesisRobot(p.getX(), p.getY(), p.getTh());
 			}
 		}
 		
-		//Measurements
-		if(this.ifShowSensors){
-			//robot sensor hits
-			for(Point p: robot.getMeasurement_points()){
-				Tools.drawPoint(grap, p.x, p.y, -1.0, 4, Color.RED);
+		if(robot!=null){
+			grid.drawRobot(robot);
+			if(this.ifShowSensors && robot.getMeasurement_points()!=null){
+				for(Point p: robot.getMeasurement_points()){
+					grid.drawLaserPoint(p.x, p.y);
+				}	
 			}
 		}
 		
-		//Robot
-		Tools.drawRobot(grap, (int)Math.round(robot.X), (int)Math.round(robot.Y), robot.H, 10, Color.RED);
+		if(estimate!=null){
+			grid.drawBestSolution((int)Math.round(estimate.X), (int)Math.round(estimate.Y), estimate.H);
+			grid.drawConfidence((int)Math.round(estimate.X), (int)Math.round(estimate.Y), estimate.H, estimate.cov);
+		}
 		
-		
-		
-		//Best Particle
-		Tools.drawRobot(grap, bestParticle.getX(), bestParticle.getY(), bestParticle.getTh(), 8, Color.GREEN);
-		
+			
+		grid.repaint();
 	}
+	
 	public void forceConverge(){
 		this.convergeFlag = true;
 	}

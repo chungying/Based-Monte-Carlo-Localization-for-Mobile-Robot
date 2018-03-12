@@ -3,7 +3,7 @@
 
 package endpoint.services.generated;
 
-import util.metrics.Transformer;
+import util.Transformer;
 
 
 public final class OewcProtos {

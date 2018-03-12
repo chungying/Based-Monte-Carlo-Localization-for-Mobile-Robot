@@ -1,21 +1,17 @@
 package samcl;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import util.gui.RobotController;
-import util.gui.VariablesController;
-import util.gui.Window;
+import util.grid.Grid;
 import util.robot.Pose;
 import util.robot.RobotState;
 
 import com.beust.jcommander.JCommander;
-import com.google.protobuf.ServiceException;
 
 public class Main {
 	
-	public static void main(String[] args) throws ServiceException {
+	public static void main(String[] args)  {
 		//for debug mode
 		if(args.length==0){
 			String[] targs = {
@@ -45,7 +41,6 @@ public class Main {
 					,"-o","12"
 					,"-lares","30"
 					,"-lrmax","50"
-					,"-max_dist", "50"
 					};
 			args = targs;
 		}
@@ -54,6 +49,40 @@ public class Main {
 		JCommander jc =null;
 		try{
 			
+			
+			
+			/**
+			 * First step:
+			 * to create the localization algorithm
+			 * and setup the listener for SAMCL
+			 */
+//			samcl = new SAMCL(
+//					(float) 0.005, //delta energy
+//					100, //total particle
+//					(float) 0.001, //threshold xi
+//					(float) 0.6, //rate of population
+//					10);//competitive strength
+			samcl = new SAMCL();
+			jc = new JCommander();
+			jc.setAcceptUnknownOptions(true);
+			jc.addObject(samcl);
+			jc.parse(args);
+			if(samcl.help){
+				jc.usage();
+				System.exit(0);
+			}
+			
+			Grid grid = new Grid();
+			jc = new JCommander();
+			jc.setAcceptUnknownOptions(true);
+			jc.addObject(grid);
+			jc.parse(args);
+			samcl.setupMCL(grid);
+//			if(!samcl.onCloud){
+				System.out.println("start to pre-caching");
+				samcl.preCaching(grid);
+//			}	
+
 			/**
 			 * Second step:
 			 * to create a robot
@@ -72,54 +101,12 @@ public class Main {
 			path.add(new Pose(150,550,270));
 			path.add(new Pose(150,150,270));
 			path.add(new Pose(150,150,0));
-			robot = new RobotState(150, 150, 0, path);
+			robot = new RobotState(/*150, 150, 0, */path);
 			jc = new JCommander();
 			jc.setAcceptUnknownOptions(true);
 			jc.addObject(robot);
 			jc.parse(args);
-			
-			/**
-			 * First step:
-			 * to create the localization algorithm
-			 * and setup the listener for SAMCL
-			 */
-			samcl = new SAMCL(
-//					18, //orientation
-					(float) 0.005, //delta energy
-					100, //total particle
-					(float) 0.001, //threshold xi
-					(float) 0.6, //rate of population
-					10);//competitive strength
-			jc = new JCommander();
-			jc.setAcceptUnknownOptions(true);
-			jc.addObject(samcl);
-			jc.parse(args);
-			if(samcl.help){
-				jc.usage();
-				System.exit(0);
-			}
-			
-			samcl.setupGrid(robot.laser);
-			if(!samcl.onCloud){
-				System.out.println("start to pre-caching");
-				samcl.preCaching();
-			}	
-
-			robot.setupSimulationRobot(samcl.grid);
-			
-			//TODO setup robot
-			RobotController robotController = new RobotController("robot controller", robot,samcl);
-			jc = new JCommander();
-			jc.setAcceptUnknownOptions(true);
-			jc.addObject(robotController);
-			jc.parse(args);
-			robotController.setVisible(robotController.visualization);
-			VariablesController vc = new VariablesController(samcl);
-			jc = new JCommander();
-			jc.setAcceptUnknownOptions(true);
-			jc.addObject(vc);
-			jc.parse(args);
-			vc.setVisible(vc.visualization);
+			robot.setupSimulationRobot(grid);
 			
 			Thread t = new Thread(robot);
 			t.start();
@@ -127,22 +114,11 @@ public class Main {
 			 * Third step:
 			 * start to run samcl
 			 */
-			//TODO WINDOW
-			Window window = new Window("samcl image", samcl,robot);
-			
-			//TODO test 2014/06/19
 			int counter = 0;
-			System.out.println(System.currentTimeMillis());
 			while(!samcl.isClosing()){
-				window.setTitle("samcl image:"+String.valueOf(counter));
-				robot.goStraight();
-				try {
-					samcl.run(robot, window);
-				} catch (Throwable e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-				robot.setRobotLock(true);
+				System.out.println(counter + " times mcl.");
+//				robot.goStraight();
+				samcl.run(robot, grid);
 				robot.robotStartOver();
 			}
 			
@@ -150,16 +126,6 @@ public class Main {
 		catch (Exception e){
 			e.printStackTrace();
 			System.exit(-1);
-		}
-		finally{
-			try {
-				samcl.close();
-				robot.close();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			
 		}
 	}
 	

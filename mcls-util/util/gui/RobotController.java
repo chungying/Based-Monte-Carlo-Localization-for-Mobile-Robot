@@ -1,119 +1,241 @@
 package util.gui;
 
-import java.awt.BorderLayout;
 import java.awt.Button;
 import java.awt.GridLayout;
-import java.awt.HeadlessException;
 import java.awt.Label;
 import java.awt.TextField;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.Closeable;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
-import com.beust.jcommander.Parameter;
-
-import samcl.SAMCL;
 import util.robot.RobotState;
 
-@SuppressWarnings("serial")
-public class RobotController extends JFrame implements ActionListener{
-	@Parameter(names = "--visualization", help = false, required = false, arity=1)
-	public boolean visualization = false;
-	public String S[] = {
-			/*0*/"Pause/Continue",	/*1*/"Stop",		/*2*/"Terminate",
-			/*3*/"Converge",		/*4*/"Forward",		/*5*/"Initialize",
-			/*6*/"TurnLeft",		/*7*/"Backward",	/*8*/"TurnRight"
+public class RobotController extends JFrame implements Closeable, ActionListener{
+
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 9182253906123273095L;
+	private Button[] v1Buttons = new Button[8];
+	private Label[] v1StatusLavel = new Label[2];
+	private TextField[] v1TextFields = new TextField[5];
+	private Label[] v1TextLabels = new Label[5];
+	private final static String S1[] = {
+			/*0*/"Pause/Continue",	
+			/*1*/"Initialize",	
+			/*2*/"Stop",		/*3*/"SetPose",
+			/*4*/"Forward",		/*5*/"Backward",	
+			/*6*/"TurnLeft",	/*7*/"TurnRight"
 	};
+	/* S1
+	 * __________________
+	 * |Button	|Label	|
+	 * |Pause	|Status	|
+	 * |________|_______|
+	 * |Button	|Label	|
+	 * |Initial	|Initial|
+	 * |________|_______|
+	 * |Button	|Button	|
+	 * |Stop	|SetPose|
+	 * |________|_______|
+	 * |Button	|Button	|
+	 * |Forward	|Back	|
+	 * |________|_______|
+	 * |Button	|Button	|
+	 * |Left	|Right	|
+	 * |________|_______|
+	 * |Label	|Text	|
+	 * |X		|		|
+	 * |________|_______|
+	 * |Label	|Text	|
+	 * |Y		|		|
+	 * |________|_______|
+	 * |Label	|Text	|
+	 * |H		|		|
+	 * |________|_______|
+	 * |Label	|Text	|
+	 * |V		|		|
+	 * |________|_______|
+	 * |Label	|Text	|
+	 * |W		|		|
+	 * |________|_______|
+	 *  
+	 */	
+	private void setupAllComponents(){
+		controlPanel.setLayout(new GridLayout( 10, 2));
+
+		String[] strs = RobotController.S1; 
+		v1Buttons = new Button[strs.length];
+		for (int i = 0; i < strs.length; i++) {
+			v1Buttons[i] = new Button(strs[i]);
+			v1Buttons[i].addActionListener(this);
+		}
+		
+		v1StatusLavel[0] = new Label(
+				String.format("%s", robot.isMotorLocked()?"Lock":"Unlock"));
+		v1StatusLavel[1] = new Label(
+				String.format("%.2f %.2f %.2f %.2f %.2f", 
+						robot.initRobot.X,
+						robot.initRobot.X,
+						robot.initRobot.X,
+						robot.initModel.velocity,
+						robot.initModel.angular_velocity));
+				
+		v1TextLabels[0] = new Label(
+				String.format("%.2f", robot.X));
+		v1TextLabels[1] = new Label(
+				String.format("%.2f", robot.Y));
+		v1TextLabels[2] = new Label(
+				String.format("%.2f", robot.H));
+		v1TextLabels[3] = new Label(
+				String.format("%.2f", robot.getVt()));
+		v1TextLabels[4] = new Label(
+				String.format("%.2f", robot.getWt()));
+		
+		v1TextFields[0] = new TextField();
+		v1TextFields[0].setText(String.format("%.2f", robot.X));
+		v1TextFields[0].addActionListener(this);
+		v1TextFields[1] = new TextField();
+		v1TextFields[1].setText(String.format("%.2f", robot.Y));
+		v1TextFields[1].addActionListener(this);
+		v1TextFields[2] = new TextField();
+		v1TextFields[2].setText(String.format("%.2f", robot.H));
+		v1TextFields[2].addActionListener(this);
+		v1TextFields[3] = new TextField();
+		v1TextFields[3].setText(String.valueOf(this.robot.getVt()));
+		v1TextFields[3].addActionListener(this);
+		v1TextFields[4] = new TextField();
+		v1TextFields[4].setText(String.valueOf(this.robot.getWt()));
+		v1TextFields[4].addActionListener(this);
+		
+		controlPanel.add(v1Buttons[0]);		controlPanel.add(v1StatusLavel[0]);
+		controlPanel.add(v1Buttons[1]);		controlPanel.add(v1StatusLavel[1]);
+		controlPanel.add(v1Buttons[2]);		controlPanel.add(v1Buttons[3]);
+		controlPanel.add(v1Buttons[4]);		controlPanel.add(v1Buttons[5]);
+		controlPanel.add(v1Buttons[6]);		controlPanel.add(v1Buttons[7]);
+		controlPanel.add(v1TextLabels[0]);	controlPanel.add(v1TextFields[0]);
+		controlPanel.add(v1TextLabels[1]);	controlPanel.add(v1TextFields[1]);
+		controlPanel.add(v1TextLabels[2]);	controlPanel.add(v1TextFields[2]);
+		controlPanel.add(v1TextLabels[3]);	controlPanel.add(v1TextFields[3]);
+		controlPanel.add(v1TextLabels[4]);	controlPanel.add(v1TextFields[4]);
+	}
+	
+	private void buttonActions(Button btn){
+		if(btn==v1Buttons[0]){
+			System.out.println();
+			//Pause/Continue
+			this.robot.reverseMotorLock();
+		}
+		else if(btn==v1Buttons[1]){
+			//Initialize
+			//System.out.println("Initialize robot");
+			this.robot.robotStartOver();
+		}
+		else if(btn==v1Buttons[2]){
+			//Stop
+			//System.out.println("Stop");
+			this.robot.setVt(0);
+			this.robot.setWt(0);
+			
+		}
+		else if(btn==v1Buttons[3]){
+			//Set Initial Robot Pose
+			//System.out.println("Set Initial Robot Pose");
+			robot.setInitState(robot);
+		}
+		else if(btn==v1Buttons[4]){
+			//Forward
+			//System.out.println("Forward");
+			this.robot.setVt(this.robot.getVt() + 1);
+		}
+		else if(btn==v1Buttons[5]){
+			//Backward
+			//System.out.println("Backward");
+			this.robot.setVt(this.robot.getVt() - 1);
+		}
+		else if(btn==v1Buttons[6]){
+			//Turnleft
+			//System.out.println("Turnleft");
+			this.robot.setWt(this.robot.getWt() - 1);
+		}
+		else if(btn==v1Buttons[7]){
+			//Turnright
+			//System.out.println("Turnright");
+			this.robot.setWt(this.robot.getWt() + 1);
+		}
+	}
+	
+	private void textAction(TextField text){
+		if(text==v1TextFields[0]){
+			//System.out.println("update robot X");
+			if(text.getText().length()!=0)
+				this.robot.setX(Double.parseDouble(text.getText()));
+		}
+		else if(text==v1TextFields[1]){
+			//System.out.println("update robot Y");
+			if(text.getText().length()!=0)
+				this.robot.setY(Double.parseDouble(text.getText()));
+		}
+		else if(text==v1TextFields[2]){
+			//System.out.println("update robot Head");
+			if(text.getText().length()!=0)
+				this.robot.setHead(Double.parseDouble(text.getText()));
+		}
+		else if(text==v1TextFields[3]){
+			//System.out.println("update velocity");
+			if(text.getText().length()!=0)
+				this.robot.setVt(Double.parseDouble(text.getText()));
+		}
+		else if(text==v1TextFields[4]){
+			//System.out.println("update angular velocity");
+			if(text.getText().length()!=0)
+				this.robot.setWt(Double.parseDouble(text.getText()));
+		}
+		
+	}
+	
+	private void labelUpdate(){
+		if(!robot.isRobotLocked()){
+			v1TextLabels[0].setText(
+					String.format("%.2f", robot.X));
+			v1TextLabels[1].setText(
+					String.format("%.2f", robot.Y));
+			v1TextLabels[2].setText(
+					String.format("%.2f", robot.H));
+			v1TextLabels[3].setText(
+					String.format("%.2f", robot.getVt()));
+			v1TextLabels[4].setText(
+					String.format("%.2f", robot.getWt()));
+			v1StatusLavel[0].setText(
+					String.format("%s", robot.isMotorLocked()?"Lock":"Unlock"));
+			v1StatusLavel[1].setText(
+					String.format("%.2f %.2f %.2f %.2f %.2f", 
+							robot.initRobot.X,
+							robot.initRobot.Y,
+							robot.initRobot.H,
+							robot.initModel.velocity,
+							robot.initModel.angular_velocity));
+		}
+	}
+	
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		
-		//System.out.println("action!!");
 		Object object = e.getSource();
 		if(object instanceof Button){
-			Button btn = (Button) object;
-//			System.out.println("Action!!!");
+			buttonActions((Button) object);
 			
-			if(btn==B[0]){
-				//Pause/Continue
-				this.robot.reverseMotorLock();
-			}
-			else if(btn==B[1]){
-				//Stop
-				//System.out.println("Stop");
-				this.robot.setVt(0);
-				this.robot.setWt(0);
-			}
-			else if(btn==B[2]){
-				//terminate
-				//System.out.println("terminate the localization method");
-				if(samcl!=null)
-					this.samcl.setTerminating(true);
-			}
-			else if(btn==B[3]){
-				//force converge
-				if(samcl!=null)
-					samcl.forceConverge();
-			}
-			else if(btn==B[4]){//Forward
-				//System.out.println("Forward");
-				this.robot.setVt(this.robot.getVt() + 1);
-			}
-			else if(btn==B[5]){
-				//Initialize
-				//System.out.println("Initialize robot");
-				this.robot.robotStartOver();
-				
-			}
-			else if(btn==B[6]){
-				//Turnleft
-				//System.out.println("Turnleft");
-				this.robot.setWt(this.robot.getWt() - 1);
-			}
-			else if(btn==B[7]){
-				//Backward
-				//System.out.println("Backward");
-				this.robot.setVt(this.robot.getVt() - 1);
-			}
-			else if(btn==B[8]){
-				//Turnright
-				//System.out.println("Turnright");
-				this.robot.setWt(this.robot.getWt() + 1);
-			}
 		}else if(object instanceof TextField){
-			TextField text = (TextField) object;
-			if(text==textU[0]){
-				//System.out.println("update velocity");
-				if(text.getText().length()!=0)
-					this.robot.setVt(Double.parseDouble(text.getText()));
-			}
-			else if(text==textU[1]){
-				//System.out.println("update angular velocity");
-				if(text.getText().length()!=0)
-					this.robot.setWt(Double.parseDouble(text.getText()));
-			}
-			else if(text==textPose[0]){
-				//System.out.println("update robot X");
-				if(text.getText().length()!=0)
-					this.robot.setX(Double.parseDouble(text.getText()));
-			}
-			else if(text==textPose[1]){
-				//System.out.println("update robot Y");
-				if(text.getText().length()!=0)
-					this.robot.setY(Double.parseDouble(text.getText()));
-			}
-			else if(text==textPose[2]){
-				//System.out.println("update robot Head");
-				if(text.getText().length()!=0)
-					this.robot.setHead(Double.parseDouble(text.getText()));
-			}
+			textAction((TextField) object);
 		}
 	}
 
+	@Override
 	public void close(){
 		updateThtread.interrupt();
-		this.dispose();
+//		this.dispose();
 	}
 
 	Thread updateThtread = new Thread(){
@@ -122,123 +244,33 @@ public class RobotController extends JFrame implements ActionListener{
 		public void run() {
 			try {
 				while(!closing){
-					if(!robot.isRobotLocked()){
-						labelU.setText(
-								"v:"+Double.toString(robot.getVt())+
-								",w:"+Double.toString(robot.getWt()));
-						label[0].setText(
-								String.format("%.2f", robot.X));
-						label[1].setText(
-								String.format("%.2f", robot.Y));
-						label[2].setText(
-								String.format("%.2f", robot.H));
-					}
+					labelUpdate();
 					Thread.sleep(33);
 				}
 			} catch (InterruptedException e) {
-				//System.out.println("updateThread in RobotController is closed");
-				//e.printStackTrace();
+//				e.printStackTrace();
 			}
 		}
 	};
 	
 	private RobotState robot;
-	private SAMCL samcl;
+	private JPanel controlPanel = new JPanel();
 	
-	
-	/*
-	 * _________________________
-	 * |Button	|Button	|Button	|
-	 * |________________________|
-	 * |Button	|Button	|Button	|
-	 * |________________________|
-	 * |Button	|Button	|Button	|
-	 * |________________________|
-	 * |Label	|Label	|Label	|
-	 * |________________________|
-	 * |Text	|Text	|Text	|
-	 * |________________________|
-	 * 
-	 * 
-	 */
-	JPanel control_panel = new JPanel(new GridLayout(6,3));
-	Button[] B = new Button[9];
-	TextField[] textU = new TextField[2];
-	Label labelU = new Label();
-	TextField[] textPose = new TextField[3];
-	Label[] label = new Label[3];
-	/**
-	 * @param title
-	 * @throws HeadlessException
-	 */
-	public RobotController(String title) throws HeadlessException {
-		this(title, null, null);
+	public RobotController(){
+		super("robot controller");
 	}
-	
-	public RobotController(String title, RobotState robot) {
-		this(title, robot, null);
-	}
-	
-	public RobotController(String title, RobotState robot, SAMCL samcl){
-		super(title);
+	public void setupRobot(RobotState robot){
 		this.robot = robot;
-		robot.setController(this);
-		this.samcl = samcl;
-		this.setLayout(new BorderLayout(3,3));
-		
 		//set up contorl panel
-		//System.out.println("initial "+ this.getTitle());
-		for (int i = 0; i < this.S.length; i++) {
-			B[i] = new Button(S[i]);
-			control_panel.add(B[i]);
-			B[i].addActionListener(this);
-		}
+		setupAllComponents();
+		this.add(controlPanel);
 		
-		
-		labelU = new Label(
-				"v:"+Double.toString(this.robot.getVt())+
-				",w:"+Double.toString(this.robot.getWt()));
-		control_panel.add(labelU);
-		textU[0] = new TextField();
-		textU[0].setText(String.valueOf(this.robot.getVt()));
-		control_panel.add(textU[0]);
-		textU[0].addActionListener(this);
-		textU[1] = new TextField();
-		textU[1].setText(String.valueOf(this.robot.getWt()));
-		control_panel.add(textU[1]);
-		textU[1].addActionListener(this);
-		
-		
-		label[0] = new Label(
-				Double.toString(this.robot.X));
-		label[1] = new Label(
-				Double.toString(this.robot.Y));
-		label[2] = new Label(
-				Double.toString(this.robot.H));
-		control_panel.add(label[0]);
-		control_panel.add(label[1]);
-		control_panel.add(label[2]);
-		textPose[0] = new TextField();
-		textPose[0].setText(String.format("%.2f", robot.X));
-		control_panel.add(textPose[0]);
-		textPose[0].addActionListener(this);
-		textPose[1] = new TextField();
-		textPose[1].setText(String.format("%.2f", robot.Y));
-		control_panel.add(textPose[1]);
-		textPose[1].addActionListener(this);
-		textPose[2] = new TextField();
-		textPose[2].setText(String.format("%.2f", robot.H));
-		control_panel.add(textPose[2]);
-		textPose[2].addActionListener(this);
-		
-		
-		this.add(control_panel, BorderLayout.NORTH);
-		
+		//execute monitor thread
 		if(this.robot!=null){
 			this.updateThtread.start();
 		}
 		
 		this.pack();
-		//this.setVisible(this.visualization);
+		this.setVisible(true);
 	}
 }

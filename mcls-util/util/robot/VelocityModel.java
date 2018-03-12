@@ -1,6 +1,19 @@
 package util.robot;
 
+import com.beust.jcommander.Parameter;
+import com.beust.jcommander.converters.DoubleConverter;
+
 public class VelocityModel implements Cloneable{
+	
+	@Parameter(names = {"--linearvelocity"}, 
+			description = "initial linear velocity of the simulated robot", 
+			required = false, converter = DoubleConverter.class, arity = 1)
+	public double velocity;// pixel/s
+	
+	@Parameter(names = {"--angularvelocity"}, 
+			description = "initial angular velocity of the simulated robot", 
+			required = false, converter = DoubleConverter.class, arity = 1)
+	public double angular_velocity;// degree/s
 	
 	@Override
 	public VelocityModel clone() throws CloneNotSupportedException {
@@ -19,8 +32,6 @@ public class VelocityModel implements Cloneable{
 		this.velocity = velocity;
 		this.angular_velocity = angular_velocity;
 	}
-	public double velocity;// pixel/s
-	public double angular_velocity;// degree/s
 	
 	public double getVelocity() {
 		return velocity;

@@ -3,9 +3,7 @@ package samclroe;
 import java.util.ArrayList;
 import java.util.List;
 
-import util.gui.RobotController;
-import util.gui.VariablesController;
-import util.gui.Window;
+import util.grid.Grid;
 import util.robot.Pose;
 import util.robot.RobotState;
 
@@ -40,13 +38,39 @@ public class Main {
 					,"-o","18"
 					,"-lares","20"
 					,"-lrmax","-1"
-					,"-max_dist", "-1"
 					};
 			args = targs;
 		}
 		JCommander jc = null;
 		
 		
+		
+		
+		/**
+		 * First step:
+		 * to create the localization algorithm
+		 * and setup the listener for SAMCL
+		 */
+		SAMCLROE samclroe = new SAMCLROE();
+		jc = new JCommander();
+		jc.setAcceptUnknownOptions(true);
+		jc.addObject(samclroe);
+		jc.parse(args);
+		if(samclroe.help){
+			jc.usage();
+			System.exit(0);
+		}
+		
+		Grid grid = new Grid();
+		jc = new JCommander();
+		jc.setAcceptUnknownOptions(true);
+		jc.addObject(grid);
+		jc.parse(args);
+		samclroe.setupMCL(grid);
+//		if(!samclroe.onCloud){
+			System.out.println("start to pre-caching");
+			samclroe.preCaching(grid);
+//		}	
 		
 		/**
 		 * Second step:
@@ -66,78 +90,25 @@ public class Main {
 		path.add(new Pose(150,550,270));
 		path.add(new Pose(150,150,270));
 		path.add(new Pose(150,150,0));
-		RobotState robot = new RobotState(150, 150, 0, path);
+		RobotState robot = new RobotState(/*150, 150, 0, */path);
 		jc = new JCommander();
 		jc.setAcceptUnknownOptions(true);
 		jc.addObject(robot);
 		jc.parse(args);
-		
-		/**
-		 * First step:
-		 * to create the localization algorithm
-		 * and setup the listener for SAMCL
-		 */
-		final SAMCLROE samclroe = new SAMCLROE(
-//				18, //orientation
-				(float) 0.005, //delta energy
-				100, //total particle
-				(float) 0.001, //threshold xi
-				(float) 0.6, //rate of population
-				10);//competitive strength
-		jc = new JCommander();
-		jc.setAcceptUnknownOptions(true);
-		jc.addObject(samclroe);
-		jc.parse(args);
-		if(samclroe.help){
-			jc.usage();
-			System.exit(0);
-		}
-		
-		samclroe.setupGrid(robot.laser);
-		if(!samclroe.onCloud){
-			System.out.println("start to pre-caching");
-			samclroe.preCaching();
-		}	
-		
-
-		robot.setupSimulationRobot(samclroe.grid);
-		
-		//TODO setup robot
-		RobotController robotController = new RobotController("robot controller", robot,samclroe);
-		jc = new JCommander();
-		jc.setAcceptUnknownOptions(true);
-		jc.addObject(robotController);
-		jc.parse(args);
-		robotController.setVisible(robotController.visualization);
-		VariablesController vc = new VariablesController(samclroe);
-		jc = new JCommander();
-		jc.setAcceptUnknownOptions(true);
-		jc.addObject(vc);
-		jc.parse(args);
-		vc.setVisible(vc.visualization);
-		
+		robot.setupSimulationRobot(grid);
 		
 		Thread t = new Thread(robot);
 		t.start();
-		/**
-		 * Third step:
-		 * start to run samcl
-		 */
-		//TODO WINDOW
-		Window window = new Window("samcl image", samclroe,robot);
+
 		
-		//TODO test 2014/06/19
 		int counter = 0;
 		while(!samclroe.isClosing()){
+			System.out.println(counter + " times mcl.");
 			counter++;
-			window.setTitle("samcl image:"+String.valueOf(counter));
-			robot.goStraight();
-			samclroe.run(robot, window);
-			robot.setRobotLock(true);
+//			robot.goStraight();
+			samclroe.run(robot, grid);
 			robot.robotStartOver();
 		}
-		samclroe.close();
-		robot.close();
 	}
 }
 

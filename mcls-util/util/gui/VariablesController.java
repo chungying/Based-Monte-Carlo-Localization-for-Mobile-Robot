@@ -1,6 +1,7 @@
 package util.gui;
 
 import java.awt.BorderLayout;
+import java.awt.Button;
 import java.awt.Checkbox;
 import java.awt.Component;
 import java.awt.GridLayout;
@@ -10,6 +11,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
+import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.Hashtable;
@@ -23,35 +25,30 @@ import javax.swing.JTextField;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-import com.beust.jcommander.Parameter;
-
 import samcl.SAMCL;
+import util.pf.sensor.laser.LaserModel;
 
 
-public class VariablesController extends JFrame {
-	@Parameter(names = "--visualization", help = false, required = false, arity=1)
-	public boolean visualization;
+public class VariablesController extends JFrame implements Closeable{
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = -6900761245686028716L;
-
 
 	private SAMCL mcl;
 	
 	public static final int DEFAULT_WIDTH = 350;
 	public static final int DEFAULT_HEIGHT = 450;
 	/*
-	 * the first block is for sliders
+	 * the first block is for alpha sliders
 	 * 	
 	*/
 	private double[] al;
-	
-	class SliderListener implements ChangeListener{
+	class AlphaSliderListener implements ChangeListener{
 		JTextField text;
 		double[] al;
 		int index;
-		public SliderListener(JTextField text, double[] al, int index){
+		public AlphaSliderListener(JTextField text, double[] al, int index){
 			this.text = text;
 			this.al = al;
 			this.index = index;
@@ -63,6 +60,44 @@ public class VariablesController extends JFrame {
 			al[index] = ((double)slider.getValue());
 			text.setText(String.valueOf(al[index]));
 		}
+	}
+	
+	String[] sliderNames = {"zhit", "zshort", "zmax", "zrand", "sigmahit", "lamdashort"};
+	/**
+	 * 
+	 */
+	class ZSliderListener implements ChangeListener{
+		LaserModel laserModel;
+		int idx;
+		public ZSliderListener(LaserModel model, int idx){
+			this.laserModel = model;
+			this.idx = idx;
+		}
+		@Override
+		public void stateChanged(ChangeEvent e) {
+			JSlider slider = (JSlider)e.getSource();
+			float v = (float)slider.getValue()/(slider.getMaximum() - slider.getMinimum());
+			switch(this.idx){
+			case 0:
+//				this.laserModel.z_hit = v;
+				break;
+			case 1:
+//				this.laserModel.z_short = v;
+				break;
+			case 2:
+//				this.laserModel.z_max = v;
+				break;
+			case 3:
+//				this.laserModel.z_rand = v;
+				break;
+			case 4:
+				break;
+			case 5:
+				break;
+			}
+			
+		}
+		
 	}
 	
 	class TextFieldListener implements ActionListener{
@@ -202,11 +237,65 @@ public class VariablesController extends JFrame {
 		
 	}
 	
-	public VariablesController(double[] inputAl){
-		setTitle("Variables Controller with alpha only");
-	    setSize(DEFAULT_WIDTH, DEFAULT_HEIGHT);
+	class ButtonListener extends JPanel implements ActionListener{
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = 2523953561425125807L;
+		private SAMCL samcl = null;
+		public final String buttonString[] = {
+				/*0*/"Converge", /*1*/"Restart localization", /*2*/"Global Localization"
+		};
 		
+		private static final int itemCount = 3;
 		
+		Button[] buttons = new Button[itemCount];
+		
+		ButtonListener(SAMCL samcl){
+			super();
+			this.samcl = samcl;
+			this.setLayout(new GridLayout(1,itemCount));
+			for(int i = 0 ; i < buttons.length ; i++){
+				buttons[i] = new Button(buttonString[i]);
+				this.add(buttons[i]);
+				buttons[i].addActionListener(this);
+			}
+		}
+		
+		@Override
+		public void actionPerformed(ActionEvent e) {
+			Object object = e.getSource();
+			if(object instanceof Button){
+				Button btn = (Button) object;
+				if(btn==buttons[0]){
+					///*0*/"Converge"
+					if(samcl!=null)
+						samcl.forceConverge();
+				}
+				else if(btn==buttons[1]){
+					///*1*/"Restart localization"
+					if(samcl!=null)
+						this.samcl.setTerminating(true);
+				}
+				else if(btn==buttons[2]){
+					///*2*/"Global Localization"
+					if(samcl!=null)
+						System.out.println("TODO Global localization button");
+				}
+			}
+			
+		}
+		
+	}
+	
+	public VariablesController(){
+		this.setVisible(false);
+	}
+	
+	private JPanel setupAlphaVariables(){
+		//TODO change to OdometryModel.al
+		this.al = mcl.al;
+	    
 		List<ActionListener> textlisteners;
 		List<ChangeListener> sliderlisteners;
 		List<JTextField> texts;
@@ -219,16 +308,14 @@ public class VariablesController extends JFrame {
 	    sliderlisteners = new ArrayList<ChangeListener>();
 	    sliders = new ArrayList<JSlider>();
 	    
-	    this.al = inputAl;
-	    
 	    for(int i = 0 ; i < al.length ; i++){
 			final JTextField text = new JTextField(String.valueOf(this.al[i]),4);
 			texts.add(text);
-			sliderlisteners.add( new SliderListener(text, this.al,i));
+			sliderlisteners.add( new AlphaSliderListener(text, this.al,i));
 		}
 	    int min = 0;
 		int stage = 2;
-		int max = 10000;
+		int max = 100;
 		Dictionary<Integer, Component> labelTable = new Hashtable<Integer, Component>();
 		labelTable.put(min, new JLabel(String.valueOf(min)));
 		labelTable.put(min+max/stage, new JLabel(String.valueOf(min+max/stage)));
@@ -248,24 +335,14 @@ public class VariablesController extends JFrame {
 			panel.add(new JLabel("alpha"+i));
 			panel.add(texts.get(i));
 			sliderPanel.add(panel);
-			
 			textlisteners.add(new TextFieldListener(sliders.get(i),this.al,i));
 			texts.get(i).addActionListener(textlisteners.get(i));
 		}
 		
-		add(sliderPanel,BorderLayout.CENTER);
-		
-		this.pack();
-		this.setVisible(this.visualization);
+		return sliderPanel;
 	}
-	
-	public VariablesController(SAMCL mcl){
-		this(mcl.al);
-		this.setVisible(false);
-		setTitle("Variables Controller with all variables");
-		
-		
-		this.mcl = mcl;
+
+	private JPanel setupCheckBoxes(){
 		//layout grid
 		JPanel checkPanel = new JPanel();
 		checkPanel.setLayout(new GridLayout(2,2));
@@ -286,10 +363,29 @@ public class VariablesController extends JFrame {
 		DeltaListener dl = new DeltaListener(mcl, new TextField());
 		checkPanel.add(dl);
 		//
+		return checkPanel;
 		
-		add(checkPanel,BorderLayout.SOUTH);
+	}
+	
+	public void setInstance(SAMCL mcl){
+		this.setVisible(false);
+		this.mcl = mcl;
+		setTitle("Variables Controller with all variables");
+		//setting north layout
+		add(setupAlphaVariables(),BorderLayout.NORTH);
+		
+		//setting center layout
+		add(setupCheckBoxes(),BorderLayout.CENTER);
+		
+		//setting south layout
+		add(new ButtonListener(mcl), BorderLayout.SOUTH);
+		
 		this.pack();
-		//this.setVisible(this.visualization);
+	}
+
+	@Override
+	public void close(){
+//		this.dispose();
 	}
 
 
