@@ -9,6 +9,7 @@ import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.EOFException;
@@ -16,12 +17,15 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map.Entry;
 import java.util.Scanner;
 
 import javax.swing.JFrame;
+
+import org.apache.hadoop.hbase.util.Bytes;
 /**
  * Thanks for jxue providing this class online.
  * https://john.cs.olemiss.edu/~jxue/teaching/csci112_S11/notes/hw1/PgmImage.java
@@ -78,7 +82,7 @@ public class PgmImage extends Component {
 		try {
 			dis = new DataInputStream(new BufferedInputStream(new FileInputStream(filename)));
 			readPGM(dis);
-		} catch (FileNotFoundException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		finally{
@@ -168,41 +172,62 @@ public class PgmImage extends Component {
 
 	// load gray scale pixel values from a PGM format image
 	public void readPGM(DataInputStream dis){
-		Scanner infile = null;
+		
 		try {
-			//this Scanner infile is for reading the meta data
-			dis.mark(1000000);
-			infile = new Scanner(dis);
 			// process the top 4 header lines
-		    String filetype=infile.nextLine();
-		    System.out.println("comment is : " + infile.nextLine());	   	   	   
-	   	   	cols = infile.nextInt();
-	   	   	rows = infile.nextInt();
-	   	   	maxValue = infile.nextInt();
-	   	   	System.out.println("cols: " +cols + ", rows: " + rows + ", maxValues: " + maxValue);
+	   	   	String newline = System.getProperty("line.separator");
+	   	   	ArrayList<Byte> linebytes = new ArrayList<Byte>();
+	   	   	int lineCount = 0;
+	   	   	String[] lines = new String[4];
+	   	   	headerSize = 0;
+	   	   	for(;;){
+	   	   		Byte b = dis.readByte();
+	   	   		headerSize++;
+	   	   		this.bytes.add(b);
+	   	   		String ch = new String(new byte[] {b});
+	   	   		if(ch.contains(newline) || ch.contains("\n")){
+	   	   			byte[] bs = new byte[linebytes.size()];
+	   	   			int j = 0;
+	   	   			for(Byte tempb: linebytes)
+	   	   				bs[j++] = tempb.byteValue();
+	   	   			linebytes.clear();
+	   	   			lines[lineCount++] = new String(bs);
+	   	   		}
+	   	   		else
+	   	   			linebytes.add(b);
+	   	   		if(lineCount>3){
+	   	   			System.out.println("stop reading header at the forth line.");
+	   	   			break;
+	   	   		}
+	   	   	}
+	   	   	String filetype = lines[0];
+	   	   	cols = Integer.valueOf(lines[2].split(" ")[0]);
+	   	   	rows = Integer.valueOf(lines[2].split(" ")[1]);
+	   	   	maxValue = Integer.valueOf(lines[3]);
+	   	   	System.out.println("PGM file type:" + lines[0] + ",cols: " +cols + ", rows: " + rows + ", maxValues: " + maxValue);
+	   	   	System.out.println("comment is : " + lines[1]);
 	   	   	
 	   	   	/**
 	   	   	 * it is able to read P5 and P2 format
 	   	   	 */
 	   	   	if(filetype.equalsIgnoreCase("p5")){
-		    	dis.reset();
-		    	bytes.clear();
+		    	//this.bytes.clear();
 		    	int total = cols*rows;
 		    	
 		    	try{
 		    		int progress = total/100;
 		    		for(;;){
 		    			for(int count = 0 ; count < progress; count++){
-			    			bytes.add(dis.readByte());
+		    				byte b = dis.readByte();
+		    				this.bytes.add(b);
 		    			}
-		    			int p = (int) Math.round((double)bytes.size()/(double)total*100.0);
+		    			int p = (int) Math.round((double)this.bytes.size()/(double)total*100.0);
 		    			if(p%10==0)
 		    				System.out.println("Has read " + p + "%");
 	    			}
 		    	}catch(EOFException e){
-		    		//dis.close();
 		    	}
-		    	headerSize = bytes.size()-total;
+		    	
 		    	int whiteThresh= (int)Math.round((1-0.196)*maxValue);
 		    	int blackThresh= (int)Math.round((1-0.65)*maxValue);
 				img = new BufferedImage( cols, rows, BufferedImage.TYPE_INT_ARGB );
@@ -213,7 +238,7 @@ public class PgmImage extends Component {
 				for(int row=0; row<rows; row++){
 					for(int col=0; col<cols; col++){
 						index = row*cols+col + headerSize;
-						Byte b = bytes.get(index);
+						Byte b = this.bytes.get(index);
 						int g = b & 0xFF;
 						assert(g<256 && g>=0);
 						if(g<blackThresh){
@@ -242,27 +267,22 @@ public class PgmImage extends Component {
 				}
 
 		    }else if(filetype.equalsIgnoreCase("p2")){
+		    	Scanner infile = new Scanner(dis);
 		    	pixels = new int[rows][cols];	   	       
 		   	   	// process the rest lines that hold the actual pixel values
 		   	   	for (int r=0; r<rows; r++) 
 		   	   		for (int c=0; c<cols; c++)
 		   	   			pixels[r][c] = (int)(infile.nextInt()*255.0/maxValue);
-
+		   	   	infile.close();
 				if (pixels != null)
 					pix2img();
 		    }else{
 		    	System.out.println("[readPGM]Cannot load the image type of "+filetype);
 		    }        
 	   	   	
-	    } catch(FileNotFoundException fe) {
-	    	System.out.println("Had a problem opening a file.");
-	    	fe.printStackTrace();
-	    	System.exit(0);
 	    } catch (Exception e) {
 	    	System.out.println(e.toString() + " caught in readPPM.");
 	    	e.printStackTrace();
-	    }finally{
-	    	infile.close();
 	    }
 
 	}
