@@ -66,7 +66,8 @@ $hadoop fs -ls hdfs:///user/ubuntu
 ```
 If the folder doesn't exist, create it.
 ```
-$hadoop fs -mkdir -p /user/ubuntu
+$sudo -u hdfs hdfs dfs -mkdir /user/ubuntu
+$sudo -u hdfs hdfs dfs -chown -R ec2-user:hadoop /user/ubuntu
 ```
   
 # Off-line:  
