@@ -9,17 +9,16 @@ mcls-all-8.jar is built by Java SE 8
 Compile via commands  
 undergoing...  
 
-## 2) Dispatch and Copy the jar file into HBase lib forlder in all computers   
+## 2) Dispatch jar files into HBase lib forlder in all hosts   
 If no-password ssh is set up, you can use scp to trasfer any file.  
 eg. I am going to transfer JAR.jar file to the folder, /HADOOP/HBASE/lib, at the computer named HOSTNAME via a user called USERNAME.  
 ```
-[]$scp mcls-all-7.jar USERNAME@HOSTNAME:~
-[]$ssh USERNAME@HOSTNAME
-[USERNAME@HOSTNAME ~]$sudo cp mcls-all-7.jar /HADOOP/HBASE/LIB
+$ssh USERNAME@HOSTNAME 'sudo wget -nv https://raw.githubusercontent.com/chungying/MCL-Java-Simulator-with-Hadoop/master/mcls-all-7.jar -O /usr/hdp/current/hbase-client/lib/mcls-all-7.jar'
+$ssh USERNAME@HOSTNAME 'sudo wget -nv https://raw.githubusercontent.com/chungying/MCL-Java-Simulator-with-Hadoop/master/jcommander-1.36-SNAPSHOT.jar -O /usr/hdp/current/hbase-client/lib/jcommander-1.36-SNAPSHOT.jar'
 ```
 If HDP is used, HADOOP_CLASSPATH has to be updated via Ambari. Ambari will update for all hosts.
 ```
-export HADOOP_CLASSPATH=${HADOOP_CLASSPATH}:/usr/hdp/current/hbase-client/lib:/usr/hdp/current/hbase-client/conf
+export HADOOP_CLASSPATH=${HADOOP_CLASSPATH}:/usr/hdp/current/hbase-client/lib/*:/usr/hdp/current/hbase-client/conf
 ```
 Otherwise, update /etc/profile on all hosts manully using ssh.
 ```
@@ -28,18 +27,19 @@ Otherwise, update /etc/profile on all hosts manully using ssh.
 /HBASE is HBase folder, and /HADOOP is Hadoop folder.
   
 ## 3) Modified HBase configuration file in order to setup OEWC Coprocessor  
-In hbase-site.xml, add  
+In hbase-site.xml, add 
+```
 <property>  
     <name>hbase.coprocessor.region.classes</name>  
     <value>endpoint.services.OewcEndpoint2</value>  
 </property>  
-Noting that there are some sturcture symbols for xml files so it would be better read this document in raw data.  
+```
   
 If there is any question aoubt the configuration, referring to Appendix A in HBase: The Definitive Guide.  
 Or you could refer to XML folder for my previous system configuration.  
   
 ## 4) Prepare a known environment map for robots. The format of the map is JPEG.  
-Such as map_8590.jpg, simmap.jpg, or bigmap.jpg  
+Such as map_8590.jpg, simmap.jpg, bigmap.jpg, or pgm files  
 map_8590.jpg has 85 width and 90 height.  
 simmap.jpg is 630x651.  
 bigmap.jpg is 1220x1260.  
@@ -47,19 +47,27 @@ bigmap.jpg is 1220x1260.
 ## 5) Pre-define the split keys of energy grid map for HBase  
 If there is a new map, following command can be used to find the split keys.  
 Noting that this command should be read in raw data.  
-$export SPLITKEYS=`hadoop jar mcls-all-7.jar util.metrics.Sampler -i file:///Users/ubuntu/jpg/simmap.jpg -o 18 --splitNumber 4`  
+```
+$export SPLITKEYS=`hadoop jar mcls-all-7.jar util.Sampler -i file:///Users/ubuntu/jpg/simmap.jpg -o 18 --splitNumber 4`  
+```
 -i is the map image which will be use for localization.  
 -o is the resolution of orientation.  
 --splitNumber is the number of region nodes.  
    
-## 6) Upload map.jpg into HDFS ��
+## 6) Upload map.jpg into HDFS 
 If you need more detailed instructions, access to the website ( http://hadoop.apache.org/docs/r2.7.2/hadoop-project-dist/hadoop-common/FileSystemShell.html ) or refer to the book, Hadoop: The definitive guide.  
 The simple instructions could be obtained by typing the following command.  
 $hadoop help  
   
 To upload image file to the cloud types  
+```
 $hadoop fs -copyFromLocal map.jpg hdfs:///user/ubuntu/map.jpg  
 $hadoop fs -ls hdfs:///user/ubuntu  
+```
+If the folder doesn't exist, create it.
+```
+$hadoop fs -mkdir -p /user/ubuntu
+```
   
 # Off-line:  
   
