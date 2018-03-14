@@ -92,7 +92,9 @@ You could name it in any string format.
 For instance, I would call the map, simmap.jpg, with 18 orientation resolution split into 4 parts as "simmap-18-4".  
   
 ## 3) Execute pre-caching  
+```
 $hadoop jar mcls-all-7.jar mapreduce.file2hfile.File2Hfile -t simmap-18-4 -i hdfs:///user/ubuntu/simmap.jpg -m 40 -o 18   
+```
 -t is TABLENAME eg. simmap-18-4    
 -i is image map stored in HDFS   
 -m is the number of mappers   
