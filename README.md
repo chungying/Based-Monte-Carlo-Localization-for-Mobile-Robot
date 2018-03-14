@@ -11,8 +11,21 @@ undergoing...
 
 ## 2) Dispatch and Copy the jar file into HBase lib forlder in all computers   
 If no-password ssh is set up, you can use scp to trasfer any file.  
-eg. I am going to transfer JAR.jar file to the folder, /HOME/UBUNTU/HBASE/LIB, at the computer named HOSTNAME via a user called USERNAME.  
-$scp mcls-all-7.jar USERNAME@HOSTNAME:/HOME/UBUNTU/  
+eg. I am going to transfer JAR.jar file to the folder, /HADOOP/HBASE/lib, at the computer named HOSTNAME via a user called USERNAME.  
+```
+[]$scp mcls-all-7.jar USERNAME@HOSTNAME:~
+[]$ssh USERNAME@HOSTNAME
+[USERNAME@HOSTNAME ~]$sudo cp mcls-all-7.jar /HADOOP/HBASE/LIB
+```
+If HDP is used, HADOOP_CLASSPATH has to be updated via Ambari. Ambari will update for all hosts.
+```
+export HADOOP_CLASSPATH=${HADOOP_CLASSPATH}:/usr/hdp/current/hbase-client/lib:/usr/hdp/current/hbase-client/conf
+```
+Otherwise, update /etc/profile on all hosts.
+```
+[USERNAME@HOSTNAME ~]$echo 'export HADOOP_CLASSPATH=${HADOOP_CLASSPATH}:/HBASE/lib:/HBASE/conf' | sudo tee -a /HADOOP/etc/hadoop/hadoop-env.sh
+```
+/HBASE is HBase folder, and /HADOOP is Hadoop folder.
   
 ## 3) Modified HBase configuration file in order to setup OEWC Coprocessor  
 In hbase-site.xml, add  
