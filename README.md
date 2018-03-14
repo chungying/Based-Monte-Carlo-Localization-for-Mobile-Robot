@@ -21,7 +21,7 @@ If HDP is used, HADOOP_CLASSPATH has to be updated via Ambari. Ambari will updat
 ```
 export HADOOP_CLASSPATH=${HADOOP_CLASSPATH}:/usr/hdp/current/hbase-client/lib:/usr/hdp/current/hbase-client/conf
 ```
-Otherwise, update /etc/profile on all hosts.
+Otherwise, update /etc/profile on all hosts manully using ssh.
 ```
 [USERNAME@HOSTNAME ~]$echo 'export HADOOP_CLASSPATH=${HADOOP_CLASSPATH}:/HBASE/lib:/HBASE/conf' | sudo tee -a /HADOOP/etc/hadoop/hadoop-env.sh
 ```
