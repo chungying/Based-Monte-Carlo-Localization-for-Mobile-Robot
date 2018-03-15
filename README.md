@@ -16,9 +16,15 @@ eg. I am going to transfer JAR.jar file to the folder, /HADOOP/HBASE/lib, at the
 $ssh USERNAME@HOSTNAME 'sudo wget -nv https://raw.githubusercontent.com/chungying/MCL-Java-Simulator-with-Hadoop/master/mcls-all-7.jar -O /usr/hdp/current/hbase-client/lib/mcls-all-7.jar'
 $ssh USERNAME@HOSTNAME 'sudo wget -nv https://raw.githubusercontent.com/chungying/MCL-Java-Simulator-with-Hadoop/master/jcommander-1.36-SNAPSHOT.jar -O /usr/hdp/current/hbase-client/lib/jcommander-1.36-SNAPSHOT.jar'
 ```
-If HDP is used, HADOOP_CLASSPATH has to be updated via Ambari. Ambari will update for all hosts.
+If HDP is used, HADOOP_CLASSPATH has to be updated via Ambari in ```hadoop-env.sh``` template. Ambari will update for all hosts.
 ```
-export HADOOP_CLASSPATH=${HADOOP_CLASSPATH}:/usr/hdp/current/hbase-client/lib/*:/usr/hdp/current/hbase-client/conf
+# added to the HADOOP_CLASSPATH
+if [ -d "/usr/hdp/current/hbase-client" ]; then
+  if [ -d "/etc/hbase/conf/" ]; then
+    # When using versioned RPMs, the hbase-client will be a symlink to the current folder of tez in HDP.
+    export HADOOP_CLASSPATH=${HADOOP_CLASSPATH}:/usr/hdp/current/hbase-client/lib/*:/etc/hbase/conf
+  fi
+fi
 ```
 Otherwise, update /etc/profile on all hosts manully using ssh.
 ```
