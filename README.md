@@ -116,7 +116,7 @@ $hadoop jar mcls-all-1.00.00.jar mapreduce.file2hfile.File2Hfile -t simmap-18-4 
 # On-line:  
   
 ## 1) Checking environment variables  
-Make sure ```mcls-all-1.00.00.jar``` and ```jcommander-1.36-SNAPSHOT.jar``` are in or withing the floders of ```$hadoop classpath```. Otherwise read the subsection of [Export environment variables](# Export environment variables) for more information.
+Make sure ```mcls-all-1.00.00.jar``` and ```jcommander-1.36-SNAPSHOT.jar``` are in or withing the floders of ```$hadoop classpath```. Otherwise read the subsection of [Export environment variables](README.md#1-export-environment-variables) for more information.
   
 ## 2) Execute the localization program  
 ```
