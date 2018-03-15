@@ -129,11 +129,10 @@ public class PgmImage extends Component {
 				}
 			}
 			
-			System.out.println("histogram info");
-			for(Entry<Integer,Integer> entry : histogram.entrySet())
-				System.out.println(entry.getKey() + " -> " + entry.getValue());
-			
-			System.out.println(rect.toString());
+			//System.out.println("histogram info");
+			//for(Entry<Integer,Integer> entry : histogram.entrySet())
+			//	System.out.println(entry.getKey() + " -> " + entry.getValue());
+			//System.out.println(rect.toString());
 
 			//output the data in the rectangle into a pgm file.
 			FileOutputStream fis = new FileOutputStream(filename);
@@ -156,14 +155,14 @@ public class PgmImage extends Component {
 	    		if(lines ==3)
 	    			dis.writeBytes(String.valueOf(rect.width) + " " + String.valueOf(rect.height) + "\n");
 	    	}
-	    	System.out.println("byte size of meta data:" + idx);
+	    	//System.out.println("byte size of meta data:" + idx);
 	    	for(int Y = 0; Y < (rect.height); Y++)
 	    		for(int X = 0; X < (rect.width); X++){
 	    			int index = (rect.y+Y)*cols+rect.x + X + headerSize;
 	    			dis.writeByte(bytes.get(index));
 	    		}
 	    	dis.close();
-	    	System.out.println("the image is cut.");
+	    	//System.out.println("the image is cut.");
 		}catch(Exception e){
 			e.printStackTrace();
 		}
@@ -196,7 +195,7 @@ public class PgmImage extends Component {
 	   	   		else
 	   	   			linebytes.add(b);
 	   	   		if(lineCount>3){
-	   	   			System.out.println("stop reading header at the forth line.");
+	   	   			//System.out.println("stop reading header at the forth line.");
 	   	   			break;
 	   	   		}
 	   	   	}
@@ -204,8 +203,8 @@ public class PgmImage extends Component {
 	   	   	cols = Integer.valueOf(lines[2].split(" ")[0]);
 	   	   	rows = Integer.valueOf(lines[2].split(" ")[1]);
 	   	   	maxValue = Integer.valueOf(lines[3]);
-	   	   	System.out.println("PGM file type:" + lines[0] + ",cols: " +cols + ", rows: " + rows + ", maxValues: " + maxValue);
-	   	   	System.out.println("comment is : " + lines[1]);
+	   	   	//System.out.println("PGM file type:" + lines[0] + ",cols: " +cols + ", rows: " + rows + ", maxValues: " + maxValue);
+	   	   	//System.out.println("comment is : " + lines[1]);
 	   	   	
 	   	   	/**
 	   	   	 * it is able to read P5 and P2 format
@@ -222,8 +221,8 @@ public class PgmImage extends Component {
 		    				this.bytes.add(b);
 		    			}
 		    			int p = (int) Math.round((double)this.bytes.size()/(double)total*100.0);
-		    			if(p%10==0)
-		    				System.out.println("Has read " + p + "%");
+		    			//if(p%10==0)
+		    			//	System.out.println("Has read " + p + "%");
 	    			}
 		    	}catch(EOFException e){
 		    	}
@@ -260,7 +259,7 @@ public class PgmImage extends Component {
 					int p = (int) Math.round((double)(index)/(double)bytes.size()*100.0);
 	    			int pp = p%10;
 					if(pp==0 && p!=pastP){
-	    				System.out.println("Has converted " + p + "% of PMG into BuffuredImage");
+	    				//System.out.println("Has converted " + p + "% of PMG into BuffuredImage");
 	    				pastP = p;
 	    			}
 					

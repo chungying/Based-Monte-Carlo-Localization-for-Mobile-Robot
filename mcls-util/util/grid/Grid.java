@@ -334,9 +334,8 @@ public class Grid implements FrameOwner, Closeable {
 	}
 	
 	@Override
-	public void setupFrame(boolean visualization) {
-		//check availibility of headless mode
-		if(visualization==false || GraphicsEnvironment.isHeadless()){
+	public void setupFrame(boolean displayWindow) {
+		if(displayWindow==false){
 			System.out.println("Not showing windows");
 			windowClosedFlag = true;
 			return;
@@ -360,23 +359,9 @@ public class Grid implements FrameOwner, Closeable {
 			//1.4 setup scroll panel 
 			sp = new JScrollPane(imagePanel);
 			windowFrame.getContentPane().add(sp, BorderLayout.CENTER);
-//			sp.getHorizontalScrollBar().addAdjustmentListener(new AdjustmentListener(){
-//				@Override
-//				public void adjustmentValueChanged(AdjustmentEvent arg0) {
-//					System.out.println("horizontal bar value: " + sp.getHorizontalScrollBar().getValue());
-//					System.out.println("vertical bar value: " + sp.getVerticalScrollBar().getValue());
-//				}
-//			});
-//			sp.getVerticalScrollBar().addAdjustmentListener(new AdjustmentListener(){
-//				@Override
-//				public void adjustmentValueChanged(AdjustmentEvent arg0) {
-//					System.out.println("horizontal bar value: " + sp.getHorizontalScrollBar().getValue());
-//					System.out.println("vertical bar value: " + sp.getVerticalScrollBar().getValue());
-//				}
-//			});
 			windowClosedFlag = false;
 			windowFrame.pack();
-			windowFrame.setVisible(visualization);
+			windowFrame.setVisible(displayWindow);
 		}
 	}
 
@@ -1197,6 +1182,11 @@ public class Grid implements FrameOwner, Closeable {
 
 
 	public void setupGrid() throws Exception {
+		//check availibility of headless mode
+		boolean headless = GraphicsEnvironment.isHeadless();
+		System.out.println("GraphicsEnvironment.isHeadless: " + headless);
+		if(headless)
+			this.visualization = false;
 		if(this.onCloud){
 			//retrieve map image from the cloud and initialize this.table
 			System.out.println("cloud setup");
