@@ -249,6 +249,9 @@ public class Grid implements FrameOwner, Closeable {
 	public boolean[][] map_array;
 	public position[][] G = null;
 
+	@Parameter(names = {"--help","-h"}, help = true)
+	public boolean help = false;
+
 	@ParametersDelegate
 	public LaserSensor laser = new LaserSensor();
 

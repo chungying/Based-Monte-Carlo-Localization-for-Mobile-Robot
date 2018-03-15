@@ -7,44 +7,45 @@ import util.runner.MCLRunner;
 public class Main {
 	
 	public static void main(String[] args) throws Exception{
-		//for debug mode
 		if(args.length==0){
-			String[] targs = {					
-//					"-i", "file:///Users/Jolly/workspace/dataset/simple/simmap.jpg"
-					"-i", "file:///Users/Jolly/workspace/dataset/intel_lab/intel-map.png"
-					,"-rx","120"
-					,"-ry","120"
-					,"-rh","0"
-//					,"-rx","84"
-//					,"-ry","320"
-//					,"-rh","90"
-//					"-i", "file:///Users/Jolly/workspace/dataset/dataset_fr079/fr079_maps_gridmap.bmp"
-//					,"-rx","170"
-//					,"-ry","200"
-//					,"-rh","90"
-//					"-i", "/Users/Jolly/workspace/dataset/willowgarage/willowgarage2.pgm"
-//					,"-rx","700"
-//					,"-ry","900"
-//					,"-rh","0"
-					,"--numberofparticles","1000"
-//					,"--converge","true"//forcing initial convergence of particles.
-//					,"--showparticles", "true"
-					,"--visualization", "true"
-//					,"--showmeasurements", "true"
+		        //for debug mode
+			String[] targs = {""
+					/*Map and Laser information*/
+					,"-i", "file:///Users/Jolly/workspace/dataset/intel_lab/intel-map.png"
 					,"-lares","6"
 					,"-lamin","-90"
 					,"-lamax","90"
 					,"-lrmax","500"
-					,"--sigmahit", "10"
-					,"--linearvelocity", "0"
 					,"--sensormodel", "BEAM_MODEL"//"LOG_BEAM_MODEL"
-					,"--runTimes", "0"
-//					,"--className", "mcl.MCL"
-//					,"--className", "demcmcl.DEMCMCL", "--demcgenepool", "RESAMPLED_SET"
+					,"--sigmahit", "10"
+
+					/*Robot information*/
+					,"-rx","120"
+					,"-ry","120"
+					,"-rh","0"
+					,"--linearvelocity", "0"
+
+					/*MCL settings*/
+					//,"--className", "mcl.MCL"
+					//,"--className", "demcmcl.DEMCMCL", "--demcgenepool", "RESAMPLED_SET"
 					,"--className", "imclroe.IMCLROE", "-cl", "true"
+					,"--numberofparticles","1000"
+					//,"--converge","true"//forcing initial convergence of particles.
+
+					/*Experiment settings*/
+					,"--runTimes", "0"
 					,"--forwardDist", "250"
+
+					/*Visualization part*/
+					,"--visualization", "true"
+					//,"--showparticles", "true"
+					//,"--showmeasurements", "true"
 					};
-			args = targs;
+			System.out.println("please enter arguments");
+			String[] targs2 = {"--help"};
+
+			//args = targs;
+			args = targs2;
 		}
 		
 		MCLRunner runner = new MCLRunner();
