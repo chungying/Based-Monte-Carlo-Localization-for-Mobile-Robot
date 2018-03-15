@@ -2,35 +2,19 @@
 
 
 ## 1) Compile Java and generate Jar file  
-mcls-all-6.jar is built by Java SE 6  
-mcls-all-7.jar is built by Java SE 7  
-mcls-all-8.jar is built by Java SE 8  
-
-Compile via commands  
-undergoing...  
+```
+$gradle build
+$ls build/libs/mcls-all-1.00.00.jar
+```
 
 ## 2) Dispatch jar files into HBase lib forlder in all hosts   
 If no-password ssh is set up, you can use scp to trasfer any file.  
-eg. I am going to transfer JAR.jar file to the folder, /HADOOP/HBASE/lib, at the computer named HOSTNAME via a user called USERNAME.  
+eg. I am going to transfer JAR.jar file to the folder, /HBASE/lib, at the computer named HOSTNAME via a user called USERNAME.  
 ```
-$ssh USERNAME@HOSTNAME 'sudo wget -nv https://raw.githubusercontent.com/chungying/MCL-Java-Simulator-with-Hadoop/master/mcls-all-7.jar -O /usr/hdp/current/hbase-client/lib/mcls-all-7.jar'
-$ssh USERNAME@HOSTNAME 'sudo wget -nv https://raw.githubusercontent.com/chungying/MCL-Java-Simulator-with-Hadoop/master/jcommander-1.36-SNAPSHOT.jar -O /usr/hdp/current/hbase-client/lib/jcommander-1.36-SNAPSHOT.jar'
+$scp build/libs/mcls-all-1.00.00.jar USERNAME@HOSTNAME:/tmp
+$ssh USERNAME@HOSTNAME 'sudo cp /home/USERNAME/mcls-all-1.00.00.jar /HBASE/lib/'
+$ssh USERNAME@HOSTNAME 'sudo wget -nv https://raw.githubusercontent.com/chungying/MCL-Java-Simulator-with-Hadoop/master/jcommander-1.36-SNAPSHOT.jar -O /HBASE/lib/jcommander-1.36-SNAPSHOT.jar'
 ```
-If HDP is used, HADOOP_CLASSPATH has to be updated via Ambari in ```hadoop-env.sh``` template. Ambari will update for all hosts.
-```
-# added to the HADOOP_CLASSPATH
-if [ -d "/usr/hdp/current/hbase-client" ]; then
-  if [ -d "/etc/hbase/conf/" ]; then
-    # When using versioned RPMs, the hbase-client will be a symlink to the current folder of tez in HDP.
-    export HADOOP_CLASSPATH=${HADOOP_CLASSPATH}:/usr/hdp/current/hbase-client/lib/*:/etc/hbase/conf
-  fi
-fi
-```
-Otherwise, update /etc/profile on all hosts manully using ssh.
-```
-[USERNAME@HOSTNAME ~]$echo 'export HADOOP_CLASSPATH=${HADOOP_CLASSPATH}:/HBASE/lib:/HBASE/conf' | sudo tee -a /HADOOP/etc/hadoop/hadoop-env.sh
-```
-/HBASE is HBase folder, and /HADOOP is Hadoop folder.
   
 ## 3) Modified HBase configuration file in order to setup OEWC Coprocessor  
 In hbase-site.xml, add 
@@ -54,7 +38,7 @@ bigmap.jpg is 1220x1260.
 If there is a new map, following command can be used to find the split keys.  
 Noting that this command should be read in raw data.  
 ```
-$export SPLITKEYS=`hadoop jar mcls-all-7.jar util.Sampler -i file:///Users/ubuntu/jpg/simmap.jpg -o 18 --splitNumber 4`  
+$export SPLITKEYS=`hadoop jar mcls-all-1.00.00.jar util.Sampler -i file:///Users/USERNAME/MAPIMAGE -o 18 --splitNumber 4`  
 ```
 -i is the map image which will be use for localization.  
 -o is the resolution of orientation.  
@@ -67,39 +51,62 @@ $hadoop help
   
 To upload image file to the cloud types  
 ```
-$hadoop fs -copyFromLocal map.jpg hdfs:///user/ubuntu/map.jpg  
-$hadoop fs -ls hdfs:///user/ubuntu  
+$hadoop fs -copyFromLocal map.jpg hdfs:///user/USERNAME/MAPIMAGE  
+$hadoop fs -ls hdfs:///user/USERNAME
 ```
-If the folder doesn't exist, create it.
+If the folder doesn't exist, create it with superuser permission, eg. ```hdfs```.
 ```
-$sudo -u hdfs hdfs dfs -mkdir /user/ubuntu
-$sudo -u hdfs hdfs dfs -chown -R ubuntu:hadoop /user/ubuntu
+$sudo -u hdfs hdfs dfs -mkdir /user/USERNAME
+$sudo -u hdfs hdfs dfs -chown -R USERNAME:hadoop /user/USERNAME
 ```
   
 # Off-line:  
   
 ## 1) Export environment variables  
-Before executing mcls-all-7.jar, the environment variables must be set up correctly, especially for $HADOOP_CLASSPATH.  
-Following command could automatically add routes of these jar files into $HADOOP_CLASSPATH.  
-$source environment.sh ~/mcls-all-7.jar ~/jcommander-1.36-SNAPSHOT.jar  
-   
-Following for checking   
-$echo $HADOOP_CLASSPATH   
+$HADOOP_CLASSPATH is required for ```hadoop jar JARFILE CLASS [GENERICOPTIONS] [ARGS...]``` command.
+Following could add paths of jar files into $HADOOP_CLASSPATH.  
+```
+$source environment.sh build/libs/mcls-all-1.00.00.jar jcommander-1.36-SNAPSHOT.jar
+```
+For checking the variable, type
+```$echo $HADOOP_CLASSPATH```
+or
+```$hadoop classpath```
+If permanent setting is needed, update /etc/profile on all hosts manully.
+```
+[USERNAME@HOSTNAME ~]$echo 'export HADOOP_CLASSPATH=${HADOOP_CLASSPATH}:/HBASE/lib:/HBASE/conf' | sudo tee -a /HADOOP/etc/hadoop/hadoop-env.sh
+```
+/HBASE is absolute HBase folder, and /HADOOP is absolute Hadoop folder.
+
+If HDP is used, HADOOP_CLASSPATH can be updated via Ambari in ```hadoop-env.sh``` template. Ambari will update for all hosts.
+```
+# added to the HADOOP_CLASSPATH
+if [ -d "/usr/hdp/current/hbase-client" ]; then
+  if [ -d "/etc/hbase/conf/" ]; then
+    # When using versioned RPMs, the hbase-client will be a symlink to the current folder of tez in HDP.
+    export HADOOP_CLASSPATH=${HADOOP_CLASSPATH}:/usr/hdp/current/hbase-client/lib/*:/etc/hbase/conf
+  fi
+fi
+```
    
 ## 2) Create a Table  
 Before execute pre-caching, a HBase table has to be created.  
-Please use these two commands to create a table, named TABLENAME.  
-This command is as same as 5) in previous section, please read it in raw data.   
+Please use these two commands to create a table named TABLENAME.  
+This command is as same as 5) in previous section, please read it in raw data.
+```
 $export SPLITKEYS=`hadoop jar mcls-all-7.jar util.metrics.Sampler -i file:///home/ubuntu/simmap.jpg -o 18 --splitNumber 4`  
-   
-$./createTable TABLENAME   
-TABLENAME is the name in HBase system.  
-You could name it in any string format.  
+$./createTable TABLENAME
+```
+You could name the table in any string format.  
 For instance, I would call the map, simmap.jpg, with 18 orientation resolution split into 4 parts as "simmap-18-4".  
+For checking if a table is created, find the table from the results of following command.
+```
+$echo list|hbase shell
+```
   
 ## 3) Execute pre-caching  
 ```
-$hadoop jar mcls-all-7.jar mapreduce.file2hfile.File2Hfile -t simmap-18-4 -i hdfs:///user/ubuntu/simmap.jpg -m 40 -o 18   
+$hadoop jar mcls-all-1.00.00.jar mapreduce.file2hfile.File2Hfile -t simmap-18-4 -i hdfs:///user/USERNAME/MAPIMAGE -m 40 -o 18   
 ```
 -t is TABLENAME eg. simmap-18-4    
 -i is image map stored in HDFS   
@@ -108,16 +115,13 @@ $hadoop jar mcls-all-7.jar mapreduce.file2hfile.File2Hfile -t simmap-18-4 -i hdf
    
 # On-line:  
   
-## 1) Export environment variables  
-Before executing mcls-all-7.jar, the environment variables must be set up correctly, especially for $HADOOP_CLASSPATH.  
-Following command could automatically add routes of these jar files into $HADOOP_CLASSPATH.  
-$source environment.sh ~/mcls-all-7.jar ~/jcommander-1.36-SNAPSHOT.jar  
-  
-Following for checking  
-$echo $HADOOP_CLASSPATH  
+## 1) Checking environment variables  
+Make sure ```mcls-all-1.00.00.jar``` and ```jcommander-1.36-SNAPSHOT.jar``` are in or withing the floders of ```$hadoop classpath```. Otherwise read the subsection of [Export environment variables](# Export environment variables) for more information.
   
 ## 2) Execute the localization program  
-$hadoop jar mcls-all-7.jar imclroe.Main -i file:///home/ubuntu/simmap.jpg -o 18 -cl -t simmap.18.4 -rx 250 -ry 170 --samcldelta 0.0001 --samclxi 0.05   
+```
+$hadoop jar mcls-all-1.00.00.jar imclroe.Main -i file:///home/USERNAME/MAPIMAGE -o 18 -cl -t simmap-18-4 -rx 250 -ry 170 --samcldelta 0.0001 --samclxi 0.05   
+```
 -i is the route of map image  
 -o is the resolution of the map  
 If there is "-cl", it means this execution will use the cloud compute  
@@ -133,13 +137,17 @@ If there is "-cl", it means this execution will use the cloud compute
 If there is some errors like that "Unsupported major.minor version 51.0", the vesions of Java Runtime Environment (JRE) and the JAR.jar file are different.  
 51.0 represents that the JAR.jar file is built by Java SE 7, 52.0 by Java SE 8, 50.0 by Java SE 6.  
 The current JRE version can be found out by the command.  
+```
 $java -version  
+```
   
 ## 2) When Pre-caching failed  
 Hadoop Distribution File System (HDFS) is similar to the file system of linux. Both of them require permission.
 Please check the folder in HDFS for storing HFiles, output of pre-caching, whether the permission is allowed to be read written by others.  
 The command checks file status. Please find the folder where storing HFiles of HBase.  
-$hadoop fs -ls hdfs:///user/hbase/...  
+```
+$hadoop fs -ls /user/hbase/...  
+```
 
 The command change the ownership.  
 ```
@@ -150,16 +158,20 @@ OWNER is the user who is going to own URI.
 GROUP is the group who is going to own URI.  
 URI is the routes, such as hdfs:///user/hbase. If there are many URIs, use blank separate them.  
 
-The command change the permission. Please refer to the instruction website.  
+The command change the permission. Please refer to the [instruction website](https://hadoop.apache.org/docs/r2.7.1/hadoop-project-dist/hadoop-common/FileSystemShell.html#chmod).  
+```
 $hadoop fs -chmod ...   
+```
   
 ## 3) Deleting HBase Tables
-$./removeTable.sh TABLENAME ��
+```
+$./removeTable.sh TABLENAME
+```
   
 ## 4) Making shell scripts executable  
+```
 $chmod a+x createTable.sh removeTable.sh  
-  
-## 5) NTP 
+```
 
 # Further Reading and Video
 The video shows how user can control via user interface and the performing of IMCLROE requesting computation resources on 8-node cloud server.
