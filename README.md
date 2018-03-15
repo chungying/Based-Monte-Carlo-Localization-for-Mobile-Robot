@@ -44,14 +44,14 @@ $export SPLITKEYS=`hadoop jar mcls-all-1.00.00.jar util.Sampler -i file:///Users
 -o is the resolution of orientation.  
 --splitNumber is the number of region nodes.  
    
-## 6) Upload map.jpg into HDFS 
+## 6) Upload MAPIMAGE into HDFS 
 If you need more detailed instructions, access to the website ( http://hadoop.apache.org/docs/r2.7.2/hadoop-project-dist/hadoop-common/FileSystemShell.html ) or refer to the book, Hadoop: The definitive guide.  
 The simple instructions could be obtained by typing the following command.  
 $hadoop help  
   
 To upload image file to the cloud types  
 ```
-$hadoop fs -copyFromLocal map.jpg hdfs:///user/USERNAME/MAPIMAGE  
+$hadoop fs -copyFromLocal MAPIMAGE hdfs:///user/USERNAME/
 $hadoop fs -ls hdfs:///user/USERNAME
 ```
 If the folder doesn't exist, create it with superuser permission, eg. ```hdfs```.
@@ -94,7 +94,7 @@ Before execute pre-caching, a HBase table has to be created.
 Please use these two commands to create a table named TABLENAME.  
 This command is as same as 5) in previous section, please read it in raw data.
 ```
-$export SPLITKEYS=`hadoop jar mcls-all-7.jar util.metrics.Sampler -i file:///home/ubuntu/simmap.jpg -o 18 --splitNumber 4`  
+$export SPLITKEYS=`hadoop jar mcls-all-7.jar util.Sampler -i file:///home/USERNAME/MAPIMAGE -o 18 --splitNumber 4`  
 $./createTable TABLENAME
 ```
 You could name the table in any string format.  
