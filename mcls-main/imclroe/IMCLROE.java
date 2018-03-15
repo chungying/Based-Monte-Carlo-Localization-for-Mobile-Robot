@@ -34,66 +34,6 @@ import util.robot.RobotState;
  */
 public class IMCLROE extends SAMCL{
 	
-//	public IMCLROE() throws IOException {
-//		super();
-//	}
-	//for test
-	@SuppressWarnings({ })
-	public static void main(String[] args){
-		List<Integer> list1 = new ArrayList<Integer>();
-		for(int i = 0 ; i <10; i++)
-			list1.add(i);
-		List<Integer> list2 = new ArrayList<Integer>();
-		for(int i= list1.size()-1;i>=0;i--){
-			list2.add(list1.get(i));
-			list1.remove(i);
-		}
-		System.out.println("list1:"+list1);
-		System.out.println("list2:"+list2);
-		/*
-		String i = HConstants.EMPTY_START_ROW.toString();
-		String j = HConstants.EMPTY_END_ROW.toString();
-		byte[] s = HConstants.EMPTY_START_ROW;
-		byte[] t = HConstants.EMPTY_END_ROW;
-		System.out.println("i length="+s.length);
-		System.out.println("j length="+t.length);
-		System.out.println(Bytes.compareTo(HConstants.EMPTY_START_ROW, HConstants.EMPTY_END_ROW)==0?i+"=="+j:i+"!="+j);
-		System.out.println(Bytes.compareTo(HConstants.EMPTY_START_ROW, t)>0?i+">"+j:i+"<="+j);
-		*/
-		/*
-		List<Integer> src = new ArrayList<Integer>();
-		for(int i = 0 ; i < 90;i++){
-			src.add(i);
-		}
-		
-		Map<Integer, List<Integer>> classfy = new TreeMap<Integer, List<Integer>>();
-		for(int i = 0; i < 10 ; i++){
-			classfy.put(i, new ArrayList<Integer>());
-		}
-		
-		for(Integer i:src){
-			List<Integer> list = classfy.get(i%10);
-			list.add(i);
-		}
-		
-		System.out.println(classfy.toString());*/
-		
-		/*String str = "1:2:3:4:5:";
-		String[] strs = str.split(":");
-		System.out.println(str);
-		for(String s: strs){
-			System.out.println(s);
-		}
-		System.out.println("null pointer");
-		String strnull = null;
-		try{
-			strnull.split(":");
-		}catch(Exception e){
-			System.out.println(e.toString());
-			System.out.println(e.getMessage());
-		}*/
-	}
-	
 	@Parameter(names = {"-E","--endpoint"}, 
 			description = "choose the endpoint type, oewc, oewc2, and proxy modes.", 
 			arity = 1, required = false)
@@ -110,7 +50,6 @@ public class IMCLROE extends SAMCL{
 		if (!grid.onCloud) {
 			throw new Exception("Grid is not on cloud.");
 		}
-		// TODO 
 //		robotMeasurements = robot.getMeasurements();
 		//long[] timers = new long[3];
 		List<Long> ts = null;
@@ -118,12 +57,10 @@ public class IMCLROE extends SAMCL{
 				Transformer.filterParticle(src);
 				//choose endpoint
 				if(this.endpoint==1){
-					Transformer.debugMode(debugMode, "choose the proxy endpoint version.\n");
 					//timers = this.proxyEndpoint(src, robotMeasurements);
 					ts = this.proxyEndpoint(src, /*robotMeasurements*/laserData);
 				}
 				else if(this.endpoint==2){
-					Transformer.debugMode(debugMode, "choose the oewc2 endpoint version.\n");
 					//timers = this.oewc2Endpoint(src, robotMeasurements, 1000);
 					ts = this.oewc2Endpoint(src, /*robotMeasurements*/laserData, 1000);
 				}
@@ -209,9 +146,9 @@ public class IMCLROE extends SAMCL{
 		Batch.Callback<Pair<Map<Long, String>,OewcProtos2.OewcResponse>> callback = 
 				new Batch.Callback<Pair<Map<Long, String>,OewcProtos2.OewcResponse>>() {
 			 public void update(byte[] region, byte[] row, Pair<Map<Long, String>,OewcProtos2.OewcResponse> value) {
-				 Transformer.debugMode(debugMode,"put result");
-				 Transformer.debugMode(debugMode, "Thread call time: " + value.getFirst());
-				 Transformer.debugMode(debugMode, value.getSecond().getStr());
+				 //Transformer.debugMode(debugMode,"put result");
+				 //Transformer.debugMode(debugMode, "Thread call time: " + value.getFirst());
+				 //Transformer.debugMode(debugMode, value.getSecond().getStr());
 				 results.add(new Pair<Map<Long, String>, OewcProtos2.OewcResponse>(value.getFirst(), value.getSecond()));
 			 }
 		};
@@ -341,9 +278,9 @@ public class IMCLROE extends SAMCL{
 		Batch.Callback<Pair<Map<String, Long>,OewcProtos2.OewcResponse>> callback = 
 				new Batch.Callback<Pair<Map<String, Long>,OewcProtos2.OewcResponse>>() {
 			 public void update(byte[] region, byte[] row, Pair<Map<String, Long>,OewcProtos2.OewcResponse> value) {
-				 Transformer.debugMode(debugMode,"put result");
-				 Transformer.debugMode(debugMode, "Thread call time: " + value.getFirst());
-				 Transformer.debugMode(debugMode, value.getSecond().getStr());
+				 //Transformer.debugMode(debugMode,"put result");
+				 //Transformer.debugMode(debugMode, "Thread call time: " + value.getFirst());
+				 //Transformer.debugMode(debugMode, value.getSecond().getStr());
 				 results.add(new Pair<Map<String, Long>, OewcProtos2.OewcResponse>(value.getFirst(), value.getSecond()));
 			 }
 		};
