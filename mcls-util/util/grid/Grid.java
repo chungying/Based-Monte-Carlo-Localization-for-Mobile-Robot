@@ -999,7 +999,10 @@ public class Grid implements FrameOwner, Closeable {
 			// context.getCounter(Counters.READMAP).increment(1);
 			fs = FileSystem.get(URI.create(filename), conf);
 			FSDataInputStream inputstream = fs.open(new Path(filename));
-			map_image = ImageIO.read(inputstream);
+			if(filename.contains(".pgm") || filename.contains(".PGM"))
+				map_image = (new PgmImage(inputStream)).img;
+			else
+				map_image = ImageIO.read(inputstream);
 			// context.getCounter(Counters.READ_SUCCEED).increment(1);
 			//TODO requiring max_dist of sensors.
 			this.convert2OccupiedMap(this.map_image);
