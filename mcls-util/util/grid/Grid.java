@@ -1000,7 +1000,7 @@ public class Grid implements FrameOwner, Closeable {
 			fs = FileSystem.get(URI.create(filename), conf);
 			FSDataInputStream inputstream = fs.open(new Path(filename));
 			if(filename.contains(".pgm") || filename.contains(".PGM"))
-				map_image = (new PgmImage(inputStream)).img;
+				map_image = (new PgmImage(inputstream)).img;
 			else
 				map_image = ImageIO.read(inputstream);
 			// context.getCounter(Counters.READ_SUCCEED).increment(1);
