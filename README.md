@@ -120,15 +120,16 @@ Make sure ```mcls-all-1.00.00.jar``` and ```jcommander-1.36-SNAPSHOT.jar``` are 
   
 ## 2) Execute the localization program  
 ```
-$hadoop jar mcls-all-1.00.00.jar imclroe.Main -i file:///home/USERNAME/MAPIMAGE -o 18 -cl -t simmap-18-4 -rx 250 -ry 170 --samcldelta 0.0001 --samclxi 0.05   
+$hadoop jar mcls-all-1.00.00.jar imclroe.Main -i file:///home/USERNAME/MAPIMAGE -o 18 -cl true -t simmap-18-4 -rx 250 -ry 170 --samcldelta 0.0001 --samclxi 0.05 -n 200  
 ```
 -i is the route of map image  
 -o is the resolution of the map  
-If there is "-cl", it means this execution will use the cloud compute  
+-cl refers whether this execution uses cloud computation
 -t is TABLENAME  
 -rx and -ry are not necessary, because the initial coordinate can be tuned via User Interface.
 --samcldelta is the parameter for the size of Similar Energy Region. This can be tuned via User Interface.  
 --samclxi is the sensitivity for detecting kidnapping situation  
+-n is the number of particles
   
   
 # Touble Shooting:  
