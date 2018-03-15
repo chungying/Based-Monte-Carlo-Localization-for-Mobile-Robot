@@ -10,7 +10,7 @@ import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
-import org.apache.hadoop.hbase.mapreduce.HFileOutputFormat;
+import org.apache.hadoop.hbase.mapreduce.HFileOutputFormat2;
 import org.apache.hadoop.hbase.mapreduce.LoadIncrementalHFiles;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
@@ -58,6 +58,13 @@ public class File2Hfile {
 		String mappers = cmd.getOptionValue("m");
 		String orientation = cmd.getOptionValue("o");
 		System.out.println(input);
+		conf.set("conf.input", input);
+		conf.set("conf.orientation", orientation);
+		conf.set("conf.table", tableName);
+		conf.set("conf.family.distance", "distance");
+		conf.set("conf.family.energy", "energy");
+		conf.set("conf.family.laserpoint.x", "laserpoint.x");
+		conf.set("conf.family.laserpoint.y", "laserpoint.y");
 		
 		// ImportFromFile-8-JobDef Define the job with the required classes.
 		@SuppressWarnings("deprecation")
@@ -66,13 +73,6 @@ public class File2Hfile {
 		// ((JobConf)job.getConfiguration()).setJar("/home/w514/iff.jar");
 		job.setJarByClass(File2Hbase.class);
 		
-		job.getConfiguration().set("conf.input", input);
-		job.getConfiguration().set("conf.orientation", orientation);
-		job.getConfiguration().set("conf.table", tableName);
-		job.getConfiguration().set("conf.family.distance", "distance");
-		job.getConfiguration().set("conf.family.energy", "energy");
-		job.getConfiguration().set("conf.family.laserpoint.x", "laserpoint.x");
-		job.getConfiguration().set("conf.family.laserpoint.y", "laserpoint.y");
 		job.getConfiguration().set(ImageSpliterInputFormat.MAP_NUMBER, mappers);
 		job.setInputFormatClass(ImageSpliterInputFormat.class);
 		
@@ -83,12 +83,12 @@ public class File2Hfile {
 		job.setMapOutputValueClass(Put.class);
 		job.setCombinerClass(HfileCombiner.class);
 		//job.setReducerClass(HfileReducer.class);
-		job.setOutputFormatClass(HFileOutputFormat.class);
+		job.setOutputFormatClass(HFileOutputFormat2.class);
 		String userName = System.getProperty("user.name");
 		String outputStr = "/user/"+userName+"/hfiles/"+tableName+"/"+System.currentTimeMillis();
 		FileOutputFormat.setOutputPath(job, new Path(outputStr));
 		HTable hTable = new HTable(conf, tableName);
-		HFileOutputFormat.configureIncrementalLoad(job, hTable);
+		HFileOutputFormat2.configureIncrementalLoad(job, hTable);
 		
 		if(!job.waitForCompletion(true)){
 			System.out.println("job failed");
