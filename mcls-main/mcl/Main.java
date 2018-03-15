@@ -41,7 +41,7 @@ public class Main {
 					,"--runTimes", "0"
 //					,"--className", "mcl.MCL"
 //					,"--className", "demcmcl.DEMCMCL", "--demcgenepool", "RESAMPLED_SET"
-					,"--className", "demcmcl.MIXMCL"
+					,"--className", "imclroe.IMCLROE", "-cl", "true"
 					,"--forwardDist", "250"
 					};
 			args = targs;

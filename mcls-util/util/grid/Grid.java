@@ -1202,8 +1202,6 @@ public class Grid implements FrameOwner, Closeable {
 			Configuration conf = HBaseConfiguration.create();
 			this.setupHBaseConnection(conf);
 			this.readMapImageFromHadoop(this.mapFilename, conf);
-			
-			
 		}else{
 			//retrieve map image from local filesystem
 			System.out.println("local setup");

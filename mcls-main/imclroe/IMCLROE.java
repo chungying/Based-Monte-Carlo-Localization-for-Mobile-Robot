@@ -34,14 +34,9 @@ import util.robot.RobotState;
  */
 public class IMCLROE extends SAMCL{
 	
-	public IMCLROE(boolean cloud, int orientation,
-			float deltaEnergy, int nt, float xI, float aLPHA,
-			int tournamentPresure) throws IOException {
-		super();
-	}
-
-
-
+//	public IMCLROE() throws IOException {
+//		super();
+//	}
 	//for test
 	@SuppressWarnings({ })
 	public static void main(String[] args){
@@ -111,6 +106,10 @@ public class IMCLROE extends SAMCL{
 			LaserModelData laserData,
 			Grid grid
 			)throws Exception {
+		
+		if (!grid.onCloud) {
+			throw new Exception("Grid is not on cloud.");
+		}
 		// TODO 
 //		robotMeasurements = robot.getMeasurements();
 		//long[] timers = new long[3];

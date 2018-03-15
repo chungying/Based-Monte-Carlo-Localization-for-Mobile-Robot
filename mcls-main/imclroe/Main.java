@@ -55,13 +55,15 @@ public class Main {
 		 * and setup the listener for SAMCL
 		 */
 		//TODO parameter
-		final IMCLROE imclroe = new IMCLROE(false,
-				18, //orientation
-				(float) 0.005, //delta energy
-				100, //total particle
-				(float) 0.001, //threshold xi
-				(float) 0.6, //rate of population
-				10);//competitive strength
+		final IMCLROE imclroe = new IMCLROE(
+//				false,//cloud
+//				18, //orientation
+//				(float) 0.005, //delta energy
+//				100, //total particle
+//				(float) 0.001, //threshold xi
+//				(float) 0.6, //rate of population
+//				10//competitive strength
+				);
 		jc = new JCommander();
 		jc.setAcceptUnknownOptions(true);
 		jc.addObject(imclroe);
