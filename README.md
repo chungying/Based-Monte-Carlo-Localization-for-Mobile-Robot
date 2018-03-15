@@ -45,7 +45,7 @@ $export SPLITKEYS=`hadoop jar mcls-all-1.00.00.jar util.Sampler -i file:///Users
 --splitNumber is the number of region nodes.  
    
 ## 6) Upload MAPIMAGE into HDFS 
-If you need more detailed instructions, access to the website ( http://hadoop.apache.org/docs/r2.7.2/hadoop-project-dist/hadoop-common/FileSystemShell.html ) or refer to the book, Hadoop: The definitive guide.  
+If you need more detailed instructions, access to [the website](http://hadoop.apache.org/docs/r2.7.2/hadoop-project-dist/hadoop-common/FileSystemShell.html) or refer to the book, Hadoop: The definitive guide.  
 The simple instructions could be obtained by typing the following command.  
 $hadoop help  
   
