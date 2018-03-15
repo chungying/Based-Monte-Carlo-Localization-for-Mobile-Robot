@@ -335,12 +335,13 @@ public class Grid implements FrameOwner, Closeable {
 	
 	@Override
 	public void setupFrame(boolean visualization) {
-		if(visualization==false){
+		//check availibility of headless mode
+		if(visualization==false || GraphicsEnvironment.isHeadless()){
+			System.out.println("Not showing windows");
 			windowClosedFlag = true;
 			return;
 		}
 		if (windowFrame == null) {
-			//TODO check availibility of headless mode
 			//1. initialization
 			//1.3 setup window
 			windowFrame = new WindowFrame("intell research lab Seattle", this);
@@ -1065,6 +1066,7 @@ public class Grid implements FrameOwner, Closeable {
 	public void pre_compute() {
 		if (this.onCloud) {
 			//TODO check what part of initialization of HBase connection should be moved to here.
+			
 		}
 		else{
 			this.totalProgress = this.width * this.height;
@@ -1103,7 +1105,7 @@ public class Grid implements FrameOwner, Closeable {
 	 * @param width
 	 * @param height
 	 * 
-	 * This function is mainly invoked by the cloud-based program. TODO this.laser in the cloud might not be initialized.
+	 * This function is mainly invoked by the cloud-based program. 
 	 */
 	public void pre_compute(int x, int y, int width, int height) {
 //		assert(this.orientation==this.laser.getOrientation());
