@@ -1,0 +1,43 @@
+apply plugin: 'java'
+
+//if(JavaVersion.current() != JavaVersion.VERSION_1_7){
+//    throw new GradleException("This build must be run with java 7")
+//}
+
+sourceSets {
+  main{
+    java.srcDirs = ['mcls-mapreduce', 'mcls-coprocessor', 'mcls-main', 'mcls-util']
+  }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+  // https://mvnrepository.com/artifact/org.apache.hadoop/hadoop-hdfs
+  compile group: 'org.apache.hadoop', name: 'hadoop-hdfs', version: '2.6.0'
+  
+  // https://mvnrepository.com/artifact/org.apache.hadoop/hadoop-common
+  compile group: 'org.apache.hadoop', name: 'hadoop-common', version: '2.6.0'
+  
+  // https://mvnrepository.com/artifact/org.apache.hadoop/hadoop-mapreduce-client-core
+  compile group: 'org.apache.hadoop', name: 'hadoop-mapreduce-client-core', version: '2.6.0'
+
+  // https://mvnrepository.com/artifact/org.apache.hbase/hbase-client
+  compile group: 'org.apache.hbase', name: 'hbase-client', version: '0.98.4-hadoop2'
+
+  // https://mvnrepository.com/artifact/org.apache.hbase/hbase-server
+  compile group: 'org.apache.hbase', name: 'hbase-server', version: '0.98.4-hadoop2'
+
+  // https://mvnrepository.com/artifact/org.apache.hbase/hbase-common
+  compile group: 'org.apache.hbase', name: 'hbase-common', version: '0.98.4-hadoop2'
+
+  compile files('jcommander-1.36-SNAPSHOT.jar')
+}
+
+//task getDeps(type: Copy) {
+//  from sourceSets.main.runtimeClasspath
+//  into 'runtime/'
+//}
+
