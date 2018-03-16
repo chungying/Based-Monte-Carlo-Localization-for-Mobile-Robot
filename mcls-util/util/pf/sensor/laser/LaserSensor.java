@@ -69,6 +69,7 @@ public class LaserSensor extends Sensor{
 	 */
 	@Override
 	public void setupSensor(Sensor sensor) throws Exception{
+		System.out.println("LaserSensor");
 		super.setupSensor(sensor);
 		if(LaserSensor.class.isAssignableFrom(sensor.getClass())) {
 			LaserSensor srcSensor = (LaserSensor)sensor;

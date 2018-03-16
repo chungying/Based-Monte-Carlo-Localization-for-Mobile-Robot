@@ -108,6 +108,7 @@ public class MCLRunner {
 				mcl.run(robot, grid);
 				robot.robotStartOver();
 				//TODO reset MCL
+				mcl.startOver();
 			}
 		}catch(Exception e){
 			e.printStackTrace();

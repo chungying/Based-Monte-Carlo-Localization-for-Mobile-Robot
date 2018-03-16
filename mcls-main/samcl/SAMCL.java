@@ -70,14 +70,24 @@ public class SAMCL extends MclBase implements Closeable, FrameOwner{
 		initMcl = true;
 		initialState = new MclBase();
 		initialState.setupMclBase(this);
-		initialLaser.setupSensor(sensor);
-		initialOdom.setupSensor(odomModel);
+		try{
+			initialLaser.setupSensor(sensor);
+			initialOdom.setupSensor(odomModel);
+		} catch(Exception ex) {
+			ex.printStackTrace();
+		}
 		
 	}
 
 	public void startOver(){
 		if (initMcl) {
-			;
+			this.setupMclBase(initialState);
+			try{
+				this.sensor.setupSensor(initialLaser);
+				this.odomModel.setupSensor(initialOdom);
+			} catch (Exception ex) {
+				ex.printStackTrace();
+			}
 		}
 	}
 
