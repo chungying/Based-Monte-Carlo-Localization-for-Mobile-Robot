@@ -4,7 +4,6 @@ import java.awt.Point;
 import java.io.Closeable;
 import java.sql.Time;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.AbstractMap.SimpleEntry;
 
@@ -43,82 +42,25 @@ import com.beust.jcommander.converters.FloatConverter;
  *part5:Combining two particle sets
  */
 public class SAMCL implements Closeable, FrameOwner{	
-	public SAMCL() {		
-		this.al = MCLMotionModel.al.clone();
-	}
-	
-	public void setupMCL(Grid grid) throws Exception{
-		this.sensor.setupSensor(grid.laser);
-		this.table = grid.getTable(this.tableName);
-		//Setting up windows for showing images
-		this.setupFrame(grid.visualization);
-		//TODO add a condition to choose if start mouse function or not
-		//precomputed_grid.start_mouse(precomputed_grid);
-	}
 
-
+	//TODO cached initial state
+	private boolean initMcl = false;
 	private boolean terminated = false;
 	private boolean terminating = false;
-	public void setTerminating(boolean terminate) {
-		this.terminating = terminate;
-	}
-	private void setTerminated(boolean terminated) {
-		this.terminated = terminated;
-	}
-	private boolean isTerminating() {
-		return this.terminating ;
-	}
-	public boolean hasTerminated() {
-		return this.terminated ;
-	}
-
 	private boolean closing = false;
-	public void setClosing(boolean isClosing){
-		this.closing = isClosing;
-	}
-	public boolean isClosing(){
-		return this.closing;
-	}
-
 	private boolean closed = false;
-	public boolean hasClosed(){
-		return this.closed;
-	}
-	
-	@Override
-	public void close(){
-		if (!closed) {
-			System.out.println("closing " + this.getClass().getName());
-			if (!isClosing())
-				setClosing(true);
-			if (!isTerminating())
-				setTerminating(true);
-			if (this.table != null) {
-				try {
-					this.table.close();
-				} catch (Exception e) {
-					e.printStackTrace();
-				}finally{
-					this.table = null;
-				}
-			}
-			if (vc != null){
-				this.vc.close();
-				vc.dispose();
-				vc = null;
-			}
-			this.customizedClose();
-			this.closed = true;
-		}
-	}
-	
-	protected void customizedClose(){}
+	public HTable table = null;
+	//for Determining_size()
+	protected int Nl;
+	protected int Ng;
+	//for differential odometry model
+
+	private VariablesController vc = null;
 
 	@Parameter(names = "--help", help = true)
 	public boolean help;
 
-	public HTable table = null;
-
+	//TODO cached initial state for all of these parameters
 	//check the parameters 
 	@Parameter(names = {"--showser"}, description = "if show the SER or not, default is false", required = false, arity = 1)
 	public boolean ifShowSER = false;
@@ -182,26 +124,80 @@ public class SAMCL implements Closeable, FrameOwner{
 	protected MCLLaserModel sensor = new MCLLaserModel();
 	
 //	@ParametersDelegate
-	protected MCLMotionModel odomModel = new MCLMotionModel();
-	
-	/**
-	 * Internal source of randomness.
-	 */
-//	protected static Random randSeed;
+	public MCLMotionModel odomModel = new MCLMotionModel();
 
-	/**
-	 * Initialize the static variables.
-	 */
-//	static {
-//		randSeed = new RandomAdaptor(new MersenneTwister());
-//	}
+	private void setInitPose(Pose p) {
+		initMcl = true;
+	}
 
-	//for Determining_size()
-	protected int Nl;
-	protected int Ng;
+	public void mclStartOver(){
+		if (initMcl) {
+			;
+		}
+	}
+	/**
+	*
+	*/
+	public void setupMCL(Grid grid) throws Exception{
+		this.sensor.setupSensor(grid.laser);
+		if(this.table == null)
+			this.table = grid.getTable(this.tableName);
+		//Setting up a window for variable control
+		this.setupFrame(grid.visualization);
+	}
+
+	public void setTerminating(boolean terminate) {
+		this.terminating = terminate;
+	}
+	private void setTerminated(boolean terminated) {
+		this.terminated = terminated;
+	}
+	private boolean isTerminating() {
+		return this.terminating ;
+	}
+	public boolean hasTerminated() {
+		return this.terminated ;
+	}
+
+	public void setClosing(boolean isClosing){
+		this.closing = isClosing;
+	}
+	public boolean isClosing(){
+		return this.closing;
+	}
+
+	public boolean hasClosed(){
+		return this.closed;
+	}
 	
-	//for differential odometry model
-	public double[] al;
+	@Override
+	public void close(){
+		if (!closed) {
+			System.out.println("closing " + this.getClass().getName());
+			if (!isClosing())
+				setClosing(true);
+			if (!isTerminating())
+				setTerminating(true);
+			if (this.table != null) {
+				try {
+					this.table.close();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}finally{
+					this.table = null;
+				}
+			}
+			if (vc != null){
+				this.vc.close();
+				vc.dispose();
+				vc = null;
+			}
+			this.customizedClose();
+			this.closed = true;
+		}
+	}
+	
+	protected void customizedClose(){}
 
 	/**
 	 * 
@@ -250,6 +246,7 @@ public class SAMCL implements Closeable, FrameOwner{
 		boolean debugMode = false;
 		this.setTerminated(false);
 		this.setTerminating(false);
+		//when the function is restarted, applied old arguments
 
 		ArrayList<Particle> local_set = new ArrayList<Particle>();
 		ArrayList<Particle> global_set = new ArrayList<Particle>();
@@ -282,8 +279,6 @@ public class SAMCL implements Closeable, FrameOwner{
 		this.globalSampling(current_set, robot, grid);
 		//Initial Weighting
 		this.weightAssignment(current_set, robot, laserDataWithModel, grid);
-		//TODO Is initial resampling required?
-//		this.localResampling(current_set, last_set, robot, laserDataWithModel);
 		last_set.addAll(current_set);
 		PoseWithCovariance estimate = estimatePose(last_set, new PoseWithCovariance(laserDataWithModel.data.timeStamp));
 		updateImagePanel(grid, robot, estimate, current_set, null);
@@ -401,7 +396,7 @@ public class SAMCL implements Closeable, FrameOwner{
 						"Combining Time	        : \t" + combiminingTime + "\tms"+"\n",
 						"Averaging Time	        : \t" + averageTime + "\tms"+"\n",
 						"Default Delay Time     : \t" + this.period + "\tms"+"\n",
-						"Alpha argument         : \t" + Arrays.toString(this.al) + "\n",
+						"Alpha argument         : \t" + this.odomModel.alphasToString() + "\n",
 						
 						"*************************\n"
 						);
@@ -462,10 +457,9 @@ public class SAMCL implements Closeable, FrameOwner{
 		Record.allRecords.add(record);
 	}
 
-	private VariablesController vc = null;
 	@Override
-	public void setupFrame(boolean visualization) {
-		if(visualization==false)
+	public void setupFrame(boolean display) {
+		if(display==false)
 			return;
 		if(vc == null){
 			vc = new VariablesController();
@@ -520,18 +514,6 @@ public class SAMCL implements Closeable, FrameOwner{
 	private static QuantityType[] types = new QuantityType[]{QuantityType.Length, QuantityType.Length, QuantityType.Angle};
 	
 	private static PoseWithCovariance estimatePose(List<Particle> particleSet, PoseWithCovariance estimate) {
-//	private SimpleEntry<Particle, double[][]> estimatePose(List<Particle> particleSet, PoseWithCovariance estimate) {
-//		double xSum = 0;
-//		double ySum = 0;
-//		double thCosSum = 0, thSinSum = 0;
-//		double totalW = 0;
-//		for(Particle p : particleSet){
-//			totalW += p.getNomalizedWeight();
-//			xSum = xSum + p.getNomalizedWeight()*p.getDX();
-//			ySum = ySum + p.getNomalizedWeight()*p.getDY();
-//			thCosSum = thCosSum + p.getNomalizedWeight()*Math.cos(Math.toRadians(p.getTh()));
-//			thSinSum = thSinSum + p.getNomalizedWeight()*Math.sin(Math.toRadians(p.getTh()));
-//		}
 		Object[] sums = new Object[types.length];
 		double[] means = new double[types.length];
 		double[][] covAccu = new double[types.length-1][types.length-1];
@@ -606,7 +588,7 @@ public class SAMCL implements Closeable, FrameOwner{
 		dst.clear();
 //		odomModel.prediction();
 		for(Particle p : src){
-			Particle predictedParticle = MCLMotionModel.OdemetryMotionSampling(p, currentPose, previousPose, duration, /*randSeed,*/ al);
+			Particle predictedParticle = MCLMotionModel.OdemetryMotionSampling(p, currentPose, previousPose, duration, odomModel);
 			p.setX(predictedParticle.getDX());
 			p.setY(predictedParticle.getDY());
 			p.setTh(predictedParticle.getTh());
@@ -826,8 +808,6 @@ public class SAMCL implements Closeable, FrameOwner{
 			//System.out.println();
 		}
 	}
-	
-	
 
 	/**
 	 * input:XLt,XGt

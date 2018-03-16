@@ -2,6 +2,8 @@ package util.runner;
 
 import java.lang.StringBuilder;
 
+import java.util.Arrays;
+
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
@@ -28,6 +30,8 @@ public class MCLRunner {
 			required = false, 
 			arity = 1)
 	private double forwardDist = -1;
+
+
 	
 	public void run(String[] args) throws Exception {
 		Grid grid = null;
@@ -82,7 +86,7 @@ public class MCLRunner {
 			 * Second step:
 			 * setup MCL
 			 */
-			mcl.setupMCL(grid);
+			//mcl.setupMCL(grid);
 			
 			/**
 			 * Third step:
@@ -92,7 +96,7 @@ public class MCLRunner {
 			if(this.forwardDist >=0 ){
 				robot.setPath(new Pose(robot.X + this.forwardDist, robot.Y, robot.H));
 			}
-			grid.setupCloseableObjs(robot/*, mcl, grid*/);
+			grid.setupCloseableObjs(robot);
 			new Thread(robot).start();
 			
 			int counter = 0;		
@@ -100,8 +104,10 @@ public class MCLRunner {
 					&& ( !mcl.hasClosed() && !robot.isRobotClosing()) ){
 				counter++;
 				System.out.println(counter + " times mcl.");
+				mcl.setupMCL(grid);
 				mcl.run(robot, grid);
 				robot.robotStartOver();
+				//TODO reset MCL
 			}
 		}catch(Exception e){
 			e.printStackTrace();

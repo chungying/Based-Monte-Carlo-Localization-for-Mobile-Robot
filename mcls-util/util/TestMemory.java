@@ -5,6 +5,7 @@ import java.lang.Runtime;
 * Class: TestMemory
 * @author: Viral Patel
 * @description: Prints JVM memory utilization statistics
+* http://viralpatel.net/blogs/getting-jvm-heap-size-used-memory-total-memory-using-java-runtime/
 */
 public class TestMemory {
   

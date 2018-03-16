@@ -344,6 +344,8 @@ public class Grid implements FrameOwner, Closeable {
 			return;
 		}
 		if (windowFrame == null) {
+			//TODO add a condition to choose if start mouse function or not
+			//precomputed_grid.start_mouse(precomputed_grid);
 			//1. initialization
 			//1.3 setup window
 			windowFrame = new WindowFrame("intell research lab Seattle", this);

@@ -1,5 +1,7 @@
 package util.pf.sensor.odom.callbackfunc;
 
+import com.beust.jcommander.Parameter;
+
 import util.Distribution;
 import util.Transformer;
 import util.pf.Particle;
@@ -7,7 +9,7 @@ import util.pf.sensor.Sensor;
 import util.pf.sensor.odom.OdometricSensor;
 import util.robot.Pose;
 
-public class MCLMotionModel extends OdometricSensor{//TODO use this class to handle alpha parameters
+public class MCLMotionModel extends OdometricSensor{
 
 	public static enum ModelType{
 		ODOMETRY_MODEL, DEFAULT;
@@ -20,24 +22,41 @@ public class MCLMotionModel extends OdometricSensor{//TODO use this class to han
 			return ModelType.DEFAULT;
 		}
 	}
+
 	public double[] alphas = al.clone();
-	public static double[] al = {
+	private static double[] al = {
 			5,5,
 			5,5,
 			5,5
 		};
-//	public static double[] al = {
-//			25,25,
-//			25,25,
-//			25,25
-//		};
+
+	@Parameter(names = {"--odomAlpha1"}, description = "alpha parameter for odometric model", required = false, arity = 1)
+	public double alpha1 = 5;
+	
+	@Parameter(names = {"--odomAlpha2"}, description = "alpha parameter for odometric model", required = false, arity = 1)
+	public double alpha2 = 5;
+	
+	@Parameter(names = {"--odomAlpha3"}, description = "alpha parameter for odometric model", required = false, arity = 1)
+	public double alpha3 = 5;
+	
+	@Parameter(names = {"--odomAlpha4"}, description = "alpha parameter for odometric model", required = false, arity = 1)
+	public double alpha4 = 5;
+	
+	@Parameter(names = {"--odomAlpha5"}, description = "alpha parameter for odometric model", required = false, arity = 1)
+	public double alpha5 = 5;
+	
+	@Parameter(names = {"--odomAlpha6"}, description = "alpha parameter for odometric model", required = false, arity = 1)
+	public double alpha6 = 5;
 	
 	protected ModelType modelType = ModelType.DEFAULT;
 	@Override
 	public void setupSensor(Sensor sensor) throws Exception {
 		super.setupSensor(sensor);
 		if(MCLMotionModel.class.isAssignableFrom(sensor.getClass())){
-			this.modelType = ((MCLMotionModel)sensor).getModelType();
+			MCLMotionModel temp = ((MCLMotionModel)sensor);
+			this.modelType = temp.getModelType();
+			//this.alphas = temp.alphas;
+			System.arraycopy( temp.alphas, 0, this.alphas, 0, temp.alphas.length );
 		}
 		this.setupCallbackFunction();
 	}
@@ -61,6 +80,11 @@ public class MCLMotionModel extends OdometricSensor{//TODO use this class to han
 		}
 	}
 	
+	public String alphasToString(){
+		//return Arrays.toString(this.alphas);
+		return "[" + alpha1 + ", " + alpha2 + ", " + alpha3 + ", " + alpha4 + ", " + alpha5 + ", " + alpha6 + "]";
+	}
+
 	public void prediction(){
 		//TODO
 	}
@@ -71,9 +95,9 @@ public class MCLMotionModel extends OdometricSensor{//TODO use this class to han
 	 * @param preP
 	 * @param deltaT
 	 * @param random
-	 * @param al
+	 * @param model
 	 */
-	public static Particle OdemetryMotionSampling(final Particle p, final Pose curP, final Pose preP, double deltaT, /*Random random,*/ double[] al) /*throws Exception*/{
+	public static Particle OdemetryMotionSampling(final Particle p, final Pose curP, final Pose preP, double deltaT, MCLMotionModel model) {
 		double xbardelta = curP.X-preP.X;
 		double ybardelta = curP.Y-preP.Y;
 		if(xbardelta==0)
@@ -88,9 +112,9 @@ public class MCLMotionModel extends OdometricSensor{//TODO use this class to han
 			rot1 = Pose.deltaTheta(Transformer.checkHeadRange(Math.toDegrees(Math.atan2(ybardelta,xbardelta))),preP.H);
 		double rot2 = Pose.deltaTheta(curP.H, preP.H)-rot1;
 		
-		double v1 = Distribution.sample_normal_distribution(al[0] * rot1 + al[1] * trans/*, random*/);
-		double v2 = Distribution.sample_normal_distribution(al[2] * trans + al[3] * (rot1 + rot2)/*, random*/);
-		double v3 = Distribution.sample_normal_distribution(al[4] * rot2 + al[5] * trans/*, random*/);
+		double v1 = Distribution.sample_normal_distribution(model.alpha1 * rot1  + model.alpha2 * trans/*, random*/);
+		double v2 = Distribution.sample_normal_distribution(model.alpha3 * trans + model.alpha4 * (rot1 + rot2)/*, random*/);
+		double v3 = Distribution.sample_normal_distribution(model.alpha5 * rot2  + model.alpha6 * trans/*, random*/);
 		double rot1c = rot1 - v1;
 		double transc= trans - v2;
 		double rot2c = rot2 - v3;

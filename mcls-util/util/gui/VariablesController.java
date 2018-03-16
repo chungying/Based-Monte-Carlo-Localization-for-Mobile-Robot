@@ -294,7 +294,8 @@ public class VariablesController extends JFrame implements Closeable{
 	
 	private JPanel setupAlphaVariables(){
 		//TODO change to OdometryModel.al
-		this.al = mcl.al;
+		//this.al = mcl.al;
+		this.al = mcl.odomModel.alphas;
 	    
 		List<ActionListener> textlisteners;
 		List<ChangeListener> sliderlisteners;
