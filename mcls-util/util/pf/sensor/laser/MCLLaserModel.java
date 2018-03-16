@@ -65,7 +65,6 @@ public class MCLLaserModel extends LaserModel{
 	
 	@Override
 	public void setupSensor(Sensor sensor) throws Exception {
-		System.out.println("MCLLaserModel");
 		super.setupSensor(sensor);
 		if(MCLLaserModel.class.isAssignableFrom(sensor.getClass())){
 			this.modelType = ((MCLLaserModel)sensor).modelType;

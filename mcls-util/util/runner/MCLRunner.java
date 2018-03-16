@@ -113,7 +113,6 @@ public class MCLRunner {
 		}catch(Exception e){
 			e.printStackTrace();
 		}finally{
-			System.out.println("finally closing");
 			if(mcl!=null)
 				mcl.close();
 			if(robot!=null)

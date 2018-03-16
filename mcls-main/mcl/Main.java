@@ -23,18 +23,20 @@ public class Main {
 					,"-rx","120"
 					,"-ry","120"
 					,"-rh","0"
-					,"--linearvelocity", "0"
+					,"--linearvelocity", "10"
 
 					/*MCL settings*/
-					//,"--className", "mcl.MCL"
+					,"--className", "mcl.MCL"
 					//,"--className", "demcmcl.DEMCMCL", "--demcgenepool", "RESAMPLED_SET"
-					,"--className", "imclroe.IMCLROE", "-cl", "true"
-					,"--numberofparticles","1000"
-					//,"--converge","true"//forcing initial convergence of particles.
+					//,"--className", "imclroe.IMCLROE", "-cl", "true"
+					,"--particleNumber","200"
+					,"--converge","true"//forcing initial convergence of particles.
 
 					/*Experiment settings*/
-					,"--runTimes", "0"
-					,"--forwardDist", "250"
+					,"--runTimes", "2"
+					,"--forwardDist", "20"
+					,"--debug","True"
+					//,"--help"
 
 					/*Visualization part*/
 					,"--visualization", "true"
@@ -44,8 +46,8 @@ public class Main {
 			System.out.println("please enter arguments");
 			String[] targs2 = {"--help"};
 
-			//args = targs;
-			args = targs2;
+			args = targs;
+			//args = targs2;
 		}
 		
 		MCLRunner runner = new MCLRunner();

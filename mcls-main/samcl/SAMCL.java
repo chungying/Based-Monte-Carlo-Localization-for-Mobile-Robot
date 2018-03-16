@@ -56,8 +56,8 @@ public class SAMCL extends MclBase implements Closeable, FrameOwner{
 
 	//caching the initial state
 	protected MclBase initialState = null;
-	protected MCLLaserModel initialLaser = null;
-	protected MCLMotionModel initialOdom = null;
+	protected MCLLaserModel initialLaser = new MCLLaserModel();
+	protected MCLMotionModel initialOdom = new MCLMotionModel();
 
 	@ParametersDelegate
 	protected MCLLaserModel sensor = new MCLLaserModel();//for sensor model of MCL
@@ -173,7 +173,6 @@ public class SAMCL extends MclBase implements Closeable, FrameOwner{
 	public void run(RobotState robot, Grid grid) throws Exception{
 		if(this.isClosing())
 			return;
-		System.out.println("start!");
 		if(this.debugMode)
 			System.out.print(
 				"counter\t"	+

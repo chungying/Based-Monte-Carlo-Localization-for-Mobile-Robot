@@ -1189,7 +1189,6 @@ public class Grid implements FrameOwner, Closeable {
 	public void setupGrid() throws Exception {
 		//check availibility of headless mode
 		boolean headless = GraphicsEnvironment.isHeadless();
-		System.out.println("GraphicsEnvironment.isHeadless: " + headless);
 		if(headless)
 			this.visualization = false;
 		if(this.onCloud){
@@ -1201,7 +1200,6 @@ public class Grid implements FrameOwner, Closeable {
 			this.readMapImageFromHadoop(this.mapFilename, conf);
 		}else{
 			//retrieve map image from local filesystem
-			System.out.println("local setup");
 			this.readMapImageFromLocal();
 			
 		}
