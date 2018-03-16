@@ -41,109 +41,53 @@ import com.beust.jcommander.converters.FloatConverter;
  *part4:Drawing global samples
  *part5:Combining two particle sets
  */
-public class SAMCL implements Closeable, FrameOwner{	
+public class SAMCL extends MclBase implements Closeable, FrameOwner{	
 
-	//TODO cached initial state
+	//variables not parameters
 	private boolean initMcl = false;
 	private boolean terminated = false;
 	private boolean terminating = false;
 	private boolean closing = false;
 	private boolean closed = false;
-	public HTable table = null;
-	//for Determining_size()
-	protected int Nl;
-	protected int Ng;
-	//for differential odometry model
+	public HTable table = null;//for cloud computation
+	protected int Nl;//for Determining_size()
+	protected int Ng;//for Determining_size()
+	private VariablesController vc = null;//for visualization
 
-	private VariablesController vc = null;
+	//caching the initial state
+	protected MclBase initialState = null;
+	protected MCLLaserModel initialLaser = null;
+	protected MCLMotionModel initialOdom = null;
 
-	@Parameter(names = "--help", help = true)
-	public boolean help;
-
-	//TODO cached initial state for all of these parameters
-	//check the parameters 
-	@Parameter(names = {"--showser"}, description = "if show the SER or not, default is false", required = false, arity = 1)
-	public boolean ifShowSER = false;
-
-	@Parameter(names = {"--showparticles"}, description = "if show the particles or not, default is false", required = false, arity = 1)
-	public boolean ifShowParticles = false;
-
-	@Parameter(names = {"--showmeasurements"}, description = "if show the measurements or not, default is false", required = false, arity = 1)
-	public boolean ifShowSensors = false;
-
-	@Parameter(names = {"-sr","--safeRange"}, description = "the range of edge which wouldn't be used in process, must be greater than 1, default is 10 pixel.", required = false, arity = 1)
-	public int safe_edge = 10;
-
-	@Parameter(names = {"-c","--converge"}, description = "start up/stop debug mode, default is to start up", required = false, arity = 1)
-	private boolean convergeFlag = false;
-
-	@Parameter(names = "--ignore", description = "robot and mcls ignore network letancy, default is false to consider it.", required = false, arity = 1)
-	public boolean ignore = false;
-	
-	@Parameter(names = {"-D","--debug"}, description = "start up/stop debug mode, default is to start up", required = false, arity = 1)
-	public boolean debugMode = false;
-	
-	@Parameter(names = "--period", description = "the period of an executed time.", required = false, arity = 1)
-	private int period = 0;
-
-	//for Caculating_SER()
-	@Parameter(names = {"-d","--samcldelta"}, description = "the delta of SER, default is 0.01", required = false, arity = 1, converter = FloatConverter.class)
-	public float deltaEnergy = (float)0.01;
-	
-	//for Determining_size()
-	@Parameter(names = {"-x","--samclxi"}, description = "the sensitive coefficient, default is 0.1", required = false, arity = 1, converter = FloatConverter.class)
-	public float XI = (float)0.1;
-	
-	@Parameter(names = {"-a","--samclalpha"}, description = "the ratio of population(global:local), default is 0.6", required = false, arity = 1, converter = FloatConverter.class)
-	public float ALPHA = (float)0.6;
-	
-	@Parameter(names = {"--resampleinterval"}, description = "the interval of resmapling, default is 1.", required = false, arity = 1)
-	int resampleInterval = 1;
-	
-	@Parameter(names = {"-n","--numberofparticles"}, description = "the number of total population, default is 100 particles.", required = true, arity = 1)
-	public int Nt = 100;
-
-	@Parameter(names = {"-t","--tableName"}, description = "the name of HBase table, default is \"map.512.4.split\"", required = false, arity = 1)
-	public String tableName = "map.512.4.split";
-	
-	@Parameter(names = {"-p","--tournamentPresure"}, description = "the tournament presure, default is 10 particles.", required = false, arity = 1)
-	private int tournamentPresure = 10;
-	
-	@Parameter(names = {"--updateMinDistance"}, 
-			description = "the tournament presure, default is 10 particles.", 
-			required = false, arity = 1)
-	private double dThresh = 0.001;
-	
-	@Parameter(names = {"--updateMinAngle"}, 
-			description = "the tournament presure, default is 10 particles.", 
-			required = false, arity = 1)
-	private double aThresh = 0.001;
-	
-	//for sensor model of particle filter
 	@ParametersDelegate
-	protected MCLLaserModel sensor = new MCLLaserModel();
+	protected MCLLaserModel sensor = new MCLLaserModel();//for sensor model of MCL
 	
-//	@ParametersDelegate
-	public MCLMotionModel odomModel = new MCLMotionModel();
+	@ParametersDelegate
+	public MCLMotionModel odomModel = new MCLMotionModel();//for odometry model of MCL
 
-	private void setInitPose(Pose p) {
+	private void setInitState() {
+		//TODO
 		initMcl = true;
+		initialState = new MclBase();
+		initialState.setupMclBase(this);
+		initialLaser.setupSensor(sensor);
+		initialOdom.setupSensor(odomModel);
+		
 	}
 
-	public void mclStartOver(){
+	public void startOver(){
 		if (initMcl) {
 			;
 		}
 	}
-	/**
-	*
-	*/
+
 	public void setupMCL(Grid grid) throws Exception{
 		this.sensor.setupSensor(grid.laser);
 		if(this.table == null)
 			this.table = grid.getTable(this.tableName);
 		//Setting up a window for variable control
 		this.setupFrame(grid.visualization);
+		this.setInitState();
 	}
 
 	public void setTerminating(boolean terminate) {

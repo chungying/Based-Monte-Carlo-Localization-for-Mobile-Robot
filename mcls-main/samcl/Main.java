@@ -67,10 +67,10 @@ public class Main {
 			jc.setAcceptUnknownOptions(true);
 			jc.addObject(samcl);
 			jc.parse(args);
-			if(samcl.help){
-				jc.usage();
-				System.exit(0);
-			}
+			//if(samcl.help){
+			//	jc.usage();
+			//	System.exit(0);
+			//}
 			
 			Grid grid = new Grid();
 			jc = new JCommander();

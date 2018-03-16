@@ -41,8 +41,17 @@ public class LaserModel extends LaserSensor{
 	@Override
 	public void setupSensor(Sensor sensor) throws Exception {
 		super.setupSensor(sensor);
+		if(LaserModel.class.isAssignableFrom(sensor.getClass())){
+			LaserModel src = (LaserModel)sensor;
+			this.sigma_hit = src.sigma_hit;
+			this.lambda_short = src.lambda_short;
+			this.z_hit   = src.z_hit  ;
+			this.z_short = src.z_short;
+			this.z_max   = src.z_max  ;
+			this.z_rand  = src.z_rand ;
+		}
 		//public float sigma_hit = 4; //unit in pixels
-		if(this.sigma_hit==0)
+		if(sigma_hit==0)
 			throw new Exception("laser variance cannot be zero.");
 		if(lambda_short <= 0)
 			throw new Exception("lamda_short cannot be eaqual to or smaller than zero.");

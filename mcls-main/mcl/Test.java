@@ -64,10 +64,10 @@ public class Test extends MCL{
 		jc.setAcceptUnknownOptions(true);
 		jc.addObject(mcl);
 		jc.parse(args);
-		if(mcl.help){
-			jc.usage();
-			System.exit(0);
-		}
+		//if(mcl.help){
+		//	jc.usage();
+		//	System.exit(0);
+		//}
 		
 		Grid grid = new Grid();
 		jc = new JCommander();

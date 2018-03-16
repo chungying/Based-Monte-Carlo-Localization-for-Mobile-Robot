@@ -23,12 +23,45 @@ public class MCLMotionModel extends OdometricSensor{
 		}
 	}
 
-	public double[] alphas = al.clone();
-	private static double[] al = {
-			5,5,
-			5,5,
-			5,5
-		};
+	public void setAlpha(int index, double value) {
+		switch(index) {
+		case 0: alpha1 = value;
+			break;
+		case 1: alpha2 = value;
+			break;
+		case 2: alpha3 = value;
+			break;
+		case 3: alpha4 = value;
+			break;
+		case 4: alpha5 = value;
+			break;
+		case 5: alpha6 = value;
+			break;
+		default: alpha1 = value;
+			break;
+		}
+	}
+
+	public double getAlpha(int index) {
+		double alpha;
+		switch(index) {
+		case 0: alpha = alpha1;
+			break;
+		case 1: alpha = alpha2;
+			break;
+		case 2: alpha = alpha3;
+			break;
+		case 3: alpha = alpha4;
+			break;
+		case 4: alpha = alpha5;
+			break;
+		case 5: alpha = alpha6;
+			break;
+		default: alpha = alpha1;
+			break;
+		}
+		return alpha;
+	}
 
 	@Parameter(names = {"--odomAlpha1"}, description = "alpha parameter for odometric model", required = false, arity = 1)
 	public double alpha1 = 5;
@@ -55,8 +88,12 @@ public class MCLMotionModel extends OdometricSensor{
 		if(MCLMotionModel.class.isAssignableFrom(sensor.getClass())){
 			MCLMotionModel temp = ((MCLMotionModel)sensor);
 			this.modelType = temp.getModelType();
-			//this.alphas = temp.alphas;
-			System.arraycopy( temp.alphas, 0, this.alphas, 0, temp.alphas.length );
+			this.alpha1 = temp.alpha1;
+			this.alpha2 = temp.alpha2;
+			this.alpha3 = temp.alpha3;
+			this.alpha4 = temp.alpha4;
+			this.alpha5 = temp.alpha5;
+			this.alpha6 = temp.alpha6;
 		}
 		this.setupCallbackFunction();
 	}
@@ -81,7 +118,6 @@ public class MCLMotionModel extends OdometricSensor{
 	}
 	
 	public String alphasToString(){
-		//return Arrays.toString(this.alphas);
 		return "[" + alpha1 + ", " + alpha2 + ", " + alpha3 + ", " + alpha4 + ", " + alpha5 + ", " + alpha6 + "]";
 	}
 

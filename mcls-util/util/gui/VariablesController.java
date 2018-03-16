@@ -27,6 +27,7 @@ import javax.swing.event.ChangeListener;
 
 import samcl.SAMCL;
 import util.pf.sensor.laser.LaserModel;
+import util.pf.sensor.odom.callbackfunc.MCLMotionModel;
 
 
 public class VariablesController extends JFrame implements Closeable{
@@ -39,26 +40,23 @@ public class VariablesController extends JFrame implements Closeable{
 	
 	public static final int DEFAULT_WIDTH = 350;
 	public static final int DEFAULT_HEIGHT = 450;
-	/*
-	 * the first block is for alpha sliders
-	 * 	
-	*/
-	private double[] al;
+
+	private MCLMotionModel odomModel;
 	class AlphaSliderListener implements ChangeListener{
 		JTextField text;
-		double[] al;
+		MCLMotionModel odomModel;
 		int index;
-		public AlphaSliderListener(JTextField text, double[] al, int index){
+		public AlphaSliderListener(JTextField text, MCLMotionModel odomModel, int index){
 			this.text = text;
-			this.al = al;
+			this.odomModel = odomModel;
 			this.index = index;
 		}
 		@Override
 		public void stateChanged(ChangeEvent e) {
 			System.out.println("changed!!!");
 			JSlider slider = (JSlider)e.getSource();
-			al[index] = ((double)slider.getValue());
-			text.setText(String.valueOf(al[index]));
+			odomModel.setAlpha(index,((double)slider.getValue()));
+			text.setText(String.valueOf(odomModel.getAlpha(index)));
 		}
 	}
 	
@@ -102,11 +100,11 @@ public class VariablesController extends JFrame implements Closeable{
 	
 	class TextFieldListener implements ActionListener{
 		JSlider slider;
-		double[] al;
+		MCLMotionModel odomModel;
 		int index;
-		public TextFieldListener(JSlider slider, double[] al, int index){
+		public TextFieldListener(JSlider slider, MCLMotionModel odomModel, int index){
 			this.slider = slider;
-			this.al = al;
+			this.odomModel = odomModel;
 			this.index = index;
 		}
 		
@@ -114,8 +112,8 @@ public class VariablesController extends JFrame implements Closeable{
 		public void actionPerformed(ActionEvent e) {
 			System.out.println("action!!!");
 			JTextField text = (JTextField)e.getSource();
-			al[index] = Double.parseDouble(text.getText());
-			slider.setValue((int)al[index]);
+			odomModel.setAlpha(index,Double.parseDouble(text.getText()));
+			slider.setValue((int)odomModel.getAlpha(index));
 		}
 		
 	}
@@ -293,28 +291,26 @@ public class VariablesController extends JFrame implements Closeable{
 	}
 	
 	private JPanel setupAlphaVariables(){
-		//TODO change to OdometryModel.al
-		//this.al = mcl.al;
-		this.al = mcl.odomModel.alphas;
+		this.odomModel = mcl.odomModel;
 	    
 		List<ActionListener> textlisteners;
 		List<ChangeListener> sliderlisteners;
 		List<JTextField> texts;
 		List<JSlider> sliders;
 		JPanel sliderPanel;
-	    sliderPanel = new JPanel();
-	    sliderPanel.setLayout(new GridLayout(3,2));
-	    textlisteners = new ArrayList<ActionListener>();
-	    texts = new ArrayList<JTextField>();
-	    sliderlisteners = new ArrayList<ChangeListener>();
-	    sliders = new ArrayList<JSlider>();
+		sliderPanel = new JPanel();
+		sliderPanel.setLayout(new GridLayout(3,2));
+		textlisteners = new ArrayList<ActionListener>();
+		texts = new ArrayList<JTextField>();
+		sliderlisteners = new ArrayList<ChangeListener>();
+		sliders = new ArrayList<JSlider>();
 	    
-	    for(int i = 0 ; i < al.length ; i++){
-			final JTextField text = new JTextField(String.valueOf(this.al[i]),4);
+		for(int i = 0 ; i < 6; i++){
+			final JTextField text = new JTextField(String.valueOf(this.odomModel.getAlpha(i)),4);
 			texts.add(text);
-			sliderlisteners.add( new AlphaSliderListener(text, this.al,i));
+			sliderlisteners.add( new AlphaSliderListener(text, this.odomModel, i));
 		}
-	    int min = 0;
+		int min = 0;
 		int stage = 2;
 		int max = 100;
 		Dictionary<Integer, Component> labelTable = new Hashtable<Integer, Component>();
@@ -323,7 +319,7 @@ public class VariablesController extends JFrame implements Closeable{
 		labelTable.put(max, new JLabel(String.valueOf(max)));
 		JSlider slider;
 		for(int i = 0 ; i<sliderlisteners.size(); i++){
-			slider = new JSlider(min,max,(int)al[i]);
+			slider = new JSlider(min,max,(int)odomModel.getAlpha(i));
 			slider.setPaintLabels(true);
 			slider.setPaintTicks(true);
 			slider.setMajorTickSpacing(200);
@@ -336,7 +332,7 @@ public class VariablesController extends JFrame implements Closeable{
 			panel.add(new JLabel("alpha"+i));
 			panel.add(texts.get(i));
 			sliderPanel.add(panel);
-			textlisteners.add(new TextFieldListener(sliders.get(i),this.al,i));
+			textlisteners.add(new TextFieldListener(sliders.get(i), this.odomModel, i));
 			texts.get(i).addActionListener(textlisteners.get(i));
 		}
 		
@@ -388,8 +384,4 @@ public class VariablesController extends JFrame implements Closeable{
 	public void close(){
 //		this.dispose();
 	}
-
-
-
-
 }
