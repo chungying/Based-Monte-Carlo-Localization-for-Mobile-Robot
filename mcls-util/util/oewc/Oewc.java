@@ -19,15 +19,23 @@ public class Oewc {
 			//calculate the weight between Zt and the Sensor data with the orientation.
 			weight = 0;
 			for(int i = 0 ; i < Zt.size() ; i++){
+				//single beam
+				//version 1
 				weight = weight + Math.abs(
 						Zt.get(i)-
-						circles.get(
-								Transformer.local2global(i, z, circles.size()))
+						circles.get( Transformer.local2global(i, z, circles.size()))
 						);
+				//version 2
+				//double hypz = Zt.get(i);
+				//double obsz = circles.get( Transformer.local2global(i, z, circles.size()));
+				//double prob = ( 1.0 / 20 * Math.sqrt(2.0 * Math.PI) 
+				//		* Math.exp( (hypz-obsz)*(hypz-obsz) / ( -2*sig_hit*sig_hit ) ) );
+				//weight += Math.log(prob);
 			}
 			weight = weight/Zt.size();
 			//if the weight is better, keep it.
-			if(bestWeight > weight || z == 0){
+			if(z == 0 || bestWeight > weight ){//version 1
+			//if(z == 0 || weight > bestWeight){//version 2
 				bestWeight = weight;
 				bestZ = z;
 			}
@@ -35,30 +43,30 @@ public class Oewc {
 		return new AbstractMap.SimpleEntry<Integer, Float>(bestZ, bestWeight);
 	}
 	
-	static public Entry<Integer, Float> singleParticleModified(List<Float> Zt, float[] circles) throws Exception{
-		if(Zt.size() > circles.length)
-			throw new Exception("cannot calculate OEWC!!!!!!!!!!!");
-		float weight;
-		int bestZ =0;
-		float bestWeight = 1;
-		for(int z = 0 ; z < circles.length; z++){
-			//calculate the weight
-			weight = 0;
-			for(int i = 0 ; i < Zt.size();i++){
-				weight = weight + Math.abs(
-						Zt.get(i)-
-						circles[Transformer.local2global(i, z, circles.length)]); 
-			}
-			weight = weight/Zt.size();
-			//if the weight is better, keep it.
-			if(bestWeight>weight || z == 0){
-				bestWeight = weight;
-				bestZ = z;
-			}
-		}
-		
-		return new AbstractMap.SimpleEntry<Integer, Float>(bestZ, bestWeight);
-	}
+	//static public Entry<Integer, Float> singleParticleModified(List<Float> Zt, float[] circles) throws Exception{
+	//	if(Zt.size() > circles.length)
+	//		throw new Exception("cannot calculate OEWC!!!!!!!!!!!");
+	//	float weight;
+	//	int bestZ =0;
+	//	float bestWeight = 1;
+	//	for(int z = 0 ; z < circles.length; z++){
+	//		//calculate the weight
+	//		weight = 0;
+	//		for(int i = 0 ; i < Zt.size();i++){
+	//			weight = weight + Math.abs(
+	//					Zt.get(i)-
+	//					circles[Transformer.local2global(i, z, circles.length)]); 
+	//		}
+	//		weight = weight/Zt.size();
+	//		//if the weight is better, keep it.
+	//		if(bestWeight>weight || z == 0){
+	//			bestWeight = weight;
+	//			bestZ = z;
+	//		}
+	//	}
+	//	
+	//	return new AbstractMap.SimpleEntry<Integer, Float>(bestZ, bestWeight);
+	//}
 		
 	@Deprecated
 	static public Entry<Integer, Float> singleParticle(float[] Zt, float[] circles){

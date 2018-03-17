@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.TreeMap;
+import java.util.HashMap;
 
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
@@ -39,6 +40,7 @@ public class IMCLROE extends SAMCL{
 			arity = 1, required = false)
 	public int endpoint = 2;
 	
+	Random random = new Random();
 	@Override
 	public List<Long> weightAssignment(
 			List<Particle> src,
@@ -50,23 +52,59 @@ public class IMCLROE extends SAMCL{
 		if (!grid.onCloud) {
 			throw new Exception("Grid is not on cloud.");
 		}
-//		robotMeasurements = robot.getMeasurements();
-		//long[] timers = new long[3];
 		List<Long> ts = null;
 		//remove duplicated particle in X-Y domain
-				Transformer.filterParticle(src);
-				//choose endpoint
-				if(this.endpoint==1){
-					//timers = this.proxyEndpoint(src, robotMeasurements);
-					ts = this.proxyEndpoint(src, /*robotMeasurements*/laserData);
-				}
-				else if(this.endpoint==2){
-					//timers = this.oewc2Endpoint(src, robotMeasurements, 1000);
-					ts = this.oewc2Endpoint(src, /*robotMeasurements*/laserData, 1000);
-				}
-				else{
-					Transformer.debugMode(true, "there is inappropriate endpoint\n");
-				}
+		//Transformer.filterParticle(src);
+		HashMap<String, Particle> map = new HashMap<String, Particle>();
+		HashMap<String, Double> weightMap = new HashMap<String, Double>();
+		for(Particle p: src){
+			String key = Transformer.xy2RowkeyString(p.getDX(),p.getDY(), random);
+			map.put(key, p);
+			Double val = weightMap.get(key);
+			if(val == null) {
+				weightMap.put(key, p.getOriginalWeight());
+			}
+			else {
+				weightMap.put(key, val + p.getOriginalWeight());
+			}
+		}
+		src.clear();
+		src.addAll(map.values());
+		//choose endpoint
+		if(this.endpoint==1){
+			//timers = this.proxyEndpoint(src, robotMeasurements);
+			ts = this.proxyEndpoint(src, /*robotMeasurements*/laserData);
+		}
+		else if(this.endpoint==2){
+			//timers = this.oewc2Endpoint(src, robotMeasurements, 1000);
+			ts = this.oewc2Endpoint(src, /*robotMeasurements*/laserData, 1000);
+		}
+		else{
+			Transformer.debugMode(true, "there is inappropriate endpoint\n");
+		}
+		int count = 0; 
+		double minimumWeight = 1;//Double.MAX_VALUE
+		for(Particle p: src){
+			String key = Transformer.xy2RowkeyString(p.getDX(),p.getDY(), random);
+			Double val = weightMap.get(key);
+			if(val == null) {
+				System.out.println("IMCLROE.weightAssignment cannot match a particle with key:" + key);
+				;
+			}
+			else {
+				p.setOriginalWeight(p.getOriginalWeight() + val);
+			}
+			if(count == 0 || minimumWeight > p.getOriginalWeight()) {
+				minimumWeight = p.getOriginalWeight();
+			}
+			//System.out.println("unnormalized : [" + (float)p.getDX() + ' ' + (float)p.getDY() + ' ' + p.getOriginalWeight()+']');
+			count++;
+		}
+		//System.out.println("minimumWeight is " + minimumWeight);
+		for(Particle p: src){
+			p.setOriginalWeight(p.getOriginalWeight() - minimumWeight);
+			//System.out.println("normalized : [" + (float)p.getDX() + ' ' + (float)p.getDY() + ' ' + p.getOriginalWeight()+']');
+		}
 		//return timers;
 		return ts;		
 		
@@ -138,7 +176,6 @@ public class IMCLROE extends SAMCL{
 				endpoint.getCalculationResult(controller, builder.build(), done);
 				//get the results.
 				records.put(System.currentTimeMillis(), "call end");
-//				System.out.println("callable");
 				return new Pair<Map<Long, String>,OewcProtos2.OewcResponse>(records, done.get());
 			}
 		};
@@ -228,6 +265,9 @@ public class IMCLROE extends SAMCL{
 
 	private List<Long> oewc2Endpoint(final List<Particle> src, final LaserModelData laserData, int endkey) {
 		// TODO oewc version 2 endpoint
+		//for(Particle p : src){
+		//	System.out.println("unweighted : [" + (float)p.getDX() + ' ' + (float)p.getDY() + ' ' + p.getOriginalWeight()+']');
+		//}
 		
 		Batch.Call<OewcProtos2.Oewc2Service, Pair<Map<String, Long>,OewcProtos2.OewcResponse>> call = 
 				new Batch.Call<OewcProtos2.Oewc2Service, Pair<Map<String, Long>,OewcProtos2.OewcResponse>>() {
@@ -319,7 +359,6 @@ public class IMCLROE extends SAMCL{
 			try {
 				System.in.read();
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		for(Pair<Map<String, Long>,OewcProtos2.OewcResponse> entry:results){
@@ -329,7 +368,6 @@ public class IMCLROE extends SAMCL{
 			durationsOEWC.add(entry.getSecond().getCount());//OEWC time and reading HDFS time
 			durationsReadingHDFS.add((int)entry.getSecond().getWeight());//reading HDFS time
 			particlesNo.add(entry.getSecond().getParticlesCount());
-			System.out.println("response: " + entry.getSecond().getStr());
 			for(OewcProtos2.Particle op : entry.getSecond().getParticlesList()){
 				result.add(
 						new Particle(

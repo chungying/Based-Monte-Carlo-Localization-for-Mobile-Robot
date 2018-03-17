@@ -384,7 +384,8 @@ public class Transformer {
 			random = r.nextInt(srcSet.size());
 			temp_set.add(srcSet.get(random));
 		}
-		Particle tempp = maxParticle(temp_set);	
+		//Particle tempp = maxParticle(temp_set);	
+		Particle tempp = minParticle(temp_set);	
 		return tempp;
 	}
 	
