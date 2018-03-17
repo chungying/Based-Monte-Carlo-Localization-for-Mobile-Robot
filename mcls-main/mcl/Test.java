@@ -168,7 +168,7 @@ public class Test extends MCL{
 
 	@Override
 	public long predictionParticles(List<Particle> src, List<Particle> dst, VelocityModel u, Pose currentPose,
-			Pose previousPose, long duration) throws Exception {
+			Pose previousPose, Grid grid, long duration) throws Exception {
 		// do nothing to avoid changes of position of particles.
 		dst.addAll(src);
 		src.clear();

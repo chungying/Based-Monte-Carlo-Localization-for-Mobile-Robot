@@ -172,7 +172,10 @@ public class Transformer {
 					sensor.sigma_hit,
 					sensor.lambda_short,
 					sensor.range_max,
-					new float[]{sensor.z_hit,sensor.z_hit,sensor.z_hit,sensor.z_hit}
+					sensor.z_hit,
+					sensor.z_short,
+					sensor.z_max,
+					sensor.z_rand
 					);
 			
 			logSum += Math.log(prob);
@@ -180,24 +183,24 @@ public class Transformer {
 		return logSum;
 	}
 	
-	public static double weightSingleBeam(float obsz, float hypz, float sig_hit, float lamda, float laser_max, float[] z_paras){
+	public static double weightSingleBeam(float obsz, float hypz, float sig_hit, float lamda, float laser_max, float z_hit, float z_short, float z_max, float z_rand){
 		double p = 0;
 		//1 gaussian
 //		NormalDistribution n = new NormalDistribution(hypz, sig_hit);
 //		p += n.density(obsz) / ( n.cumulativeProbability(laser_max)-n.cumulativeProbability(0));
-		p += z_paras[0]*( 1.0 / sig_hit * Math.sqrt(2.0 * Math.PI) 
+		p += z_hit*( 1.0 / sig_hit * Math.sqrt(2.0 * Math.PI) 
 				* Math.exp( (hypz-obsz)*(hypz-obsz) / ( -2*sig_hit*sig_hit ) ) );
 		
 		//2 short
 		if (obsz<hypz)
-			p += z_paras[1] * (lamda*Math.exp(-1*lamda*obsz));
+			p += z_short * (lamda*Math.exp(-1*lamda*obsz));
 		
 		//3 maximum
 		if (obsz>=laser_max)
-			p += z_paras[2];
+			p += z_max;
 		
 		//4 random failure
-		p += z_paras[3] / laser_max;
+		p += z_rand / laser_max;
 		assert(p!=0);
 		return p;
 	}
@@ -214,7 +217,10 @@ public class Transformer {
 					sensor.sigma_hit,
 					sensor.lambda_short,
 					sensor.range_max,
-					new float[]{sensor.z_hit,sensor.z_hit,sensor.z_hit,sensor.z_hit}
+					sensor.z_hit,
+					sensor.z_short,
+					sensor.z_max,
+					sensor.z_rand
 					);
 			prob += beamW;
 			logWeight += Math.log(beamW);
@@ -222,39 +228,6 @@ public class Transformer {
 		}
 		return new double[]{ prob, logWeight};
 	}
-	
-	/*@Deprecated these two functions are only called by SAMCL's old weighting function.
-	 * The weighting function is deleted now.
-	public static float weight_BeamModel(float[] obsData, float[]hypData){
-		float sig_hit = 4;
-		float lambda_short = 0.1f;
-		float laser_max = 40;
-		float[] z_paras = {0.95f, 0.1f, 0.05f, 0.05f};
-		
-		float prob = 1.0f;
-		for(int i=0;i< obsData.length;i++){
-			prob *= weight_SingleBeam(obsData[i], hypData[i],
-					sig_hit,
-					lambda_short,
-					laser_max,
-					z_paras
-					);
-		}
-		return prob;
-	}
-	public static float weight_BeamModel_Gauss(float[] obsData, float[] hypData){
-		
-		float prob = 1.0f;
-		float sig = 1;
-		for(int i=0;i< obsData.length;i++){
-			float z = obsData[i]-hypData[i];
-			//pz = exp(-z^2/2sig^2)
-			double pz = Math.exp(-(z*z)/(2*(sig*sig)));
-			prob *=pz;
-		}
-		
-		return prob;
-	}*/
 	
 	//optimality changes
 	public static float weight_LossFunction(float[] a, float[] b){

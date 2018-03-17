@@ -209,11 +209,31 @@ public class RobotState extends Pose implements Runnable, Closeable, FrameOwner{
 	}
 	
 	private void updateSensorWithGaussianNoise() throws Exception{
-		Time t = new Time(System.currentTimeMillis());
-		PoseWithTimestamp groundTruthPose = new PoseWithTimestamp(this, t);
-		SimpleEntry<List<Float>, List<Point>> entry = GridTools.getLaserDist(this.grid, this.laser, groundTruthPose.X, groundTruthPose.Y, groundTruthPose.H, true);
+		long stamp = System.currentTimeMillis();
+		SimpleEntry<List<Float>, List<Point>> entry = GridTools.getLaserDist(this.grid, this.laser, this.X, this.Y, this.H, true);
 		if(entry.getKey()!=null)
-			assignData(t, entry.getKey(), entry.getValue(), groundTruthPose);
+		{
+			while(isRobotLocked()){
+				Thread.sleep(0, 1);
+			}
+			this.setRobotLock(true);
+			this.measurements= entry.getKey();
+			this.measurement_true_points= entry.getValue();
+			if(this.scanData == null) {
+				Time time = new Time(stamp);
+				this.scanData = new LaserScanData(entry.getKey(), this.laser, time, new PoseWithTimestamp(this, time));
+			}
+			else {
+				this.scanData.timeStamp.setTime(stamp);
+				this.scanData.groundTruthPose.stamp.setTime(stamp);
+				this.scanData.groundTruthPose.X = this.X;
+				this.scanData.groundTruthPose.Y = this.Y;
+				this.scanData.groundTruthPose.H = this.H;
+				this.scanData.beamranges = entry.getKey();
+			}
+			this.setSensorUpdated(true);
+			this.setRobotLock(false);
+		}
 		else{//when the robot is at occupied position
 			;//TODO assign all of them to zero
 			;//TODO send out stop request
@@ -221,15 +241,15 @@ public class RobotState extends Pose implements Runnable, Closeable, FrameOwner{
 	}
 	
 	private void assignData(Time stamp, List<Float> m, List<Point> mpts, PoseWithTimestamp pose) throws Exception{
-		while(isRobotLocked()){
-			Thread.sleep(0, 1);
-		}
-		this.setRobotLock(true);
-		this.measurements= m;
-		this.measurement_true_points= mpts;
-		this.scanData = new LaserScanData(m, laser, stamp, pose);
-		this.setSensorUpdated(true);
-		this.setRobotLock(false);
+		//while(isRobotLocked()){
+		//	Thread.sleep(0, 1);
+		//}
+		//this.setRobotLock(true);
+		//this.measurements= m;
+		//this.measurement_true_points= mpts;
+		//this.scanData = new LaserScanData(m, laser, stamp, pose);
+		//this.setSensorUpdated(true);
+		//this.setRobotLock(false);
 	}
 
 	private void setSensorUpdated(boolean b) {
@@ -416,7 +436,7 @@ public class RobotState extends Pose implements Runnable, Closeable, FrameOwner{
 		this.setRobotLock(true);
 		this.setSensorUpdated(false);
 		this.setRobotLock(false);
-		return scanData;
+		return this.scanData;
 	}
 	
 	public List<Float> getMeasurements() {

@@ -87,6 +87,12 @@ public class Pose implements Cloneable{
 		return (Transformer.checkHeadRange(currentTh-previousTh)+180)%360-180;
 	}
 	
+	public static void deltaPose(Pose a, Pose b, Pose delta) {
+		delta.X = a.X-b.X;
+		delta.Y = a.Y-b.Y;
+		delta.H = deltaTheta(a.H,b.H);
+	
+	}
 	public Pose minus(Pose pose){
 		Pose result =this.clone();
 		result .X = this.X-pose.X;

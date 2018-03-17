@@ -5,7 +5,7 @@ import java.sql.Time;
 import util.robot.Pose;
 
 public class PoseWithTimestamp extends Pose{
-	protected Time stamp;
+	public Time stamp;
 	
 	public PoseWithTimestamp(Pose p, Time t){
 		this(t);

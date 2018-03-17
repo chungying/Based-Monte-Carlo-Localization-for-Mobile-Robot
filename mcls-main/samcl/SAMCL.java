@@ -215,7 +215,8 @@ public class SAMCL extends MclBase implements Closeable, FrameOwner{
 		
 		//initial motion model for particle filter
 		PoseWithTimestamp previousPose = new PoseWithTimestamp((Pose)robot, new Time(System.currentTimeMillis()));
-		PoseWithTimestamp odometryPose = null;
+		PoseWithTimestamp odometryPose = new PoseWithTimestamp((Pose)robot, new Time(System.currentTimeMillis()));
+		Pose deltaP = new Pose();
 		VelocityModel u = new VelocityModel();
 		LaserModelData laserDataWithModel = null;
 		LaserScanData laserData = null;
@@ -227,14 +228,16 @@ public class SAMCL extends MclBase implements Closeable, FrameOwner{
 			
 		}
 		laserDataWithModel = new LaserModelData(laserData, this.sensor);
+		PoseWithCovariance estimateResult = new PoseWithCovariance(laserDataWithModel.data.timeStamp);
 		
 		//Initial Particles 
 		this.globalSampling(current_set, robot, grid);
 		//Initial Weighting
 		this.weightAssignment(current_set, robot, laserDataWithModel, grid);
 		last_set.addAll(current_set);
-		PoseWithCovariance estimate = estimatePose(last_set, new PoseWithCovariance(laserDataWithModel.data.timeStamp));
-		updateImagePanel(grid, robot, estimate, current_set, null);
+		estimateResult.stamp.setTime(laserDataWithModel.data.timeStamp.getTime());
+		SAMCL.estimatePose(last_set, estimateResult);
+		updateImagePanel(grid, robot, estimateResult, current_set, null);
 		startTime = System.currentTimeMillis();
 		while(!this.isTerminating() && (!robot.isAllTasksOver() && !robot.isRobotClosing())){
 			if(this.convergeFlag){
@@ -245,20 +248,24 @@ public class SAMCL extends MclBase implements Closeable, FrameOwner{
 			
 			//update robot's sensor data
 			//TODO adding Gaussian noise
-			odometryPose = new PoseWithTimestamp((Pose)robot, new Time(System.currentTimeMillis()));
+			odometryPose.X = robot.X;
+			odometryPose.Y = robot.Y;
+			odometryPose.H = robot.H;
+			odometryPose.stamp.setTime(System.currentTimeMillis());
 			u.setModel(robot.getUt());
 			//check if the delta of robot odometric data exceeds a threshold value.
 			//if the delta value is larger than the threshold, robotMoved is true.
-			Pose delta = odometryPose.minus(previousPose);
-			boolean robotMoved = Math.abs(delta.X)>dThresh || 
-					Math.abs(delta.Y)>dThresh ||
-					Math.abs(delta.H)>aThresh;
-			
-			//check if robot's sensor is updated, then newSensor is true.
+			Pose.deltaPose(odometryPose, previousPose, deltaP);
+			boolean robotMoved = Math.abs(deltaP.X)>dThresh || 
+					Math.abs(deltaP.Y)>dThresh ||
+					Math.abs(deltaP.H)>aThresh;
 			boolean newSensor = false;
-			if(robot.isSensorUpdated()){
-				laserDataWithModel = new LaserModelData(robot.getLaserScan(), this.sensor);
-				newSensor = true;
+			if(robotMoved) {
+				//check if robot's sensor is updated, then newSensor set to true.
+				if(robot.isSensorUpdated()){
+					laserDataWithModel = new LaserModelData(robot.getLaserScan(), this.sensor);
+					newSensor = true;
+				}
 			}
 			
 			if(!robotMoved){
@@ -275,9 +282,12 @@ public class SAMCL extends MclBase implements Closeable, FrameOwner{
 				//Setp 1: Prediction
 				Transformer.debugMode(debugMode, "(1) Sampling\t");
 				//, then predict the pose of hypotheses
-				long predictionTime= this.predictionParticles(last_set, current_set, u, odometryPose, previousPose, iterationTime);
+				long predictionTime= this.predictionParticles(last_set, current_set, u, odometryPose, previousPose, grid, iterationTime);
 				// and current odometry data became old data.
-				previousPose = odometryPose;
+				previousPose.X = odometryPose.X;
+				previousPose.Y = odometryPose.Y;
+				previousPose.H = odometryPose.H;
+				previousPose.stamp.setTime(odometryPose.stamp.getTime());
 				
 				//Step 2: Weighting
 				Transformer.debugMode(debugMode, "(2) Weighting\t");
@@ -323,7 +333,8 @@ public class SAMCL extends MclBase implements Closeable, FrameOwner{
 				
 				//Averaging Particle
 				long averageTime = System.currentTimeMillis();
-				estimate = estimatePose(last_set, new PoseWithCovariance(laserDataWithModel.data.timeStamp));
+				estimateResult.stamp.setTime(laserDataWithModel.data.timeStamp.getTime());
+				SAMCL.estimatePose(last_set, estimateResult);
 				averageTime = System.currentTimeMillis() - averageTime;
 				
 				//TODO is this delay required?
@@ -390,20 +401,19 @@ public class SAMCL extends MclBase implements Closeable, FrameOwner{
 					System.out.format("%5d\t",serTime);//time for SER.
 					System.out.format("%5d\t",localResamplingTime);//time for regular resampling.
 					System.out.format("%5d\t",combiminingTime);//time for combining global and local particle sets.
-					System.out.format("%.5f\t",estimate.X);
-					System.out.format("%.5f\t",estimate.Y);
-					System.out.format("%.5f\t",estimate.H);
+					System.out.format("%.5f\t",estimateResult.X);
+					System.out.format("%.5f\t",estimateResult.Y);
+					System.out.format("%.5f\t",estimateResult.H);
 					System.out.format("%.5f\t",robot.X);
 					System.out.format("%.5f\t",robot.Y);
 					System.out.format("%.5f\t",robot.H);
 					System.out.println();
 				}
-			//TODO Transformer.log
+				//collecting data
+				Record.collect(record, estimateResult, laserDataWithModel.data.groundTruthPose, odometryPose);
 			}
-			//collecting data
-			Record.collect(record, estimate, laserDataWithModel.data.groundTruthPose, odometryPose);
 			//painting 
-			updateImagePanel(grid, robot, estimate, current_set, SER_set);
+			updateImagePanel(grid, robot, estimateResult, current_set, SER_set);
 			
 		}
 		this.setTerminated(true);
@@ -463,67 +473,47 @@ public class SAMCL extends MclBase implements Closeable, FrameOwner{
 		this.convergeFlag = false;
 	}
 
-	public static enum QuantityType{Length, Angle;}
-	private static QuantityType[] types = new QuantityType[]{QuantityType.Length, QuantityType.Length, QuantityType.Angle};
-	
-	private static PoseWithCovariance estimatePose(List<Particle> particleSet, PoseWithCovariance estimate) {
-		Object[] sums = new Object[types.length];
-		double[] means = new double[types.length];
-		double[][] covAccu = new double[types.length-1][types.length-1];
-		double totalWeight = 0;
-		for(int i = 0 ; i < types.length ; i++){
-			if(types[i] == QuantityType.Length){
-				sums[i] = new Double(0.0);
-			}else if(types[i] == QuantityType.Angle){
-				sums[i] = new Double[]{.0, .0};
-			}
-		}
+	private static double[] sums = new double[4];
+	private static double[][] covAccu = new double[2][2];
+	private static double totalWeight;
+	private static void estimatePose(List<Particle> particleSet, PoseWithCovariance result) {
+		totalWeight = 0;
+		sums[0] = 0.0;
+		sums[1] = 0.0;
+		sums[2] = 0.0;
+		sums[3] = 0.0;
+		covAccu[0][0] = 0.0;
+		covAccu[0][1] = 0.0;
+		covAccu[1][0] = 0.0;
+		covAccu[1][1] = 0.0;
 		for(Particle p : particleSet){
 			//for estimating the particle set
 			totalWeight+=p.getNomalizedWeight();
-			for(int i = 0 ; i < types.length ; i++){
-				if(types[i] == QuantityType.Length){
-					sums[i] = ((Double)sums[i]) + p.getNomalizedWeight()*p.getStates()[i];
-					for(int j = 0 ; j < covAccu[i].length ; j++){
-						if(types[j] == QuantityType.Length)
-						covAccu[i][j] += p.getNomalizedWeight() * p.getStates()[i] * p.getStates()[j];
-					}
-				}else if(types[i] == QuantityType.Angle){
-					((Double[])sums[i])[0] = ((Double[])sums[i])[0] + p.getNomalizedWeight()*Math.cos(Math.toRadians(p.getStates()[i]));
-					((Double[])sums[i])[1] = ((Double[])sums[i])[1] + p.getNomalizedWeight()*Math.sin(Math.toRadians(p.getStates()[i]));
+			sums[0] = sums[0] + p.getNomalizedWeight()*p.getStates()[0];
+			sums[1] = sums[1] + p.getNomalizedWeight()*p.getStates()[1];
+			sums[2] = sums[2] + p.getNomalizedWeight()*Math.cos(Math.toRadians(p.getStates()[2]));
+			sums[3] = sums[3] + p.getNomalizedWeight()*Math.sin(Math.toRadians(p.getStates()[2]));
+			for(int i = 0 ; i < 2 ; i++){
+				for(int j = 0 ; j < 2 ; j++){
+					covAccu[i][j] += p.getNomalizedWeight() * p.getStates()[i] * p.getStates()[j];
 				}
 			}
-			
+		
 		}
 		
 		//mean values
-		for(int i = 0 ; i < types.length ; i++){
-			if(types[i] == QuantityType.Length){
-				means[i] = ((Double)sums[i])/totalWeight;
-			}else if(types[i] == QuantityType.Angle){
-				means[i] = Math.toDegrees(Math.atan2( ((Double[])sums[i])[1],  ((Double[])sums[i])[0]));
-			}
-		}
-		estimate.X = means[0];
-		estimate.Y = means[1];
-		estimate.H = means[2];
+		result.X = sums[0]/totalWeight;
+		result.Y = sums[1]/totalWeight;
+		result.H = Math.toDegrees(Math.atan2(sums[3],sums[2]));
 		
 		//covariance
-		for(int i = 0 ; i < types.length ; i++){
-			if(types[i] == QuantityType.Length){
-				for(int j = 0 ; j < covAccu[i].length ; j++){
-					if(types[j] == QuantityType.Length){
-						estimate.cov[i][j] = covAccu[i][j]/totalWeight - means[i] * means[j];
-					}
-				}
-			}else if(types[i] == QuantityType.Angle){
-				Double[] v = (Double[])sums[i];
-				estimate.cov[i][i] = Math.toDegrees(-2 * Math.log(Math.sqrt(v[0]*v[0] + v[1]*v[1])));
-			}
-		}
-		return estimate;
+		result.cov[0][0] = covAccu[0][0]/totalWeight - result.X * result.X;
+		result.cov[0][1] = covAccu[0][1]/totalWeight - result.X * result.Y;
+		result.cov[1][0] = covAccu[1][0]/totalWeight - result.Y * result.X;
+		result.cov[1][1] = covAccu[1][1]/totalWeight - result.Y * result.Y;
+		result.cov[2][2] = Math.toDegrees(-2 * Math.log(Math.sqrt(sums[2]*sums[2] + sums[3]*sums[3])));
 	}
-	
+
 	/**
 	 * input:last particles set(Xt-1),motion control(ut),3-Dimentional grid(G3D)
 	 * output:particles(xt),weight(wt)
@@ -536,16 +526,20 @@ public class SAMCL extends MclBase implements Closeable, FrameOwner{
 			VelocityModel u, 
 			Pose currentPose,
 			Pose previousPose,
+			Grid grid,
 			long duration) throws Exception{
 		long sampleTime = System.currentTimeMillis();
 		dst.clear();
 //		odomModel.prediction();
 		for(Particle p : src){
 			Particle predictedParticle = MCLMotionModel.OdemetryMotionSampling(p, currentPose, previousPose, duration, odomModel);
-			p.setX(predictedParticle.getDX());
-			p.setY(predictedParticle.getDY());
-			p.setTh(predictedParticle.getTh());
-			dst.add(p);
+			
+			if ( grid.map_array(predictedParticle.getX(), predictedParticle.getY()) != Grid.GRID_OCCUPIED) {
+				p.setX(predictedParticle.getDX());
+				p.setY(predictedParticle.getDY());
+				p.setTh(predictedParticle.getTh());
+				dst.add(p);
+			}
 		}
 		return System.currentTimeMillis() - sampleTime;
 	}
@@ -601,8 +595,6 @@ public class SAMCL extends MclBase implements Closeable, FrameOwner{
 			//calculate raycasting right away
 			int count = 0;
 			for(Particle p:src){
-				if((count % (int)(Nt/5.0)) == 0)
-					System.out.println("particle "+count++);
 				SimpleEntry<List<Float>, List<Point>> e = GridTools.getLaserDist(grid, sensor, p.getDX(), p.getDY(), p.getTh());
 				if(e == null)
 					p.setMeasurements(null);

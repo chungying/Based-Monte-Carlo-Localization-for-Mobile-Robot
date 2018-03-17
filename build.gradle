@@ -1,5 +1,5 @@
 apply plugin: 'java'
-version = "1.00.02"
+version = "1.00.05"
 //if(JavaVersion.current() != JavaVersion.VERSION_1_7){
 //    throw new GradleException("This build must be run with java 7")
 //}
