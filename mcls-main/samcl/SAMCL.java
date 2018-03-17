@@ -599,7 +599,10 @@ public class SAMCL extends MclBase implements Closeable, FrameOwner{
 //			boolean status = this.grid.assignMeasurementsAnyway(src);
 			
 			//calculate raycasting right away
+			int count = 0;
 			for(Particle p:src){
+				if((count % (int)(Nt/5.0)) == 0)
+					System.out.println("particle "+count++);
 				SimpleEntry<List<Float>, List<Point>> e = GridTools.getLaserDist(grid, sensor, p.getDX(), p.getDY(), p.getTh());
 				if(e == null)
 					p.setMeasurements(null);
