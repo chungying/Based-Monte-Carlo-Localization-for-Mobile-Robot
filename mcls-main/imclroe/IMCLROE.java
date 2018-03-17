@@ -34,6 +34,32 @@ import util.robot.RobotState;
  *
  */
 public class IMCLROE extends SAMCL{
+	@Override
+	public void localResampling(List<Particle> src, List<Particle> dst,
+			RobotState robot,
+			LaserModelData laserData,
+			Grid grid) {
+		//Tournament
+		//super.localResampling(src, dst, robot, laserData, grid);
+		//int count = 0; 
+		//double minimumWeight = 1;//Double.MAX_VALUE
+		//for(Particle p: src){
+		//	if(count == 0 || minimumWeight > p.getOriginalWeight()) {
+		//		minimumWeight = p.getOriginalWeight();
+		//	}
+		//	//System.out.println("unnormalized : [" + (float)p.getDX() + ' ' + (float)p.getDY() + ' ' + p.getOriginalWeight()+']');
+		//	count++;
+		//}
+		////System.out.println("minimumWeight is " + minimumWeight);
+		//for(Particle p: src){
+		//	p.setOriginalWeight(p.getOriginalWeight() - minimumWeight);
+		//	//System.out.println("normalized : [" + (float)p.getDX() + ' ' + (float)p.getDY() + ' ' + p.getOriginalWeight()+']');
+		//}
+		//Low Variance
+		Transformer.resamplingLowVariance(src,dst);
+		for(Particle p:dst)
+			p.setWeightForNomalization(1.0/dst.size());
+	}
 	
 	@Parameter(names = {"-E","--endpoint"}, 
 			description = "choose the endpoint type, oewc, oewc2, and proxy modes.", 
@@ -61,11 +87,15 @@ public class IMCLROE extends SAMCL{
 			String key = Transformer.xy2RowkeyString(p.getDX(),p.getDY(), random);
 			map.put(key, p);
 			Double val = weightMap.get(key);
+			//For Tournament
+			//double pWeight = p.getOriginalWeight();
+			//For Low Variance
+			double pWeight = p.getNomalizedWeight();
 			if(val == null) {
-				weightMap.put(key, p.getOriginalWeight());
+				weightMap.put(key, pWeight);
 			}
 			else {
-				weightMap.put(key, val + p.getOriginalWeight());
+				weightMap.put(key, val + pWeight);
 			}
 		}
 		src.clear();
@@ -82,8 +112,6 @@ public class IMCLROE extends SAMCL{
 		else{
 			Transformer.debugMode(true, "there is inappropriate endpoint\n");
 		}
-		int count = 0; 
-		double minimumWeight = 1;//Double.MAX_VALUE
 		for(Particle p: src){
 			String key = Transformer.xy2RowkeyString(p.getDX(),p.getDY(), random);
 			Double val = weightMap.get(key);
@@ -92,18 +120,11 @@ public class IMCLROE extends SAMCL{
 				;
 			}
 			else {
-				p.setOriginalWeight(p.getOriginalWeight() + val);
+				//For Tournament
+				//p.setOriginalWeight(p.getOriginalWeight() + val);
+				//For Low Variance
+				p.setWeightForNomalization(p.getNomalizedWeight() + val);
 			}
-			if(count == 0 || minimumWeight > p.getOriginalWeight()) {
-				minimumWeight = p.getOriginalWeight();
-			}
-			//System.out.println("unnormalized : [" + (float)p.getDX() + ' ' + (float)p.getDY() + ' ' + p.getOriginalWeight()+']');
-			count++;
-		}
-		//System.out.println("minimumWeight is " + minimumWeight);
-		for(Particle p: src){
-			p.setOriginalWeight(p.getOriginalWeight() - minimumWeight);
-			//System.out.println("normalized : [" + (float)p.getDX() + ' ' + (float)p.getDY() + ' ' + p.getOriginalWeight()+']');
 		}
 		//return timers;
 		return ts;		

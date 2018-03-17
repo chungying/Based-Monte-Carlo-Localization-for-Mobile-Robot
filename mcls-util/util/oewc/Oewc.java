@@ -21,21 +21,21 @@ public class Oewc {
 			for(int i = 0 ; i < Zt.size() ; i++){
 				//single beam
 				//version 1
-				weight = weight + Math.abs(
-						Zt.get(i)-
-						circles.get( Transformer.local2global(i, z, circles.size()))
-						);
+				//weight = weight + Math.abs(
+				//		Zt.get(i)-
+				//		circles.get( Transformer.local2global(i, z, circles.size()))
+				//		);
 				//version 2
-				//double hypz = Zt.get(i);
-				//double obsz = circles.get( Transformer.local2global(i, z, circles.size()));
-				//double prob = ( 1.0 / 20 * Math.sqrt(2.0 * Math.PI) 
-				//		* Math.exp( (hypz-obsz)*(hypz-obsz) / ( -2*sig_hit*sig_hit ) ) );
-				//weight += Math.log(prob);
+				double hypz = Zt.get(i);
+				double obsz = circles.get( Transformer.local2global(i, z, circles.size()));
+				double prob = ( 1.0 / 20 * Math.sqrt(2.0 * Math.PI) 
+						* Math.exp( (hypz-obsz)*(hypz-obsz) / ( -2*20*20 ) ) );
+				weight += Math.log(prob);
 			}
 			weight = weight/Zt.size();
 			//if the weight is better, keep it.
-			if(z == 0 || bestWeight > weight ){//version 1
-			//if(z == 0 || weight > bestWeight){//version 2
+			//if(z == 0 || bestWeight > weight ){//version 1
+			if(z == 0 || weight > bestWeight){//version 2
 				bestWeight = weight;
 				bestZ = z;
 			}

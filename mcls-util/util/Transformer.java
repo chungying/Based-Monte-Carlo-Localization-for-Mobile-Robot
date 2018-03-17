@@ -347,7 +347,11 @@ public class Transformer {
 		}
 //		assert(Math.abs(sumW-1.0)<0.1);//sum should be 1 
 		if(Math.abs(sumW-1.0)>0.1)
+		{
 			System.out.println("sum should be 1 and instead: " + sumW);
+			for(Particle p: src)
+				p.setWeightForNomalization(p.getNomalizedWeight()/sumW);
+		}
 //		float cWeight = src.get(0).getWeight();
 		double cW = src.get(0).getNomalizedWeight();
 		int i = 0;
