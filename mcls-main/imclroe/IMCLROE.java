@@ -314,7 +314,7 @@ public class IMCLROE extends SAMCL{
 		List<Integer> durationsReadingHDFS = new ArrayList<Integer>();
 		List<Particle> result = new ArrayList<Particle>();
 		List<Integer> particlesNo = new ArrayList<Integer>();
-		Transformer.debugMode(debugMode,"result no.:"+ results.size());
+		//Transformer.debugMode(debugMode,"result no.:"+ results.size());
 		if(results.size()<2)
 			try {
 				System.in.read();
@@ -329,6 +329,7 @@ public class IMCLROE extends SAMCL{
 			durationsOEWC.add(entry.getSecond().getCount());//OEWC time and reading HDFS time
 			durationsReadingHDFS.add((int)entry.getSecond().getWeight());//reading HDFS time
 			particlesNo.add(entry.getSecond().getParticlesCount());
+			System.out.println("response: " + entry.getSecond().getStr());
 			for(OewcProtos2.Particle op : entry.getSecond().getParticlesList()){
 				result.add(
 						new Particle(

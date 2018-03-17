@@ -747,6 +747,7 @@ public class SAMCL extends MclBase implements Closeable, FrameOwner{
 			LaserModelData laserData,
 			Grid grid){
 		dst.clear();
+		System.out.println("tournament presure: " + tournamentPresure);
 
 		for (int i = dst.size(); i < this.Nl; i++) {
 			//Roulette way

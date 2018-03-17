@@ -27,7 +27,7 @@ public class Oewc {
 			}
 			weight = weight/Zt.size();
 			//if the weight is better, keep it.
-			if(bestWeight > weight){
+			if(bestWeight > weight || z == 0){
 				bestWeight = weight;
 				bestZ = z;
 			}
@@ -51,7 +51,7 @@ public class Oewc {
 			}
 			weight = weight/Zt.size();
 			//if the weight is better, keep it.
-			if(bestWeight>weight){
+			if(bestWeight>weight || z == 0){
 				bestWeight = weight;
 				bestZ = z;
 			}
@@ -69,7 +69,7 @@ public class Oewc {
 			//calculate the weight between Zt and the Sensor data with the orientation.
 			weight = Transformer.weight_LossFunction(Zt, Transformer.drawMeasurements(circles, z));
 			//if the weight is better, keep it.
-			if(bestWeight > weight){
+			if(bestWeight > weight || z == 0){
 				bestWeight = weight;
 				bestZ = z;
 			}
@@ -87,7 +87,7 @@ public class Oewc {
 			//calculate the weight between Zt and the Sensor data with the orientation.
 			weight = Transformer.weight_LossFunction(Zt, Transformer.drawMeasurements(circles, z));
 			//if the weight is better, keep it.
-			if(bestWeight > weight){
+			if(bestWeight > weight || z == 0){
 				bestWeight = weight;
 				bestZ = z;
 			}
