@@ -2,8 +2,6 @@ package util.runner;
 
 import java.lang.StringBuilder;
 
-import java.util.Arrays;
-
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
@@ -59,7 +57,8 @@ public class MCLRunner {
 			}catch(ParameterException e){
 				System.out.println(e.getMessage());
 				System.out.println("please type --help for more information");
-				System.exit(1);
+				//System.exit(1);
+                this.help = true;
 			}
 
 			if(this.help){
@@ -69,6 +68,7 @@ public class MCLRunner {
 				gridjc.usage(gsb);
 				robotjc.usage(rsb);
 				mcljc.usage(msb);
+//TODO new Jcommander(this).usage()
 				System.out.println("Grid usage\n"+gsb.toString());
 				System.out.println("Robot usage\n"+rsb.toString());
 				System.out.println("MCL usage\n"+msb.toString());
@@ -86,7 +86,7 @@ public class MCLRunner {
 			 * Second step:
 			 * setup MCL
 			 */
-			//mcl.setupMCL(grid);
+			mcl.setupMCL(grid);
 			
 			/**
 			 * Third step:
@@ -94,7 +94,9 @@ public class MCLRunner {
 			 */
 			robot.setupSimulationRobot(grid);
 			if(this.forwardDist >=0 ){
-				robot.setPath(new Pose(robot.X + this.forwardDist, robot.Y, robot.H));
+				double dx = this.forwardDist * Math.cos(Math.toRadians(robot.H));
+				double dy = this.forwardDist * Math.sin(Math.toRadians(robot.H));
+				robot.setPath(new Pose(robot.X + dx, robot.Y + dy, robot.H));
 			}
 			grid.setupCloseableObjs(robot);
 			new Thread(robot).start();
@@ -104,10 +106,8 @@ public class MCLRunner {
 					&& ( !mcl.hasClosed() && !robot.isRobotClosing()) ){
 				counter++;
 				System.out.println(counter + " times mcl.");
-				mcl.setupMCL(grid);
 				mcl.run(robot, grid);
 				robot.robotStartOver();
-				//TODO reset MCL
 				mcl.startOver();
 			}
 		}catch(Exception e){

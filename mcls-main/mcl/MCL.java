@@ -64,15 +64,17 @@ public class MCL extends SAMCL{
 	public void localResampling(List<Particle> src, List<Particle> dst,
 			RobotState robot,
 			LaserModelData laserData,
-			Grid grid) {
+			Grid grid,
+			Particle bestParticle) {
+		dst.clear();
 		if( this.sensor.getModeltype().equals(ModelType.DEFAULT)|| this.sensor.getModeltype().equals(ModelType.BEAM_MODEL)){
 			Transformer.resamplingLowVariance(src,dst);
 //			Transformer.resamplingCPT(src, dst);
 //			super.localResampling(src, dst, bestParticle);
+			for(Particle p:dst)
+				p.setWeightForNomalization(1.0/dst.size());
 		}else
-			super.localResampling(src, dst, robot, laserData, grid);
-		for(Particle p:dst)
-			p.setWeightForNomalization(1.0/dst.size());
+			super.localResampling(src, dst, robot, laserData, grid, bestParticle);
 	}
 
 	@Override

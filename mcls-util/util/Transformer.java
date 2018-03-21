@@ -392,7 +392,7 @@ public class Transformer {
 		Particle tempp = minParticle(temp_set);	
 		return tempp;
 	}
-	
+
 	public static Particle maxParticle( List<Particle> particles ){
 		Particle max_particle = particles.get(0);
 //		float max_weight = max_particle.getWeight();
@@ -410,15 +410,11 @@ public class Transformer {
 	
 	public static Particle minParticle( List<Particle> srcSet ){
 		Particle min_particle = srcSet.get(0);
-//		float min_weight = min_particle.getWeight();
-		double minW = min_particle.getNomalizedWeight();
+		double minW = min_particle.getOriginalWeight();
 		for (int i = 1; i < srcSet.size(); i++) {
-			if (/*min_weight > srcSet.get(i).getWeight() ||*/
-					minW>srcSet.get(i).getNomalizedWeight()
-					) {
+			if (minW>srcSet.get(i).getOriginalWeight()) {
 				min_particle = srcSet.get(i);
-//				min_weight = min_particle.getWeight();
-				minW = min_particle.getNomalizedWeight();
+				minW = min_particle.getOriginalWeight();
 			}
 		}
 		

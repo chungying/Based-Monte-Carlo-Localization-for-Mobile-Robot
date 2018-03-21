@@ -1,5 +1,6 @@
 package samcl;
 
+import java.awt.Color;
 import java.awt.Point;
 import java.io.Closeable;
 import java.sql.Time;
@@ -92,12 +93,14 @@ public class SAMCL extends MclBase implements Closeable, FrameOwner{
 	}
 
 	public void setupMCL(Grid grid) throws Exception{
+		System.out.println("before: "+this.sensor.getModeltype());
 		this.sensor.setupSensor(grid.laser);
-		if(this.table == null)
-			this.table = grid.getTable(this.tableName);
-		//Setting up a window for variable control
-		this.setupFrame(grid.visualization);
+		//grid.laser.setupSensor(this.sensor);
+		System.out.println("after: "+this.sensor.getModeltype());
 		this.setInitState();
+		this.table = grid.getTable(this.tableName);
+		this.setupFrame(grid.visualization);//for variable control
+		this.preCaching(grid);
 	}
 
 	public void setTerminating(boolean terminate) {
@@ -159,7 +162,9 @@ public class SAMCL extends MclBase implements Closeable, FrameOwner{
 	 */
 	public void preCaching(Grid grid) {
 		//start to computing all of the grid of 3-dimension
-		System.out.println("computing...");
+		if(this.preCachingFlag==false || grid.onCloud == true)
+			return;
+		System.out.println("computing for precaching...");
 		long startTime = System.currentTimeMillis();
 		grid.pre_compute();
 		long endTime = System.currentTimeMillis() - startTime;
@@ -268,12 +273,12 @@ public class SAMCL extends MclBase implements Closeable, FrameOwner{
 				}
 			}
 			
-			if(!robotMoved){
+			if(!robotMoved && !this.forceUpdate){
 				current_set.clear();
 				current_set.addAll(last_set);
 				//wait for a while then check update information again.
 				Threads.sleep(1);
-			}else if(robotMoved==true && newSensor==true){
+			}else if(robotMoved==true && newSensor==true || this.forceUpdate){
 				//if robotMoved is true and newSensor is true, update sensory model and make robotMoved and newSensor false.
 				robotMoved = false; 
 				newSensor = false;
@@ -300,8 +305,15 @@ public class SAMCL extends MclBase implements Closeable, FrameOwner{
 				//Step 3: Determining sizes of local set and global set
 				Transformer.debugMode(debugMode, "(3) Determining size\t");
 				long determiningTime = System.currentTimeMillis();
-				//bestParticle = Transformer.minParticle(current_set); 
-				bestParticle = Transformer.maxParticle(current_set); 
+				if( this.sensor.getModeltype().equals(ModelType.DEFAULT) ||
+					this.sensor.getModeltype().equals(ModelType.BEAM_MODEL)){
+					//TODO if laser type is beam model and default
+					bestParticle = Transformer.maxParticle(current_set); 
+				}
+				else {
+					//TODO otherwise
+					bestParticle = Transformer.minParticle(current_set); 
+				}
 				this.determiningSize(bestParticle);
 				determiningTime = System.currentTimeMillis() - determiningTime;
 				//Step 3-1: Calculating SER
@@ -314,7 +326,7 @@ public class SAMCL extends MclBase implements Closeable, FrameOwner{
 				Transformer.debugMode(debugMode, "(4) Local resampling\t");
 				long localResamplingTime = System.currentTimeMillis();
 				if((counter%resampleInterval)==0){
-					this.localResampling(current_set, local_set, robot, laserDataWithModel, grid);
+					this.localResampling(current_set, local_set, robot, laserDataWithModel, grid, bestParticle);
 				}else{
 					local_set.clear();
 					local_set.addAll(current_set);
@@ -404,13 +416,16 @@ public class SAMCL extends MclBase implements Closeable, FrameOwner{
 					System.out.format("%.5f\t",estimateResult.X);
 					System.out.format("%.5f\t",estimateResult.Y);
 					System.out.format("%.5f\t",estimateResult.H);
-					System.out.format("%.5f\t",robot.X);
+					/*System.out.format("%.5f\t",robot.X);
 					System.out.format("%.5f\t",robot.Y);
-					System.out.format("%.5f\t",robot.H);
+					System.out.format("%.5f\t",robot.H);*/
+					System.out.format("%.5f\t",laserDataWithModel.data.groundTruthPose.X);
+					System.out.format("%.5f\t",laserDataWithModel.data.groundTruthPose.Y);
+					System.out.format("%.5f\t",laserDataWithModel.data.groundTruthPose.H);
 					System.out.println();
 				}
 				//collecting data
-				Record.collect(record, estimateResult, laserDataWithModel.data.groundTruthPose, odometryPose);
+				Record.collect(record, estimateResult.clone(), laserDataWithModel.data.groundTruthPose.clone(), odometryPose.clone());
 			}
 			//painting 
 			updateImagePanel(grid, robot, estimateResult, current_set, SER_set);
@@ -575,7 +590,11 @@ public class SAMCL extends MclBase implements Closeable, FrameOwner{
 	public long raycastingUpdate( List<Particle> src, Grid grid) throws Exception {
 		long trasmission = System.currentTimeMillis();
 		//get sensor data of all particles.
-		if (grid.onCloud) {
+		if (this.preCachingFlag) {
+			//get measurements from local database.
+			boolean status = grid.assignMeasurementsAnyway(src);
+		}
+		else if (grid.onCloud) {
 			//get measurements from cloud and assign the measurement to particles
 			try {
 				grid.getBatchFromCloud2(this.table, src);
@@ -588,9 +607,7 @@ public class SAMCL extends MclBase implements Closeable, FrameOwner{
 				System.exit(1);
 			}
 		} else {
-			//get measurements from local database.
 			//If there is no pre-caching data, executing ray-casting immediately. 
-//			boolean status = this.grid.assignMeasurementsAnyway(src);
 			
 			//calculate raycasting right away
 			int count = 0;
@@ -618,11 +635,32 @@ public class SAMCL extends MclBase implements Closeable, FrameOwner{
 	 */
 	public void determiningSize(Particle bestParticle){
 		//Particle bestParticle = Transformer.minParticle(src);
-		if (/*bestParticle.getWeight() < this.XI ||*/ bestParticle.getNomalizedWeight()<this.XI) {
-			this.Nl = this.Nt;
+		double normalizedW = 0;
+		boolean ser = false;
+		if( this.sensor.getModeltype().equals(ModelType.DEFAULT) ||
+			this.sensor.getModeltype().equals(ModelType.BEAM_MODEL)){
+			normalizedW = bestParticle.getNomalizedWeight();
+			if (normalizedW < this.XI) //if do calculate SER or not?/
+				ser = true;
+			
+		}
+		else if(this.sensor.getModeltype().equals(ModelType.LOSS_FUNCTION)||
+				this.sensor.getModeltype().equals(ModelType.LOG_BEAM_MODEL)){
+			//for(Particle p: current_set){
+			//	assert(p.getNomalizedWeight()!=-Double.MAX_VALUE);
+			//	normalizedW+=p.getNomalizedWeight();
+			//}
+			//normalizedW = 1 - bestParticle.getNomalizedWeight()/normalizedW;
+			normalizedW = bestParticle.getOriginalWeight();
+			if (normalizedW > this.XI) //if do calculate SER or not?/
+				ser = true;
+		}
+		System.out.println("normalizedW and XI are " + normalizedW + ' ' + XI);
+		if (ser) {
+			this.Nl = Math.round(this.ALPHA * this.Nt);
 		}	
 		else {
-			this.Nl = (int) (this.ALPHA * this.Nt);
+			this.Nl = this.Nt;
 		}
 		this.Ng = this.Nt - this.Nl;
 		
@@ -642,30 +680,13 @@ public class SAMCL extends MclBase implements Closeable, FrameOwner{
 			List<Particle> global_set,
 			Grid grid) throws Exception{
 		
-		
-//		float normalized_weight = 0;
-		double normalizedW = 0;
-		if( this.sensor.getModeltype().equals(ModelType.DEFAULT) ||
-			this.sensor.getModeltype().equals(ModelType.BEAM_MODEL)){
-//			normalized_weight = bestParticle.getWeight(); 
-			normalizedW = bestParticle.getNomalizedWeight();
-		}
-		else if(this.sensor.getModeltype().equals(ModelType.LOSS_FUNCTION)||
-				this.sensor.getModeltype().equals(ModelType.LOG_BEAM_MODEL)){
-			for(Particle p: current_set){
-//				if(p.getWeight()!=-Float.MAX_VALUE)
-//					normalized_weight+=p.getWeight();
-				assert(p.getNomalizedWeight()!=-Double.MAX_VALUE);
-				normalizedW+=p.getNomalizedWeight();
-			}
-//			normalized_weight = 1 - bestParticle.getWeight()/normalized_weight;
-			normalizedW = 1 - bestParticle.getNomalizedWeight()/normalizedW;
-		}
+		if(this.ALPHA >=1.0 || this.XI <= 0.0)
+			return;
 		
 		//If normalized best weight ranging from 0.0 to 1.0 is lower than a positive parameter XI
 		//then SER is calculated.
 		//if (best_weight > this.XI)
-		if (/*normalized_weight<this.XI ||*/ normalizedW < this.XI) {//if do calculate SER or not?/
+		if (this.Ng > 0) {
 			/*Get the reference energy*/
 			float energy = Transformer.CalculateEnergy(Zt,this.sensor.range_max);
 			float UpperBoundary = energy + this.deltaEnergy;
@@ -698,6 +719,8 @@ public class SAMCL extends MclBase implements Closeable, FrameOwner{
 					SER_set.remove(randIdx);
 					//System.out.println("SER particle "+i +":"+particle.toString() );
 				}
+				System.out.println("sample " + global_set.size() + " particles from " + SER_set.size()+".");
+				
 			}else{
 				System.out.println("source set is empty");
 			}
@@ -745,16 +768,19 @@ public class SAMCL extends MclBase implements Closeable, FrameOwner{
 	public void localResampling(List<Particle> src, List<Particle> dst,
 			RobotState robot,
 			LaserModelData laserData,
-			Grid grid){
-		dst.clear();
-		//System.out.println("tournament presure: " + tournamentPresure);
-
-		for (int i = dst.size(); i < this.Nl; i++) {
-			//Roulette way
-			//Tournament way
-			Particle particle = Transformer.tournament(tournamentPresure, src);
-			dst.add(particle.clone());
-			//System.out.println();
+			Grid grid,
+			Particle bestParticle){
+		if( this.sensor.getModeltype().equals(ModelType.DEFAULT)|| this.sensor.getModeltype().equals(ModelType.BEAM_MODEL)){
+			Transformer.resamplingLowVariance(src,dst);
+			for(Particle p:dst)
+				p.setWeightForNomalization(1.0/dst.size());
+		}else {
+			//System.out.println("tournament presure: " + tournamentPresure);
+			for (int i = dst.size(); i < this.Nl; i++) {
+				//Tournament way
+				Particle particle = Transformer.tournament(tournamentPresure, src);
+				dst.add(particle.clone());
+			}
 		}
 	}
 
@@ -779,7 +805,7 @@ public class SAMCL extends MclBase implements Closeable, FrameOwner{
 		}
 	}
 	
-	private void updateImagePanel(
+	protected void updateImagePanel(
 			Grid grid,
 			RobotState robot, 
 			PoseWithCovariance estimate, 
@@ -791,13 +817,34 @@ public class SAMCL extends MclBase implements Closeable, FrameOwner{
 		grid.refresh();
 
 		//SER
-		if(SER!=null)
+		if(SER!=null && this.ifShowSER)
 			grid.drawPoints(SER);
 		
 		//Particles
-		if(this.ifShowParticles && particles.size()>0){
+		if(particles != null && this.ifShowParticles && particles.size()>0){
 			for(Particle p: particles){
 				grid.drawHypothesisRobot(p.getX(), p.getY(), p.getTh());
+				if(this.ifShowParticleLaser) {
+					if(this.preCachingFlag==true) {
+						List<Point> beams = grid.G[(int)Math.round(p.getDX())][(int)Math.round(p.getDY())].getMeasurement_points(Transformer.th2Z(p.getTh(),this.sensor.getOrientation()));
+						//List<Point> beams = grid.G[p.getX()][p.getY()].getMeasurement_points(-1);
+						for(int zidx = 0 ; zidx < beams.size() ; zidx++) {
+							grid.drawLaserPoint(beams.get(zidx).x, beams.get(zidx).y, Color.ORANGE);
+						}
+					}
+					else {
+						List<Float> beams = p.getMeasurements();
+						for(int zidx = 0 ; zidx < beams.size() ; zidx++){
+							double bearing = p.getTh()+sensor.angle_min + (double)sensor.angle_resolution*zidx;
+							//double bearing = Transformer.Z2Th(zidx, this.sensor.getOrientation());
+							//double beamdist = p.getMeasurements().get(zidx);
+							double beamdist = beams.get(zidx);
+							grid.drawLaserPoint(
+								p.getX()+(int)(beamdist*Math.cos(Math.toRadians(bearing))),
+								p.getY()+(int)(beamdist*Math.sin(Math.toRadians(bearing))));
+						}
+					}
+				}
 			}
 		}
 		
@@ -812,7 +859,7 @@ public class SAMCL extends MclBase implements Closeable, FrameOwner{
 		
 		if(estimate!=null){
 			grid.drawBestSolution((int)Math.round(estimate.X), (int)Math.round(estimate.Y), estimate.H);
-			grid.drawConfidence((int)Math.round(estimate.X), (int)Math.round(estimate.Y), estimate.H, estimate.cov);
+			//grid.drawConfidence((int)Math.round(estimate.X), (int)Math.round(estimate.Y), estimate.H, estimate.cov);
 		}
 		
 			

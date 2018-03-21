@@ -46,8 +46,8 @@ public class Main {
 			System.out.println("please enter arguments");
 			String[] targs2 = {"--help"};
 
-			args = targs;
-			//args = targs2;
+			//args = targs;
+			args = targs2;
 		}
 		
 		MCLRunner runner = new MCLRunner();

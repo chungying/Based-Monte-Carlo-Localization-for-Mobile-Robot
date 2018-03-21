@@ -15,10 +15,18 @@ public class PoseWithTimestamp extends Pose{
 	}
 	
 	public PoseWithTimestamp(Time t){
-		this.stamp = t;
+		this.stamp = new Time(t.getTime());
 	}
 	
 	public Time getTimeStampe(){
 		return stamp;
+	}
+	
+	public PoseWithTimestamp clone() {
+		PoseWithTimestamp clone = new PoseWithTimestamp(this.stamp);
+		clone.X = this.X;
+		clone.Y = this.Y;
+		clone.H = this.H;
+		return clone;
 	}
 }

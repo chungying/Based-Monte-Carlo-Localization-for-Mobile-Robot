@@ -78,7 +78,7 @@ public class MCLLaserModel extends LaserModel{
 	
 	protected SensorModelCallback<List<Particle>, LaserModelData, Double> callableModelFunction = new BeamModel();;
 	
-	protected void setupCallableModel(ModelType modelType) {
+	public void setupCallableModel(ModelType modelType) {
 		switch(modelType){
 		case BEAM_MODEL:
 			this.modelType = ModelType.BEAM_MODEL;

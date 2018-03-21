@@ -54,6 +54,8 @@ import org.apache.hadoop.mapreduce.Reducer.Context;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
+import org.apache.commons.math3.exception.MaxCountExceededException;
+
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParametersDelegate;
 
@@ -101,7 +103,7 @@ public class Grid implements FrameOwner, Closeable {
 		 * return all of the measurements
 		 * </pre>
 		 */
-		private List<Float> getMeasurements(int z) {
+		public List<Float> getMeasurements(int z) {
 			if (z >= 0) {
 				List<Float> measurements = new ArrayList<Float>();
 				//int bias = (this.sensor_number - 1) / 2;
@@ -402,16 +404,24 @@ public class Grid implements FrameOwner, Closeable {
 		GraphicTools.drawRobot(grap, x, y, th, size, color);
 	}
 	
-	public void drawLaserPoint(int x, int y){
+	public void drawLaserPoint(int x, int y) {
+		this.drawLaserPoint(x, y, Color.RED);
+	}
+	
+	public void drawLaserPoint(int x, int y, Color c){
 		if(visualization==false)
 			return;
-		GraphicTools.drawPoint(grap, x, y, -1.0, 4, Color.RED);
+		GraphicTools.drawPoint(grap, x, y, -1.0, 4, c);
 	}
 	
 	public void drawConfidence(int x, int y, double th, double[][] cov){
 		if(visualization==false)
 			return;
-		GraphicTools.drawConfidentZone(grap, x, y, th, cov);
+		try {
+			GraphicTools.drawConfidentZone(grap, x, y, th, cov);
+		}catch (MaxCountExceededException e){
+			e.printStackTrace();
+		}
 	}
 	public void drawBestSolution(int x, int y, double th){
 		if(visualization==false)
@@ -788,7 +798,7 @@ public class Grid implements FrameOwner, Closeable {
 						* Math.sin((i * this.laser.angle_resolution)
 								* Math.PI / 180)));
 				//check max_dist
-				if(step>=max_dist)
+				if(step>=max_dist && max_dist > 0)
 					break;
 			}
 			//Unit of measurements has to be changed into pixel. done!
@@ -1061,29 +1071,33 @@ public class Grid implements FrameOwner, Closeable {
 		else{
 			this.totalProgress = this.width * this.height;
 			int progress = 0;
+			int step = 10;
 			this.G = new position[this.width][this.height];
 			for (int x = 0; x < this.width; x++) {
 				for (int y = 0; y < this.height; y++) {
 					this.currentProgress = x * y;
-					if (Math.round(this.currentProgress / this.totalProgress) > progress) {
-						progress++;
+					if (Math.round(this.currentProgress / this.totalProgress *100) >= progress) {
 						System.out.println("pre-caching progress" + progress + "%");
+						progress+=step;
 					}
 
-					List<Float> measurements = new ArrayList<Float>();
-					List<Point> measurement_points = new ArrayList<Point>();
 					if (x == 0) {
-
+						List<Float> measurements = new ArrayList<Float>();
+						List<Point> measurement_points = new ArrayList<Point>();
 						for (int k = 0; k < this.laser.getOrientation(); k++) {
 							measurements.add(0f);
 							measurement_points.add(new Point(x, y));
 						}
+						this.G[x][y] = new position(measurements, this.laser.range_max, measurement_points);
 					} else {
-						// Unit of G has to be changed into pixel. done!
+						/*List<Float> measurements = new ArrayList<Float>();
+						List<Point> measurement_points = new ArrayList<Point>();
 						this.getlaserdist(x, y, measurements, measurement_points, this.laser.range_max);
-
+						this.G[x][y] = new position(measurements, this.laser.range_max, measurement_points);*/
+						SimpleEntry<List<Float>, List<Point>> e =  this.getLaserDist(x, y, this.laser.range_max);
+						this.G[x][y] = new position(e.getKey(), this.laser.range_max, e.getValue());
 					}
-					this.G[x][y] = new position(measurements, this.laser.range_max, measurement_points);
+					
 				}
 			} 
 		}

@@ -182,7 +182,8 @@ public class Test extends MCL{
 	public void localResampling(List<Particle> src, List<Particle> dst,
 			RobotState robot,
 			LaserModelData laserData,
-			Grid grid) {
+			Grid grid,
+			Particle bestParticle) {
 		dst.addAll(src);
 		this.records = dst;
 		

@@ -12,7 +12,8 @@ public class MIXMCL extends DEMCMCL {
 	public void localResampling(List<Particle> src, List<Particle> dst,
 			RobotState robot,
 			LaserModelData laserData,
-			Grid grid) {
+			Grid grid,
+			Particle bestParticle) {
 		DEMC(src, src, laserData, grid, ita, b);
 		//reassign all particles with equal weigh
 		double sumW = 0;
@@ -22,7 +23,7 @@ public class MIXMCL extends DEMCMCL {
 		for(Particle p:src){
 			p.setWeightForNomalization(p.getOriginalWeight()/sumW);
 		}
-		super.localResampling(src, dst, robot, laserData, grid);
+		super.localResampling(src, dst, robot, laserData, grid, bestParticle);
 		for(Particle p: dst){
 			p.setWeightForNomalization(1.0 / ((double)dst.size()));
 		}

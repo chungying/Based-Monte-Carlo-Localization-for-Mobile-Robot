@@ -7,8 +7,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.TreeMap;
-import java.util.HashMap;
-
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
@@ -27,6 +25,7 @@ import util.Transformer;
 import util.grid.Grid;
 import util.pf.Particle;
 import util.pf.sensor.laser.LaserModel.LaserModelData;
+import util.pf.sensor.laser.MCLLaserModel.ModelType;
 import util.robot.RobotState;
 
 /**
@@ -34,31 +33,45 @@ import util.robot.RobotState;
  *
  */
 public class IMCLROE extends SAMCL{
+	
+	public IMCLROE() {
+		super();
+		System.out.println("setting sensor model type as " + ModelType.LOSS_FUNCTION);
+		this.sensor.setupCallableModel(ModelType.LOSS_FUNCTION);
+		System.out.println("the model type is " + this.sensor.getModeltype());
+	}
+	
 	@Override
 	public void localResampling(List<Particle> src, List<Particle> dst,
 			RobotState robot,
 			LaserModelData laserData,
-			Grid grid) {
+			Grid grid,
+			Particle bestParticle) {
 		//Tournament
-		//super.localResampling(src, dst, robot, laserData, grid);
-		//int count = 0; 
-		//double minimumWeight = 1;//Double.MAX_VALUE
-		//for(Particle p: src){
-		//	if(count == 0 || minimumWeight > p.getOriginalWeight()) {
-		//		minimumWeight = p.getOriginalWeight();
-		//	}
-		//	//System.out.println("unnormalized : [" + (float)p.getDX() + ' ' + (float)p.getDY() + ' ' + p.getOriginalWeight()+']');
-		//	count++;
-		//}
-		////System.out.println("minimumWeight is " + minimumWeight);
-		//for(Particle p: src){
-		//	p.setOriginalWeight(p.getOriginalWeight() - minimumWeight);
-		//	//System.out.println("normalized : [" + (float)p.getDX() + ' ' + (float)p.getDY() + ' ' + p.getOriginalWeight()+']');
-		//}
-		//Low Variance
-		Transformer.resamplingLowVariance(src,dst);
-		for(Particle p:dst)
-			p.setWeightForNomalization(1.0/dst.size());
+		dst.clear();
+		dst.add(bestParticle);
+		for (int i = dst.size(); i < this.Nl; i++) {
+			//Roulette way
+			//Tournament way
+			Particle particle = Transformer.tournament(tournamentPresure, src);
+			dst.add(particle.clone());
+			//System.out.println();
+		}
+		//normalization for tournament
+		int count = 0; 
+		double minimumWeight = Double.MAX_VALUE;
+		for(Particle p: src){
+			if(count == 0 || minimumWeight > p.getOriginalWeight()) {
+				minimumWeight = p.getOriginalWeight();
+			}
+			//System.out.println("unnormalized : [" + (float)p.getDX() + ' ' + (float)p.getDY() + ' ' + p.getOriginalWeight()+']');
+			count++;
+		}
+		//System.out.println("minimumWeight is " + minimumWeight);
+		for(Particle p: src){
+			p.setOriginalWeight(p.getOriginalWeight() - minimumWeight);
+			//System.out.println("normalized : [" + (float)p.getDX() + ' ' + (float)p.getDY() + ' ' + p.getOriginalWeight()+']');
+		}
 	}
 	
 	@Parameter(names = {"-E","--endpoint"}, 
@@ -79,83 +92,23 @@ public class IMCLROE extends SAMCL{
 			throw new Exception("Grid is not on cloud.");
 		}
 		List<Long> ts = null;
-		//remove duplicated particle in X-Y domain
-		//Transformer.filterParticle(src);
-		HashMap<String, Particle> map = new HashMap<String, Particle>();
-		HashMap<String, Double> weightMap = new HashMap<String, Double>();
-		for(Particle p: src){
-			String key = Transformer.xy2RowkeyString(p.getDX(),p.getDY(), random);
-			map.put(key, p);
-			Double val = weightMap.get(key);
-			//For Tournament
-			//double pWeight = p.getOriginalWeight();
-			//For Low Variance
-			double pWeight = p.getNomalizedWeight();
-			if(val == null) {
-				weightMap.put(key, pWeight);
-			}
-			else {
-				weightMap.put(key, val + pWeight);
-			}
-		}
-		src.clear();
-		src.addAll(map.values());
+		//remove duplicated particle in map frame
+		Transformer.filterParticle(src);
+		
 		//choose endpoint
 		if(this.endpoint==1){
-			//timers = this.proxyEndpoint(src, robotMeasurements);
-			ts = this.proxyEndpoint(src, /*robotMeasurements*/laserData);
+			ts = this.proxyEndpoint(src, laserData);
 		}
 		else if(this.endpoint==2){
-			//timers = this.oewc2Endpoint(src, robotMeasurements, 1000);
-			ts = this.oewc2Endpoint(src, /*robotMeasurements*/laserData, 1000);
+			ts = this.oewc2Endpoint(src, laserData, 1000);
 		}
 		else{
 			Transformer.debugMode(true, "there is inappropriate endpoint\n");
 		}
-		for(Particle p: src){
-			String key = Transformer.xy2RowkeyString(p.getDX(),p.getDY(), random);
-			Double val = weightMap.get(key);
-			if(val == null) {
-				System.out.println("IMCLROE.weightAssignment cannot match a particle with key:" + key);
-				;
-			}
-			else {
-				//For Tournament
-				//p.setOriginalWeight(p.getOriginalWeight() + val);
-				//For Low Variance
-				p.setWeightForNomalization(p.getNomalizedWeight() + val);
-			}
-		}
-		//return timers;
+		
 		return ts;		
 		
 	}
-
-//	@Override
-//	public long updateParticle( List<Particle> src) throws Exception {
-//		// TODO Auto-generated method stub
-//		return -1;
-//	}
-
-/*	@Override
-	public long batchWeight(RobotState robot, List<Particle> src, float[] robotMeasurements)
-			throws Exception {
-		//remove duplicated particle in X-Y domain
-		Transformer.filterParticle(src);
-		//choose endpoint
-		if(this.endpoint==1){
-			Transformer.debugMode(mode, "choose the proxy endpoint version.\n");
-			return this.proxyEndpoint(src, robotMeasurements);
-		}
-		else if(this.endpoint==2){
-			Transformer.debugMode(mode, "choose the oewc2 endpoint version.\n");
-			return this.oewc2Endpoint(src, robotMeasurements, 1000);
-		}
-		else{
-			Transformer.debugMode(true, "there is inappropriate endpoint\n");
-			return -1;
-		}
-	}*/
 
 	private List<Long> proxyEndpoint(final List<Particle> src, final LaserModelData laserData) {
 		// TODO proxy endpoint
@@ -394,9 +347,7 @@ public class IMCLROE extends SAMCL{
 						new Particle(
 								op.getX(), 
 								op.getY(), 
-								// TODO change Z of OewcProtos2.OewcResponse into Integer. 
-								Transformer.Z2Th((int)op.getZ(), sensor.getOrientation()), 
-//								op.getW(),
+								Transformer.Z2Th(op.getZ(), sensor.getOrientation()), 
 								op.getW())// TODO getting double type
 						);
 			}
@@ -408,22 +359,10 @@ public class IMCLROE extends SAMCL{
 		ts.add(durationAll-t1);
 		ts.add(t2-t1);
 		ts.add(t2);
-		/*long[] timers = new long[3];
-		timers[2] = Collections.max(durationsReadingHDFS);
-		timers[1] = Collections.max(durationsOEWC);
-		timers[0] = durationAll - timers[1];
-		timers[1] -= timers[2];*/
-
-//		for(Integer i : particlesNo){
-//			System.out.print(i+",");
-//			
-//		}
-//		System.out.print("\t");
 		
-		//change the result to src
+		//move the result to src
 		src.clear();
 		src.addAll(result);
-		//return timers;
 		return ts;
 	}
 

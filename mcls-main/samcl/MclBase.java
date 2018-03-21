@@ -6,10 +6,12 @@ import com.beust.jcommander.converters.FloatConverter;
 
 public class MclBase{	
 	public void setupMclBase(MclBase other) {
+		this.forceUpdate       = other.forceUpdate      ;
 		this.ifShowSER         = other.ifShowSER        ;
 		this.ifShowParticles   = other.ifShowParticles  ;
 		this.ifShowSensors     = other.ifShowSensors    ;
 		this.convergeFlag      = other.convergeFlag     ;
+		this.preCachingFlag    = other.preCachingFlag   ;
 		this.ignore            = other.ignore           ;
 		this.debugMode         = other.debugMode        ;
 		this.safe_edge         = other.safe_edge        ;
@@ -26,8 +28,14 @@ public class MclBase{
 	}
 
 	//parameters whose initial states have to be cached  
+	@Parameter(names = {"-fu", "--forceUpdate"}, description = "if TRUE, update MCL when laser is available, default is false", required = false, arity = 1)
+	boolean forceUpdate = false;
+
 	@Parameter(names = {"-ss", "--showSer"}, description = "if TRUE, display Similar Energy Region (SER), default is false", required = false, arity = 1)
 	public boolean ifShowSER = false;
+
+	@Parameter(names = {"-spl", "--showParticleLaser"}, description = "if TRUE, display each particle's laser, default is false", required = false, arity = 1)
+	public boolean ifShowParticleLaser = false;
 
 	@Parameter(names = {"-sp", "--showParticles"}, description = "if TRUE, display particles, default is false", required = false, arity = 1)
 	public boolean ifShowParticles = false;
@@ -37,6 +45,9 @@ public class MclBase{
 
 	@Parameter(names = {"-msr","--mapSafeRange"}, description = "the range of map edge which wouldn't be used during the process, must be greater than 1, default is 10 pixel.", required = false, arity = 1)
 	public int safe_edge = 10;//TODO change variable name
+
+	@Parameter(names = {"-pc","--preCaching"}, description = "if TRUE, pre-compute raycasting and store the data as a grid, default is false", required = false, arity = 1)
+	public boolean preCachingFlag = false;
 
 	@Parameter(names = {"-c","--converge"}, description = "if TRUE, initial robot pose is known for MCL, default is false", required = false, arity = 1)
 	public boolean convergeFlag = false;

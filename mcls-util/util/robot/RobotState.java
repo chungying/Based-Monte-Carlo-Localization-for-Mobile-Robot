@@ -210,7 +210,7 @@ public class RobotState extends Pose implements Runnable, Closeable, FrameOwner{
 	
 	private void updateSensorWithGaussianNoise() throws Exception{
 		long stamp = System.currentTimeMillis();
-		SimpleEntry<List<Float>, List<Point>> entry = GridTools.getLaserDist(this.grid, this.laser, this.X, this.Y, this.H, true);
+		SimpleEntry<List<Float>, List<Point>> entry = GridTools.getLaserDist(this.grid, this.laser, this.X, this.Y, this.H, false);
 		if(entry.getKey()!=null)
 		{
 			while(isRobotLocked()){

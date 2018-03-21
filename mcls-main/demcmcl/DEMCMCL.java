@@ -85,8 +85,9 @@ public class DEMCMCL extends MCL{
 	public void localResampling(List<Particle> src, List<Particle> dst,
 			RobotState robot,
 			LaserModelData laserData,
-			Grid grid) {
-		super.localResampling(src, dst, robot, laserData, grid);
+			Grid grid,
+			Particle bestParticle) {
+		super.localResampling(src, dst, robot, laserData, grid, bestParticle);
 		if(this.genePool == GenePoolSource.RESAMPLED_SET){
 			DEMC(dst, dst, laserData, grid, this.ita, this.b);
 		}else if(this.genePool == GenePoolSource.IRRESAMPLED_SET){
