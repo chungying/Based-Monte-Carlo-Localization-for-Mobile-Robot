@@ -336,9 +336,8 @@ public class Transformer {
 	 * @param src
 	 * @param dst
 	 */
-	public static void resamplingLowVariance(List<Particle> src, List<Particle> dst){
-		dst.clear();
-		double rand = randomSeed.nextDouble()/src.size();
+	public static void resamplingLowVariance(List<Particle> src, List<Particle> dst, int targetNo){
+		
 //		float sumWeight = 0;
 		double sumW = 0;
 		for(Particle p: src){
@@ -352,21 +351,21 @@ public class Transformer {
 			for(Particle p: src)
 				p.setWeightForNomalization(p.getNomalizedWeight()/sumW);
 		}
-//		float cWeight = src.get(0).getWeight();
+		int src_size = src.size();
+		dst.clear();
+		double rand = randomSeed.nextDouble()/src.size();
 		double cW = src.get(0).getNomalizedWeight();
 		int i = 0;
-		for(int m = 1; m <= src.size();++m){
-			double u = (m-1.0)/src.size();
-			u += rand;
-			while(  (/*u>cWeight||*/u>cW)
-					&&i<src.size()-1){
+		for(int m = 0; ;++m){
+			double u = ((double)m)/(double)src.size()+rand;
+			while( u > cW ){
 				i++;
-//				cWeight+=src.get(i).getWeight();
-				cW+=src.get(i).getNomalizedWeight();
+				cW+=src.get(i%src_size).getNomalizedWeight();
 			}
-			if(i>=src.size()-1)
+			//if(i>=src.size()-1)
+			if(dst.size()>=targetNo)
 				break;
-			dst.add(src.get(i).clone());
+			dst.add(src.get(i%src_size).clone());
 		}
 		while(i>=src.size()-1 && dst.size()<src.size()){
 			dst.add(src.get(randomSeed.nextInt(src.size())).clone());

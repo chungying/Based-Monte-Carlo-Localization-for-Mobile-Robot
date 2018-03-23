@@ -68,7 +68,7 @@ public class MCL extends SAMCL{
 			Particle bestParticle) {
 		dst.clear();
 		if( this.sensor.getModeltype().equals(ModelType.DEFAULT)|| this.sensor.getModeltype().equals(ModelType.BEAM_MODEL)){
-			Transformer.resamplingLowVariance(src,dst);
+			Transformer.resamplingLowVariance(src, dst, this.Nt);
 //			Transformer.resamplingCPT(src, dst);
 //			super.localResampling(src, dst, bestParticle);
 			for(Particle p:dst)

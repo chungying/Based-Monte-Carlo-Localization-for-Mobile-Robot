@@ -327,7 +327,8 @@ public class SAMCL extends MclBase implements Closeable, FrameOwner{
 				long localResamplingTime = System.currentTimeMillis();
 				if((counter%resampleInterval)==0){
 					this.localResampling(current_set, local_set, robot, laserDataWithModel, grid, bestParticle);
-				}else{
+				}
+				else{
 					local_set.clear();
 					local_set.addAll(current_set);
 				}
@@ -655,7 +656,7 @@ public class SAMCL extends MclBase implements Closeable, FrameOwner{
 			if (normalizedW > this.XI) //if do calculate SER or not?/
 				ser = true;
 		}
-		System.out.println("normalizedW and XI are " + normalizedW + ' ' + XI);
+		//System.out.println("normalizedW and XI are " + normalizedW + ' ' + XI);
 		if (ser) {
 			this.Nl = Math.round(this.ALPHA * this.Nt);
 		}	
@@ -771,7 +772,7 @@ public class SAMCL extends MclBase implements Closeable, FrameOwner{
 			Grid grid,
 			Particle bestParticle){
 		if( this.sensor.getModeltype().equals(ModelType.DEFAULT)|| this.sensor.getModeltype().equals(ModelType.BEAM_MODEL)){
-			Transformer.resamplingLowVariance(src,dst);
+			Transformer.resamplingLowVariance(src, dst, this.Nt);
 			for(Particle p:dst)
 				p.setWeightForNomalization(1.0/dst.size());
 		}else {
