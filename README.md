@@ -120,7 +120,8 @@ Make sure ```mcls-all-1.00.00.jar``` and ```jcommander-1.36-SNAPSHOT.jar``` are 
   
 ## 2) Execute the localization program  
 ```
-$hadoop jar mcls-all-1.00.00.jar imclroe.Main -i file:///home/USERNAME/MAPIMAGE -o 18 -cl true -t simmap-18-4 -rx 250 -ry 170 --samcldelta 0.0001 --samclxi 0.05 -n 200  
+$hadoop jar mcls-all-1.00.00.jar imclroe.Main -i file:///home/USERNAME/MAPIMAGE -o 18 -cl true -t simmap-18-4 -rx 250 -ry 170 --samcldelta 0.0001 --samclxi 0.05 -n 200
+$hadoop jar mcls-all-1.00.09.jar -i /MAPIMAGE --particleNumber 1000 -tournamentPressure 100 --className samclroe.SAMCLROE --sensormodel LOSS_FUNCTION -rx 120 -ry 110 -rh 0 -lares 20 -lamin -90 -lamx 90 -lrmax -1 --runTimes 0 --forwardDist 550 --linearvelocity 10 --debug true --converge false -cl false -ed 0.001 -xi 50 --preCaching true --forceUpdate false --odomAlpha1 10 --odomAlpha2 10 --odomAlpha3 10 --odomAlpha4 10 --odomAlpha5 10 --odomAlpha6 10 --populationRatio 0.95 --visualization true -sl true -sp true 
 ```
 -i is the route of map image  
 -o is the resolution of the map  
